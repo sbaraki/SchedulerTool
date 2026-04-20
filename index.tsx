@@ -64,6 +64,7 @@ interface LocationMilestone {
 
 interface Exhibition {
   id: string;
+  exhibitionId: string;
   title: string;
   status: ExhibitionStatus;
   startDate: string;
@@ -104,6 +105,7 @@ const MILESTONE_COLORS = [
 const INITIAL_EXHIBITIONS: Exhibition[] = [
   {
     id: '1',
+    exhibitionId: 'EX-2026-001',
     title: 'THE DIGITAL RENAISSANCE',
     status: 'Open to Public',
     startDate: '2026-04-15',
@@ -118,6 +120,7 @@ const INITIAL_EXHIBITIONS: Exhibition[] = [
   },
   {
     id: '2',
+    exhibitionId: 'EX-2026-002',
     title: 'OVERLAPPING VISION',
     status: 'Proposed',
     startDate: '2026-03-01',
@@ -134,19 +137,28 @@ const INITIAL_EXHIBITIONS: Exhibition[] = [
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const FY_QUARTERS = ['Q4', 'Q1', 'Q2', 'Q3'];
 const BASE_LANE_HEIGHT = 80; 
-const TRACK_HEIGHT = 50; 
-const HEADER_HEIGHT = 124; 
-const STANDARD_BAR_HEIGHT = 38; 
-const PHASE_BAR_HEIGHT = 20;
+const TRACK_HEIGHT = 44; 
+const HEADER_HEIGHT = 90; 
+const STANDARD_BAR_HEIGHT = 34; 
+const PHASE_BAR_HEIGHT = 18;
 
 const getStatusColor = (status: string) => {
   switch(status) {
-    case 'Open to Public': return '#00E676';
-    case 'In Development': return '#FFF200';
-    case 'Proposed': return '#ffffff';
-    case 'Closed': return '#e2e8f0';
+    case 'Open to Public': return '#10b981'; // emerald-500
+    case 'In Development': return '#facc15'; // yellow-400
+    case 'Proposed': return '#f1f5f9'; // slate-100
+    case 'Closed': return '#f8fafc'; // slate-50
     default: return '#cbd5e1';
   }
+};
+
+const getContrastColor = (hexcolor: string) => {
+  if (!hexcolor || hexcolor.length < 7) return 'text-black';
+  const r = parseInt(hexcolor.substring(1, 3), 16);
+  const g = parseInt(hexcolor.substring(3, 5), 16);
+  const b = parseInt(hexcolor.substring(5, 7), 16);
+  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+  return (yiq >= 160) ? 'text-black' : 'text-white';
 };
 
 const toISODate = (date: Date) => {
@@ -185,7 +197,7 @@ const getDateFromPosition = (x: number, monthWidth: number, vMonths: any[]) => {
 const formatBarDate = (dateStr: string) => {
   const date = new Date(dateStr + 'T12:00:00');
   if (isNaN(date.getTime())) return '---';
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase();
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
 };
 
 // --- Collision Utility ---
@@ -305,21 +317,21 @@ const DetailPanel = ({
   };
 
   return (
-    <aside className="fixed inset-y-0 right-0 w-full sm:w-[460px] bg-white border-l-2 border-black z-[100] flex flex-col no-print shadow-[-4px_0_0_0_rgba(0,0,0,1)] focus-within:ring-2 focus-within:ring-black">
-      <div className="p-6 border-b-2 border-black flex justify-between items-center bg-slate-50">
+    <aside className="fixed inset-y-0 right-0 w-full sm:w-[460px] bg-white border-l border-slate-200 z-[100] flex flex-col no-print shadow-2xl focus-within:ring-2 focus-within:ring-blue-500/20">
+      <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white">
         <div className="flex-1 mr-4">
           {isEditing ? (
             <div className="flex flex-col">
-              <label htmlFor="ex-title" className="sr-only">Project Title</label>
+              <label htmlFor="ex-title" className="text-[10px] font-bold uppercase text-slate-400">Project Title</label>
               <input 
                 id="ex-title"
-                className="text-xl font-bold text-black w-full bg-white border-2 border-black p-2 outline-none focus:bg-yellow-50" 
+                className="text-lg font-bold text-slate-900 w-full bg-slate-50 border border-slate-200 rounded-md p-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" 
                 value={editedEx.title} 
                 onChange={(e) => handleFieldChange('title', e.target.value.toUpperCase())} 
               />
             </div>
           ) : (
-            <h2 className="text-xl font-black text-black leading-none uppercase tracking-tight">{exhibition.title}</h2>
+            <h2 className="text-lg font-black text-black leading-none uppercase tracking-tight">{exhibition.title}</h2>
           )}
         </div>
         <div className="flex items-center space-x-2">
@@ -327,7 +339,7 @@ const DetailPanel = ({
             <button 
               aria-label="Save all changes"
               onClick={handleSaveAll} 
-              className="w-10 h-10 bg-black text-white border-2 border-black flex items-center justify-center hover:bg-white hover:text-black transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-black"
+              className="w-10 h-10 bg-black text-white border border-slate-300 rounded flex items-center justify-center hover:bg-white hover:text-black transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-black"
             >
               <Check size={20} />
             </button>
@@ -335,7 +347,7 @@ const DetailPanel = ({
             <button 
               aria-label="Edit project"
               onClick={() => setIsEditing(true)} 
-              className="w-10 h-10 bg-white border-2 border-black text-black flex items-center justify-center hover:bg-black hover:text-white transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-black"
+              className="w-10 h-10 bg-white border border-slate-300 rounded text-black flex items-center justify-center hover:bg-black hover:text-white transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-black"
             >
               <Edit2 size={18} />
             </button>
@@ -343,21 +355,21 @@ const DetailPanel = ({
           <button 
             aria-label="Close panel"
             onClick={onClose} 
-            className="w-10 h-10 bg-white border-2 border-black text-black flex items-center justify-center hover:bg-black hover:text-white transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-black"
+            className="w-10 h-10 bg-white border border-slate-300 rounded text-black flex items-center justify-center hover:bg-black hover:text-white transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-black"
           >
             <X size={22} />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
         <div className="grid grid-cols-1 gap-4">
           <div className="space-y-1">
             <span id="label-status" className="text-[10px] font-black uppercase text-slate-400">PROJECT STATUS</span>
             {isEditing ? (
               <select 
                 id="ex-status"
-                className="w-full font-bold border-2 border-black p-2 outline-none text-sm bg-white text-black focus:bg-yellow-50" 
+                className="w-full font-bold border border-slate-300 rounded p-2 outline-none text-sm bg-white text-black focus:bg-yellow-50" 
                 value={editedEx.status} 
                 onChange={(e) => handleFieldChange('status', e.target.value)}
               >
@@ -365,19 +377,33 @@ const DetailPanel = ({
               </select>
             ) : (
               <div>
-                <p className="font-bold text-sm uppercase px-2 py-0.5 border-2 border-black inline-block" style={{ backgroundColor: getStatusColor(exhibition.status) }}>{exhibition.status}</p>
+                <p className="font-bold text-sm uppercase px-2 py-0.5 border border-slate-300 rounded inline-block" style={{ backgroundColor: getStatusColor(exhibition.status) }}>{exhibition.status}</p>
               </div>
             )}
           </div>
         </div>
 
-        <div className="p-4 border-2 border-black space-y-4 bg-slate-50/50">
-           <div className="space-y-1">
+        <div className="p-4 border border-slate-300 rounded space-y-4 bg-slate-50/50">
+          <div className="space-y-1">
+            <label htmlFor="ex-id" className="text-[10px] font-black uppercase text-slate-400">EXHIBITION ID</label>
+            {isEditing ? (
+              <input 
+                id="ex-id"
+                className="w-full font-bold border border-slate-300 rounded p-2 text-sm bg-white text-black outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/50" 
+                value={editedEx.exhibitionId || ''} 
+                placeholder="EX-0000-000"
+                onChange={(e) => handleFieldChange('exhibitionId', e.target.value.toUpperCase())} 
+              />
+            ) : (
+              <p className="font-bold text-sm uppercase text-blue-600 tracking-tight">{exhibition.exhibitionId || 'UNASSIGNED'}</p>
+            )}
+          </div>
+          <div className="space-y-1">
             <label htmlFor="ex-gallery" className="text-[10px] font-black uppercase text-slate-400">GALLERY LANE</label>
             {isEditing ? (
               <select 
                 id="ex-gallery"
-                className="w-full font-bold border-2 border-black p-2 outline-none text-sm bg-white text-black focus:bg-yellow-50" 
+                className="w-full font-bold border border-slate-300 rounded p-2 outline-none text-sm bg-white text-black focus:bg-yellow-50" 
                 value={editedEx.gallery} 
                 onChange={(e) => handleFieldChange('gallery', e.target.value)}
               >
@@ -394,7 +420,7 @@ const DetailPanel = ({
                 <input 
                   id="ex-start-date"
                   type="date" 
-                  className="w-full border-2 border-black p-2 text-xs bg-white text-black outline-none focus:bg-yellow-50" 
+                  className="w-full border border-slate-300 rounded p-2 text-xs bg-white text-black outline-none focus:bg-yellow-50" 
                   value={editedEx.startDate} 
                   onChange={(e) => handleFieldChange('startDate', e.target.value)} 
                 />
@@ -408,7 +434,7 @@ const DetailPanel = ({
                 <input 
                   id="ex-end-date"
                   type="date" 
-                  className="w-full border-2 border-black p-2 text-xs bg-white text-black outline-none focus:bg-yellow-50" 
+                  className="w-full border border-slate-300 rounded p-2 text-xs bg-white text-black outline-none focus:bg-yellow-50" 
                   value={editedEx.endDate} 
                   onChange={(e) => handleFieldChange('endDate', e.target.value)} 
                 />
@@ -426,7 +452,7 @@ const DetailPanel = ({
                   type="number"
                   min="0.1"
                   step="0.1"
-                  className="w-24 border-2 border-black bg-white text-black font-black p-2 outline-none focus:bg-yellow-50"
+                  className="w-24 border border-slate-300 rounded bg-white text-black font-black p-2 outline-none focus:bg-yellow-50"
                   value={totalProjectDuration}
                   onChange={(e) => {
                     const val = parseFloat(e.target.value);
@@ -442,7 +468,7 @@ const DetailPanel = ({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between border-b-2 border-black pb-1">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-1">
             <h3 className="text-xs font-black uppercase">INTERNAL PHASING</h3>
             {isEditing && (
               <button 
@@ -459,7 +485,7 @@ const DetailPanel = ({
               const isPhaseEditing = editingPhaseId === phase.id;
               
               return (
-                <div key={phase.id} className={`border-2 border-black p-3 flex items-start justify-between bg-white shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-colors ${isPhaseEditing ? 'bg-yellow-50/30' : ''}`}>
+                <div key={phase.id} className={`border border-slate-300 rounded p-3 flex items-start justify-between bg-white shadow-sm hover:shadow-md transition-colors ${isPhaseEditing ? 'bg-yellow-50/30' : ''}`}>
                   <div className="flex items-start space-x-3 w-full">
                     <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-1">{idx + 1}</div>
                     <div className="flex flex-col flex-1 min-w-0">
@@ -470,7 +496,7 @@ const DetailPanel = ({
                             <input 
                               autoFocus
                               aria-label={`Phase ${idx + 1} Label`}
-                              className="font-bold text-xs uppercase border-2 border-black outline-none bg-white text-black focus:bg-yellow-50 w-full p-2"
+                              className="font-bold text-xs uppercase border border-slate-300 rounded outline-none bg-white text-black focus:bg-yellow-50 w-full p-2"
                               value={localPhaseDraft?.label || ''}
                               onChange={(e) => setLocalPhaseDraft(prev => prev ? { ...prev, label: e.target.value.toUpperCase() } : null)}
                             />
@@ -483,7 +509,7 @@ const DetailPanel = ({
                                 min="0"
                                 step="0.1"
                                 aria-label={`Phase ${idx + 1} Duration`}
-                                className="font-black text-xs uppercase border-2 border-black bg-white text-black outline-none w-20 p-2 text-center focus:bg-yellow-50"
+                                className="font-black text-xs uppercase border border-slate-300 rounded bg-white text-black outline-none w-20 p-2 text-center focus:bg-yellow-50"
                                 value={localPhaseDraft?.durationMonths || 0}
                                 onChange={(e) => {
                                   const val = parseFloat(e.target.value);
@@ -494,7 +520,7 @@ const DetailPanel = ({
                             <div className="space-y-1">
                               <label className="text-[9px] font-black text-slate-400 uppercase">TYPE</label>
                               <select 
-                                className="font-black text-[10px] uppercase border-2 border-black bg-white text-black outline-none p-1.5 focus:bg-yellow-50"
+                                className="font-black text-[10px] uppercase border border-slate-300 rounded bg-white text-black outline-none p-1.5 focus:bg-yellow-50"
                                 value={localPhaseDraft?.typeId || ''}
                                 onChange={(e) => setLocalPhaseDraft(prev => prev ? { ...prev, typeId: e.target.value } : null)}
                               >
@@ -505,13 +531,13 @@ const DetailPanel = ({
                           <div className="flex items-center space-x-2 pt-1">
                              <button 
                               onClick={handleSavePhaseLocal}
-                              className="bg-black text-white px-3 py-1.5 text-[10px] font-black uppercase flex items-center hover:bg-slate-800 transition-colors shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                              className="bg-black text-white px-3 py-1.5 text-[10px] font-bold uppercase flex items-center hover:bg-slate-800 transition-colors shadow-sm active:scale-95"
                             >
                               <Check size={14} className="mr-1.5" /> CONFIRM
                             </button>
                             <button 
                               onClick={handleCancelPhaseLocal}
-                              className="bg-white border-2 border-black text-black px-3 py-1.5 text-[10px] font-black uppercase flex items-center hover:bg-slate-50 transition-colors shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                              className="bg-white border border-slate-300 rounded text-black px-3 py-1.5 text-[10px] font-bold uppercase flex items-center hover:bg-slate-50 transition-colors shadow-sm active:scale-95"
                             >
                               <X size={14} className="mr-1.5" /> CANCEL
                             </button>
@@ -571,8 +597,8 @@ const DetailPanel = ({
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="ex-description" className="text-xs font-black uppercase border-b-2 border-black pb-1 block">NARRATIVE</label>
-          <div className="p-4 border-2 border-black bg-white min-h-[120px] shadow-inner">
+          <label htmlFor="ex-description" className="text-xs font-black uppercase border-b border-slate-200 pb-1 block">NARRATIVE</label>
+          <div className="p-4 border border-slate-300 rounded bg-white min-h-[120px] shadow-inner">
             {isEditing ? (
               <textarea 
                 id="ex-description"
@@ -589,27 +615,27 @@ const DetailPanel = ({
         </div>
       </div>
 
-      <div className="p-6 border-t-2 border-black flex gap-3 bg-white shrink-0">
+          <div className="p-4 border-t border-slate-200 flex gap-3 bg-white shrink-0">
         {isEditing ? (
           <>
-            <button onClick={() => setIsEditing(false)} className="flex-1 py-3 bg-white border-2 border-black font-black uppercase text-xs hover:bg-slate-100 focus:ring-2 focus:ring-black">DISCARD</button>
-            <button onClick={handleSaveAll} className="flex-1 py-3 bg-black text-white border-2 border-black font-black uppercase text-xs hover:bg-slate-800 focus:ring-2 focus:ring-black">SAVE ALL</button>
+            <button onClick={() => setIsEditing(false)} className="flex-1 py-2 bg-white border border-slate-300 rounded font-black uppercase text-xs hover:bg-slate-100 focus:ring-2 focus:ring-black">DISCARD</button>
+            <button onClick={handleSaveAll} className="flex-1 py-2 bg-black text-white border border-slate-300 rounded font-black uppercase text-xs hover:bg-slate-800 focus:ring-2 focus:ring-black">SAVE ALL</button>
           </>
         ) : (
           <>
             <button 
               aria-label="Duplicate this project"
               onClick={() => onDuplicate(exhibition.id)} 
-              className="flex-1 py-3 bg-white border-2 border-black font-black uppercase text-xs flex items-center justify-center hover:bg-slate-100 focus:ring-2 focus:ring-black transition-colors"
+              className="flex-1 py-2 bg-white border border-slate-300 rounded font-black uppercase text-[10px] flex items-center justify-center hover:bg-slate-100 focus:ring-2 focus:ring-black transition-colors"
             >
-              <Copy size={14} className="mr-2" /> DUPLICATE
+              <Copy size={13} className="mr-2" /> DUPLICATE
             </button>
             <button 
               aria-label="Delete this project"
               onClick={() => onDelete(exhibition.id)} 
-              className="flex-1 py-3 bg-white border-2 border-black font-black uppercase text-xs flex items-center justify-center hover:bg-red-500 hover:text-white focus:ring-2 focus:ring-red-500 transition-colors"
+              className="flex-1 py-2 bg-white border border-slate-300 rounded font-black uppercase text-[10px] flex items-center justify-center hover:bg-red-500 hover:text-white focus:ring-2 focus:ring-red-500 transition-colors"
             >
-              <Trash2 size={14} className="mr-2" /> REMOVE
+              <Trash2 size={13} className="mr-2" /> REMOVE
             </button>
           </>
         )}
@@ -790,15 +816,25 @@ export default function MasterScheduler() {
   }, [exhibitions, galleries, monthWidth, viewMonths]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(exhibitions));
-  }, [exhibitions]);
+    if (draggingBarId) return; // Prevent blocking the main thread with synchronous I/O during drag
+    const timeout = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(exhibitions));
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [exhibitions, draggingBarId]);
 
   useEffect(() => {
-    localStorage.setItem(MILESTONES_STORAGE_KEY, JSON.stringify(locationMilestones));
+    const timeout = setTimeout(() => {
+      localStorage.setItem(MILESTONES_STORAGE_KEY, JSON.stringify(locationMilestones));
+    }, 300);
+    return () => clearTimeout(timeout);
   }, [locationMilestones]);
 
   useEffect(() => {
-    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify({ museumName, galleries, phaseTypes }));
+    const timeout = setTimeout(() => {
+      localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify({ museumName, galleries, phaseTypes }));
+    }, 300);
+    return () => clearTimeout(timeout);
   }, [museumName, galleries, phaseTypes]);
 
   const handleUpdateExhibition = (updatedEx: Exhibition) => {
@@ -897,7 +933,7 @@ export default function MasterScheduler() {
       
       {editMilestoneDraft && (
         <div className="fixed inset-0 bg-black/40 z-[100] backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setEditMilestoneDraft(null)}>
-          <div className="bg-white border-4 border-black w-full max-w-sm shadow-[8px_8px_0_0_rgba(0,0,0,1)]" onClick={e => e.stopPropagation()}>
+          <div className="bg-white border border-slate-300 rounded-xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="bg-black text-white px-4 py-3 font-black tracking-widest flex justify-between items-center text-[10px]">
               <span>EDIT MILESTONE</span>
               <button aria-label="Close" onClick={() => setEditMilestoneDraft(null)} className="hover:text-red-400 transition-colors">
@@ -909,7 +945,7 @@ export default function MasterScheduler() {
                 <label className="text-[9px] font-black uppercase tracking-widest text-slate-500">Milestone Title</label>
                 <input 
                   type="text" 
-                  className="w-full border-2 border-black p-3 font-black uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
+                  className="w-full border border-slate-300 rounded p-3 font-black uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
                   value={editMilestoneDraft.title} 
                   onChange={(e) => setEditMilestoneDraft({ ...editMilestoneDraft, title: e.target.value.toUpperCase() })} 
                   autoFocus 
@@ -920,7 +956,7 @@ export default function MasterScheduler() {
                 <label className="text-[9px] font-black uppercase tracking-widest text-slate-500">Date</label>
                 <input 
                   type="date" 
-                  className="w-full border-2 border-black p-3 font-bold uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
+                  className="w-full border border-slate-300 rounded p-3 font-bold uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
                   value={editMilestoneDraft.date} 
                   onChange={(e) => setEditMilestoneDraft({ ...editMilestoneDraft, date: e.target.value })} 
                 />
@@ -931,14 +967,14 @@ export default function MasterScheduler() {
                 <div className="flex gap-4 mb-4">
                   <button 
                     onClick={() => setEditMilestoneDraft({ ...editMilestoneDraft, icon: 'diamond' })}
-                    className={`flex items-center space-x-2 px-4 py-2 border-2 transition-colors ${editMilestoneDraft.icon !== 'flag' ? 'border-black bg-slate-50 shadow-[2px_2px_0_0_rgba(0,0,0,1)]' : 'border-black/20 hover:bg-slate-50'}`}
+                    className={`flex items-center space-x-2 px-4 py-2 border-2 transition-colors ${editMilestoneDraft.icon !== 'flag' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200 hover:bg-slate-50'}`}
                   >
                     <div className="w-3 h-3 bg-white border border-black rotate-45" />
                     <span className="text-[10px] font-bold uppercase">Diamond</span>
                   </button>
                   <button 
                     onClick={() => setEditMilestoneDraft({ ...editMilestoneDraft, icon: 'flag' })}
-                    className={`flex items-center space-x-2 px-4 py-2 border-2 transition-colors ${editMilestoneDraft.icon === 'flag' ? 'border-black bg-slate-50 shadow-[2px_2px_0_0_rgba(0,0,0,1)]' : 'border-black/20 hover:bg-slate-50'}`}
+                    className={`flex items-center space-x-2 px-4 py-2 border-2 transition-colors ${editMilestoneDraft.icon === 'flag' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200 hover:bg-slate-50'}`}
                   >
                     <Flag size={14} fill="white" stroke="black" strokeWidth={2} />
                     <span className="text-[10px] font-bold uppercase">Flag</span>
@@ -949,7 +985,7 @@ export default function MasterScheduler() {
                     <button 
                       key={c.value}
                       onClick={() => setEditMilestoneDraft({ ...editMilestoneDraft, color: c.value })}
-                      className={`flex items-center space-x-2 px-3 py-1.5 border-2 hover:bg-slate-50 transition-colors ${editMilestoneDraft.color === c.value || (!editMilestoneDraft.color && c.value === '#dc2626') ? 'border-black bg-slate-50 shadow-[2px_2px_0_0_rgba(0,0,0,1)]' : 'border-black/20'}`}
+                      className={`flex items-center space-x-2 px-3 py-1.5 border-2 hover:bg-slate-50 transition-colors ${editMilestoneDraft.color === c.value || (!editMilestoneDraft.color && c.value === '#dc2626') ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200'}`}
                     >
                       <div className="w-3 h-3 rounded-full border border-black" style={{ backgroundColor: c.value }} />
                       <span className="text-[8px] font-bold tracking-widest uppercase">{c.label}</span>
@@ -958,7 +994,7 @@ export default function MasterScheduler() {
                 </div>
               </div>
               
-              <div className="flex justify-between items-center pt-4 border-t-2 border-black/10 mt-6">
+              <div className="flex justify-between items-center pt-4 border-t border-slate-200/10 mt-6">
                 <button 
                   onClick={() => {
                     setLocationMilestones(prev => prev.filter(m => m.id !== editMilestoneDraft.id));
@@ -977,7 +1013,7 @@ export default function MasterScheduler() {
                     }
                     setEditMilestoneDraft(null);
                   }} 
-                  className="bg-black text-white px-6 py-2.5 border-2 border-black font-black uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-colors shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-x-0.5 active:translate-y-0.5"
+                  className="bg-black text-white px-6 py-2.5 border border-slate-300 rounded font-bold uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-colors shadow-sm active:scale-95"
                 >
                   SAVE OVERRIDE
                 </button>
@@ -1005,27 +1041,26 @@ export default function MasterScheduler() {
       <main className="flex-1 flex flex-col min-w-0">
         {activeTab === 'portfolio' ? (
           <>
-            <header className="bg-white border-b-2 border-black z-50 shrink-0">
-              <nav className="px-6 py-4 flex items-center justify-between">
+            <header className="bg-white border-b border-slate-200 z-50 shrink-0">
+              <nav className="px-4 py-2 flex items-center justify-between">
                 <div className="flex items-center space-x-6">
                   <div className="flex items-center space-x-3 group">
-                    <div className="w-10 h-10 bg-black flex items-center justify-center text-white border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-transform group-hover:translate-x-0.5 group-hover:translate-y-0.5 group-hover:shadow-none">
-                      <LayoutDashboard size={20} strokeWidth={2.5} />
+                    <div className="w-8 h-8 bg-black flex items-center justify-center text-white border border-slate-300 rounded shadow-sm transition-transform group-hover:scale-95">
+                      <LayoutDashboard size={16} strokeWidth={2.5} />
                     </div>
                     <div className="flex flex-col">
-                      <h1 className="text-sm font-black tracking-tight uppercase leading-none">{museumName}</h1>
-                      <span className="text-[9px] font-black uppercase tracking-widest mt-1 text-slate-400">PLANNER v2.2</span>
+                      <h1 className="text-[11px] font-black tracking-tight uppercase leading-none">{museumName}</h1>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-6 no-print">
-                  <div className="flex items-center space-x-2 border-2 border-black px-2 py-1.5 bg-slate-50">
-                    <input type="date" value={timelineStartDate} onChange={(e) => setTimelineStartDate(e.target.value)} className="bg-transparent text-[10px] font-black uppercase outline-none w-[110px]" />
+                <div className="flex items-center space-x-4 no-print">
+                  <div className="flex items-center space-x-2 border border-slate-300 rounded px-2 py-1 bg-slate-50">
+                    <input aria-label="Timeline start date" type="date" value={timelineStartDate} onChange={(e) => setTimelineStartDate(e.target.value)} className="bg-transparent text-[9px] font-black uppercase outline-none w-[100px]" />
                     <span className="font-bold text-slate-300">-</span>
-                    <input type="date" value={timelineEndDate} onChange={(e) => setTimelineEndDate(e.target.value)} className="bg-transparent text-[10px] font-black uppercase outline-none w-[110px]" />
-                    <select onChange={(e) => applyPreset(parseInt(e.target.value))} className="bg-transparent text-[10px] font-black uppercase outline-none ml-2 border-l-2 border-slate-200 pl-2 cursor-pointer">
-                      <option value="3">PRESETS...</option>
+                    <input aria-label="Timeline end date" type="date" value={timelineEndDate} onChange={(e) => setTimelineEndDate(e.target.value)} className="bg-transparent text-[9px] font-black uppercase outline-none w-[100px]" />
+                    <select aria-label="Select timeline view preset" onChange={(e) => applyPreset(parseInt(e.target.value))} className="bg-transparent text-[9px] font-black uppercase outline-none ml-1 border-l border-slate-200 pl-1 cursor-pointer">
+                      <option value="3">PRESETS</option>
                       <option value="1">1 YEAR</option>
                       <option value="2">2 YEARS</option>
                       <option value="3">3 YEARS</option>
@@ -1034,13 +1069,13 @@ export default function MasterScheduler() {
                     </select>
                   </div>
                   
-                  <div className="flex items-center space-x-4 border-2 border-black px-4 py-2 bg-slate-50">
+                  <div className="flex items-center space-x-3 border border-slate-300 rounded px-3 py-1 bg-slate-50">
                     <button 
                       aria-label="Zoom out"
                       onClick={() => setMonthWidth(prev => Math.max(40, prev - 20))} 
                       className="p-1 hover:text-slate-500 transition-colors"
                     >
-                      <ZoomOut size={16} />
+                      <ZoomOut size={14} />
                     </button>
                     <div className="flex flex-col items-center">
                       <label htmlFor="timeline-zoom" className="sr-only">Timeline Zoom Level</label>
@@ -1051,7 +1086,7 @@ export default function MasterScheduler() {
                         max="300" 
                         value={monthWidth} 
                         onChange={(e) => setMonthWidth(parseInt(e.target.value))} 
-                        className="w-24" 
+                        className="w-20 accent-black" 
                       />
                     </div>
                     <button 
@@ -1059,9 +1094,17 @@ export default function MasterScheduler() {
                       onClick={() => setMonthWidth(prev => Math.min(300, prev + 20))} 
                       className="p-1 hover:text-slate-500 transition-colors"
                     >
-                      <ZoomIn size={16} />
+                      <ZoomIn size={14} />
                     </button>
                   </div>
+
+                  <button 
+                    aria-label="Print Timeline"
+                    onClick={() => window.print()} 
+                    className="p-1.5 border border-slate-300 rounded bg-white hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-black"
+                  >
+                    <Printer size={16} strokeWidth={2} />
+                  </button>
 
                   <button 
                     aria-label="Create new exhibition project"
@@ -1088,26 +1131,25 @@ export default function MasterScheduler() {
                       }]);
                       setSelectedProjectId(id);
                     }} 
-                    className="px-6 py-2.5 bg-black text-white border-2 border-black font-black uppercase text-[10px] shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all flex items-center"
+                    className="px-4 py-1.5 bg-black text-white border border-slate-300 rounded font-black uppercase text-[9px] hover:bg-slate-800 transition-colors flex items-center"
                   >
-                    <Plus size={14} className="mr-2" strokeWidth={3} /> NEW PROJECT
+                    <Plus size={12} className="mr-1.5" strokeWidth={3} /> NEW PROJECT
                   </button>
                   
                   <button 
                     aria-label="Open settings"
                     onClick={() => setActiveTab('settings')} 
-                    className="p-2 border-2 border-black bg-white hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-black"
+                    className="p-1.5 border border-slate-300 rounded bg-white hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-black"
                   >
-                    <Settings size={18} strokeWidth={2} />
+                    <Settings size={16} strokeWidth={2} />
                   </button>
                 </div>
               </nav>
             </header>
 
-            <div className="flex-1 flex overflow-hidden">
-              <aside className="w-40 bg-white flex flex-col shrink-0 z-40 border-r-2 border-black shadow-[2px_0_10px_rgba(0,0,0,0.02)]">
-                <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-slate-50 border-b-2 border-black flex flex-col justify-end p-4">
-                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">LOCATIONS</div>
+            <div className="flex-1 flex overflow-hidden timeline-root no-print-bg">
+              <aside className="w-40 bg-white flex flex-col shrink-0 z-40 border-r border-slate-200 shadow-sm">
+                <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-slate-50 border-b border-slate-200 flex flex-col justify-end p-4">
                 </div>
                 <div className="flex-1 overflow-hidden" ref={sidebarListRef}>
                   {galleries.map((gallery) => {
@@ -1125,7 +1167,12 @@ export default function MasterScheduler() {
                           const topPos = 46 + (trackIndex * TRACK_HEIGHT);
                           return (
                             <div key={`title-${ex.id}`} className="absolute left-4 w-[calc(100%-1rem)] pr-2" style={{ top: topPos + 10 }}>
-                              <div className="text-[10px] font-bold text-slate-800 leading-tight whitespace-normal break-words">{ex.title}</div>
+                              <div className="text-[10px] font-bold text-slate-800 leading-tight whitespace-normal break-words underline decoration-slate-200 decoration-1 underline-offset-2">{ex.title}</div>
+                              {ex.exhibitionId && (
+                                <div className="text-[8px] font-bold text-slate-400 mt-0.5 uppercase tracking-tight">
+                                  {ex.exhibitionId}
+                                </div>
+                              )}
                               {ex.phases && ex.phases.length > 0 && (
                                 <div className="text-[8px] font-bold text-slate-400 mt-0.5 uppercase">
                                   {ex.phases.length} Phases
@@ -1146,13 +1193,20 @@ export default function MasterScheduler() {
                   })}
                 </div>
               </aside>
+              
+              <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
+                {/* Print Only Branding Header */}
+                <div className="hidden print:block mb-4 p-8 border-b-4 border-black">
+                  <h1 className="text-4xl font-black uppercase tracking-tighter">{museumName}</h1>
+                  <p className="text-sm font-black uppercase tracking-[0.2em] mt-2 text-slate-500">Master Exhibition Timeline • {timelineStartDate} to {timelineEndDate}</p>
+                </div>
 
-              <div 
-                tabIndex={0}
-                className={`flex-1 overflow-auto relative bg-white custom-scrollbar timeline-container ${isDraggingScroll ? 'is-grabbing' : ''}`} 
-                ref={timelineRef} 
-                onScroll={(e) => { if (sidebarListRef.current) sidebarListRef.current.scrollTop = e.currentTarget.scrollTop; }}
-                onMouseDown={(e) => { 
+                <div 
+                  tabIndex={0}
+                  className={`flex-1 overflow-auto relative bg-white custom-scrollbar timeline-container cursor-grab active:cursor-grabbing ${isDraggingScroll ? '!cursor-grabbing' : ''}`} 
+                  ref={timelineRef} 
+                  onScroll={(e) => { if (sidebarListRef.current) sidebarListRef.current.scrollTop = e.currentTarget.scrollTop; }}
+                  onMouseDown={(e) => { 
                   if (e.button === 0 && !longPressTimerRef.current && !draggingBarId) { 
                     setIsDraggingScroll(true); 
                     setStartX(e.pageX - timelineRef.current!.offsetLeft); 
@@ -1192,26 +1246,79 @@ export default function MasterScheduler() {
               >
                 <div className="inline-flex flex-col relative min-h-full">
                   {/* Now Indicator */}
-                  <div className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-40 pointer-events-none" style={{ left: `${todayPos}px` }}>
-                    <div className="sticky top-[126px] bg-red-600 text-white font-black text-[8px] px-1.5 py-0.5 uppercase transform -translate-x-1/2 shadow-sm w-max whitespace-nowrap rounded-sm">TODAY</div>
+                  <div className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-[70] pointer-events-none" style={{ left: `${todayPos}px` }}>
+                    <div className="sticky top-[6px] bg-red-600 text-white font-black text-[8px] px-1.5 py-0.5 uppercase transform -translate-x-1/2 shadow-sm w-max whitespace-nowrap rounded-sm">TODAY</div>
                   </div>
 
                   {/* Header */}
-                  <div className="sticky top-0 z-[60] border-b-2 border-black flex flex-col bg-white/95 backdrop-blur-sm" style={{ height: `${HEADER_HEIGHT}px` }}>
-                    <div className="flex h-[36px] border-b-2 border-black bg-white">
-                      {yearBlocks.map(block => <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center px-4 font-black text-lg tracking-tight uppercase text-slate-900 border-r-2 border-black/5">{block.label}</div>)}
+                  <div className="sticky top-0 z-[60] border-b border-slate-200 flex flex-col bg-white/95 backdrop-blur-sm overflow-hidden" style={{ height: `${HEADER_HEIGHT}px` }}>
+                    {/* Header Fiscal Year Lines */}
+                    <div className="absolute top-0 bottom-0 left-0 right-0 pointer-events-none z-0">
+                      {(() => {
+                        let currentOffset = 0;
+                        return fyBlocks.map((block, idx) => {
+                          const x = currentOffset;
+                          currentOffset += block.count * monthWidth;
+                          if (idx === 0 && x === 0) return null;
+                          return (
+                            <div 
+                              key={`fy-header-line-${idx}`} 
+                              style={{ left: `${x}px` }} 
+                              className="absolute top-0 bottom-0 w-[1px] border-l border-dashed border-orange-500/60 print:border-orange-600 print:border-opacity-100"
+                            />
+                          );
+                        });
+                      })()}
                     </div>
-                    <div className="flex h-[32px] border-b-2 border-black/5 text-orange-700 bg-orange-50">
+
+                    <div className="flex h-[30px] border-b border-slate-300 bg-white/70 relative z-10 print:bg-white print:border-slate-400">
+                      {yearBlocks.map(block => <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center px-3 font-black text-sm tracking-tight uppercase text-black border-r border-slate-300 print:border-slate-400">{block.label}</div>)}
+                    </div>
+                    <div className="flex h-[26px] border-b border-orange-200 text-orange-900 bg-orange-100/90 relative z-10 print:bg-orange-100 print:border-orange-300">
                       {fyBlocks.map((block) => (
-                        <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center px-4 font-bold text-[10px] uppercase tracking-widest border-r-2 border-black/5">{block.label}</div>
+                        <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center px-3 font-bold text-[9px] uppercase tracking-widest border-r border-orange-200 print:border-orange-300">{block.label}</div>
                       ))}
                     </div>
-                    <div className="flex h-[28px] border-b-2 border-black/5 bg-slate-50">
-                      {fyQuarterBlocks.map((block, i) => <div key={`${block.label}-${i}`} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center border-r-2 border-black/5 text-[9px] font-black uppercase tracking-widest text-slate-400">{block.label}</div>)}
+                    <div className="flex h-[17px] border-b border-slate-200/20 bg-slate-100/70 relative z-10 print:bg-slate-100">
+                      {fyQuarterBlocks.map((block, i) => <div key={`${block.label}-${i}`} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-slate-200/20 text-[8px] font-black uppercase tracking-widest text-slate-500 print:text-slate-900">{block.label}</div>)}
                     </div>
-                    <div className="flex h-[28px] bg-white border-b-2 border-black/10">
-                      {viewMonths.map(m => <div key={`${m.year}-${m.month}`} style={{ width: `${monthWidth}px` }} className="shrink-0 h-full flex items-center justify-center border-r-2 border-black/5 text-[9px] font-bold text-slate-400">{m.label}</div>)}
+                    <div className="flex h-[17px] bg-white border-b border-slate-200/30 relative z-10 print:bg-white">
+                      {viewMonths.map(m => <div key={`${m.year}-${m.month}`} style={{ width: `${monthWidth}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-slate-200/10 text-[8px] font-bold text-slate-600 print:text-slate-900">{m.label}</div>)}
                     </div>
+                  </div>
+
+                  {/* Grid Lines (Monthly & Fiscal) */}
+                  <div className="absolute top-0 bottom-0 left-0 right-0 pointer-events-none z-[10]">
+                    {/* Monthly Dividers */}
+                    {viewMonths.map((m, idx) => {
+                      if (idx === 0) return null; // Skip first bit
+                      const style = { left: `${idx * monthWidth}px` };
+                      return (
+                        <div 
+                          key={`month-divider-${idx}`} 
+                          style={style} 
+                          className="absolute top-0 bottom-0 w-[1px] border-l border-slate-300/40 print:border-slate-400"
+                        />
+                      );
+                    })}
+
+                    {/* Fiscal Year Markers (Vertical Lines) */}
+                    {(() => {
+                      let currentOffset = 0;
+                      return fyBlocks.map((block, idx) => {
+                        const style = { left: `${currentOffset}px` };
+                        currentOffset += block.count * monthWidth;
+                        // Skip the first line if it's at position 0
+                        if (idx === 0 && style.left === '0px') return null;
+                        return (
+                          <div 
+                            key={`fy-line-${idx}`} 
+                            style={style} 
+                            className="absolute top-0 bottom-0 w-[1px] border-l border-dashed border-orange-600/70 z-10 print:border-orange-800 print:border-opacity-100 print:z-50"
+                          />
+                        );
+                      });
+                    })()}
                   </div>
 
                   {/* Grid / Lanes */}
@@ -1279,7 +1386,7 @@ export default function MasterScheduler() {
                                  style={{ left: overlap.startX, width: Math.max(2, overlap.endX - overlap.startX), top: '36px' }}
                                >
                                  <div className="bg-white border-2 border-red-500/50 text-red-600 font-black uppercase text-[8px] tracking-widest flex items-center shadow-sm w-max ml-2 mt-2" style={{ padding: '2px 4px' }}>
-                                   <AlertTriangle size={10} className="mr-1.5 shrink-0" strokeWidth={3} /> SITE CONFLICT
+                                   <AlertTriangle size={10} className="mr-1.5 shrink-0" strokeWidth={3} /> CONFLICT
                                  </div>
                                </div>
                              ))}
@@ -1302,38 +1409,61 @@ export default function MasterScheduler() {
                                 <div className="hidden group-hover:flex absolute left-4 h-full items-center text-[9px] text-slate-400 font-bold uppercase pointer-events-none tracking-widest gap-2">
                                   <Plus size={10} strokeWidth={3} /> DBL-CLICK TO ADD MILESTONE
                                 </div>
-                                {locationMilestones.filter(m => m.gallery === g).map(m => {
-                                  const xPos = getPositionFromDate(m.date, monthWidth, viewMonths);
-                                  return (
-                                    <div 
-                                      key={m.id} 
-                                      className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-auto"
-                                      style={{ left: `${xPos}px`, transform: 'translate(-50%, -50%)' }}
-                                    >
-                                      <div className="text-[8px] font-black uppercase text-slate-700 bg-white px-1 leading-tight border border-black mb-1 shadow-sm opacity-90 transition-opacity hover:opacity-100 whitespace-nowrap">
-                                        {m.title}
-                                      </div>
+                                {(() => {
+                                  const gMilestones = locationMilestones.filter(m => m.gallery === g)
+                                    .map(m => ({ ...m, xPos: getPositionFromDate(m.date, monthWidth, viewMonths) }))
+                                    .sort((a, b) => a.xPos - b.xPos);
+
+                                  const labelPositions = new Array(gMilestones.length).fill('top');
+                                  let lastTopX = -9999;
+                                  let lastBottomX = -9999;
+                                  
+                                  for (let i = 0; i < gMilestones.length; i++) {
+                                    const curr = gMilestones[i];
+                                    if (curr.xPos - lastTopX >= 65) {
+                                      labelPositions[i] = 'top';
+                                      lastTopX = curr.xPos;
+                                    } else if (curr.xPos - lastBottomX >= 65) {
+                                      labelPositions[i] = 'bottom';
+                                      lastBottomX = curr.xPos;
+                                    } else {
+                                      labelPositions[i] = 'top';
+                                    }
+                                  }
+
+                                  return gMilestones.map((m, idx) => {
+                                    const labelPos = labelPositions[idx];
+                                    return (
                                       <div 
-                                        className="transform hover:scale-125 transition-transform cursor-pointer flex items-center justify-center relative"
-                                        title={m.date}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setEditMilestoneDraft(m);
-                                        }}
+                                        key={m.id} 
+                                        className="absolute top-1/2 flex items-center justify-center pointer-events-auto"
+                                        style={{ left: `${m.xPos}px`, transform: 'translate(-50%, -50%)' }}
                                       >
-                                        {m.icon === 'flag' ? (
-                                          <div className="relative flex items-center justify-center pointer-events-none mt-1">
-                                            <Flag size={16} fill={m.color || '#dc2626'} stroke="black" strokeWidth={2} className="drop-shadow-[1px_1px_0_rgba(0,0,0,1)]" />
-                                          </div>
-                                        ) : (
-                                          <div className="w-3.5 h-3.5 bg-white border-[1.5px] border-black rotate-45 shadow-[1px_1px_0_0_rgba(0,0,0,1)] flex items-center justify-center pointer-events-none">
-                                            <div className="w-[4px] h-[4px] rounded-full" style={{ backgroundColor: m.color || '#dc2626' }} />
-                                          </div>
-                                        )}
+                                        <div 
+                                          className="transform hover:scale-125 transition-transform cursor-pointer flex items-center justify-center relative z-20"
+                                          title={m.date}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditMilestoneDraft(m);
+                                          }}
+                                        >
+                                          {m.icon === 'flag' ? (
+                                            <div className="relative flex items-center justify-center pointer-events-none mt-1">
+                                              <Flag size={16} fill={m.color || '#dc2626'} stroke="black" strokeWidth={2} className="drop-shadow-[1px_1px_0_rgba(0,0,0,1)]" />
+                                            </div>
+                                          ) : (
+                                            <div className="w-3.5 h-3.5 bg-white border-[1.5px] border-black rotate-45 shadow-[1px_1px_0_0_rgba(0,0,0,1)] flex items-center justify-center pointer-events-none">
+                                              <div className="w-[4px] h-[4px] rounded-full" style={{ backgroundColor: m.color || '#dc2626' }} />
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className={`absolute left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase text-slate-600 bg-white px-1.5 py-[1px] leading-tight border border-slate-200 rounded shadow-md opacity-90 transition-all hover:bg-slate-50 hover:opacity-100 whitespace-nowrap z-30 pointer-events-none ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
+                                          {m.title}
+                                        </div>
                                       </div>
-                                    </div>
                                   );
-                                })}
+                                });
+                              })()}
                              </div>
                              {galleryProjects.map(ex => {
                                const trackIndex = galleryLayouts[g]!.tracks[ex.id];
@@ -1348,7 +1478,7 @@ export default function MasterScheduler() {
                     </div>
                     
                     <div className="absolute inset-0 flex pointer-events-none z-0">
-                      {viewMonths.map((m) => <div key={`bg-${m.year}-${m.month}`} style={{ width: `${monthWidth}px` }} className={`h-full border-r-2 border-black/5 shrink-0 ${m.month === 3 ? 'border-l-2 border-dashed border-orange-500/50' : ''}`} />)}
+                      {viewMonths.map((m) => <div key={`bg-${m.year}-${m.month}`} style={{ width: `${monthWidth}px` }} className={`h-full border-r border-slate-200/5 shrink-0 ${m.month === 3 ? 'border-l-2 border-dashed border-orange-500/50' : ''}`} />)}
                     </div>
 
                     {/* Project Bars */}
@@ -1404,11 +1534,11 @@ export default function MasterScheduler() {
                                     return (
                                       <React.Fragment key={phase.id}>
                                         <div 
-                                          className="absolute border-2 border-black flex items-center px-3 shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-white transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none pointer-events-auto" 
+                                          className="absolute border border-slate-300 rounded flex items-center px-3 shadow-sm hover:shadow-md hover:border-slate-400 bg-white transition-all hover:-translate-y-0.5 pointer-events-auto" 
                                           style={{ left: `${phase.startX}px`, top: `${phase.y}px`, width: `${phase.width - 2}px`, height: `${PHASE_BAR_HEIGHT}px`, backgroundColor: phase.type?.color || '#eee' }}
                                           title={phase.label}
                                         >
-                                          <span className={`text-[9px] font-black uppercase whitespace-normal break-words leading-none ${phase.type?.color && phase.type.color.toLowerCase() === '#94a3b8' ? 'text-black' : 'text-white drop-shadow-md'}`}>{phase.label}</span>
+                                          <span className={`text-[9px] font-black uppercase whitespace-normal break-words leading-none ${getContrastColor(phase.type?.color || '#eee')} drop-shadow-sm`}>{phase.label}</span>
                                         </div>
                                         <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
                                           <path 
@@ -1432,15 +1562,15 @@ export default function MasterScheduler() {
                                   onMouseDown={(e) => onBarMouseDown(e, ex)}
                                   onClick={() => { if (!draggingBarId) setSelectedProjectId(ex.id); }}
                                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedProjectId(ex.id); }}
-                                  className={`absolute pointer-events-auto border-2 border-black bg-white shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all cursor-pointer overflow-hidden flex focus:ring-2 focus:ring-black ${isDraggingThis ? 'project-bar-dragging' : ''}`} 
+                                  className={`absolute pointer-events-auto border border-slate-300 rounded overflow-hidden bg-white shadow-sm hover:shadow-md hover:border-blue-400 hover:-translate-y-0.5 transition-all cursor-pointer flex focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`} 
                                   style={{ left: `${startPos}px`, width: `${width}px`, top: `${mainBarY}px`, height: `${STANDARD_BAR_HEIGHT}px` }}
                                 >
                                   <div className="w-1.5 h-full shrink-0" style={{ backgroundColor: getStatusColor(ex.status) }} />
                                   <div className="flex-1 flex flex-col justify-center px-3 min-w-0">
                                     <h4 className="font-black whitespace-normal break-words uppercase text-[10px] leading-tight tracking-tight text-slate-900">{ex.title}</h4>
-                                    <div className="flex items-center mt-0.5 space-x-1.5 text-[8px] font-black uppercase text-slate-400">
+                                    <div className="flex items-center mt-0.5 space-x-1.5 text-[8px] font-black uppercase text-slate-600">
                                       <span>{formatBarDate(ex.startDate)}</span>
-                                      <span className="opacity-30">/</span>
+                                      <span className="opacity-40">/</span>
                                       <span>{formatBarDate(ex.endDate)}</span>
                                     </div>
                                   </div>
@@ -1454,28 +1584,29 @@ export default function MasterScheduler() {
                   </div>
                 </div>
               </div>
-            </div>
-          </>
+            </main>
+          </div>
+        </>
         ) : (
-          <div className="p-12 max-w-3xl mx-auto space-y-12 overflow-y-auto h-full bg-white no-print custom-scrollbar flex flex-col">
-            <header className="space-y-4">
+          <div className="p-8 py-6 max-w-3xl mx-auto space-y-8 overflow-y-auto h-full bg-white no-print custom-scrollbar flex flex-col">
+            <header className="space-y-3">
               <button 
                 onClick={() => setActiveTab('portfolio')} 
-                className="inline-flex items-center font-black uppercase text-[10px] border-2 border-black px-4 py-2 hover:bg-slate-50 shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:ring-2 focus:ring-black"
+                className="inline-flex items-center font-bold uppercase text-[9px] border border-slate-300 rounded px-3 py-1.5 hover:bg-slate-50 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus:ring-2 focus:ring-blue-500/50"
               >
-                <ArrowLeft size={14} className="mr-2" /> DASHBOARD
+                <ArrowLeft size={12} className="mr-2" /> DASHBOARD
               </button>
-              <h2 className="text-4xl font-black uppercase tracking-tight">SYSTEM SETTINGS</h2>
+              <h2 className="text-3xl font-black uppercase tracking-tight">SYSTEM SETTINGS</h2>
             </header>
             
-            <div className="space-y-12 border-t-4 border-black pt-12">
+            <div className="space-y-8 border-t-4 border-black pt-8">
               <section className="space-y-6">
                 <div className="flex items-center text-sm font-black uppercase tracking-widest space-x-3 text-slate-900"><Building2 size={18} /><span>ORG STANDARDS</span></div>
-                <div className="border-2 border-black p-6 bg-slate-50 shadow-[4px_4px_0_0_rgba(0,0,0,1)] focus-within:bg-yellow-50/10 transition-colors">
+                <div className="border border-slate-300 rounded p-6 bg-slate-50 shadow-sm hover:shadow-md transition-all">
                   <label htmlFor="museum-name-input" className="text-[9px] font-black uppercase mb-2 block text-slate-400">ORGANIZATION NAME</label>
                   <input 
                     id="museum-name-input"
-                    className="w-full text-lg font-black bg-white border-2 border-black p-3 outline-none uppercase shadow-inner focus:border-black transition-colors" 
+                    className="w-full text-lg font-black bg-white border border-slate-300 rounded p-3 outline-none uppercase shadow-inner focus:border-black transition-colors" 
                     value={museumName} 
                     onChange={(e) => setMuseumName(e.target.value.toUpperCase())} 
                   />
@@ -1486,13 +1617,13 @@ export default function MasterScheduler() {
                 <div className="flex items-center text-sm font-black uppercase tracking-widest space-x-3 text-slate-900"><Palette size={18} /><span>PHASE TYPES</span></div>
                 <div className="grid grid-cols-2 gap-4">
                   {phaseTypes.map((type, idx) => (
-                    <div key={type.id} className="flex items-center space-x-3 p-3 border-2 border-black bg-white shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:scale-[1.02]">
+                    <div key={type.id} className="flex items-center space-x-3 p-3 border border-slate-300 rounded bg-white shadow-sm hover:shadow-md hover:border-slate-400 transition-all">
                       <div className="flex flex-col">
                         <label htmlFor={`phase-color-${idx}`} className="sr-only">Phase Color {idx + 1}</label>
                         <input 
                           id={`phase-color-${idx}`}
                           type="color" 
-                          className="w-8 h-8 border-2 border-black bg-transparent cursor-pointer outline-none" 
+                          className="w-8 h-8 border border-slate-300 rounded bg-transparent cursor-pointer outline-none" 
                           value={type.color} 
                           onChange={(e) => {
                             const next = [...phaseTypes];

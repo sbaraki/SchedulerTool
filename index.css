@@ -1,0 +1,82 @@
+@media print {
+  @page {
+    size: 11in 17in landscape;
+    margin: 0.5in;
+  }
+
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Force backgrounds to print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Remove scrollbars and fix height for print */
+  .timeline-container {
+    overflow: visible !important;
+    height: auto !important;
+    width: auto !important;
+  }
+
+  .sticky {
+    position: static !important;
+  }
+
+  /* Increase contrast for lines */
+  .border-slate-200, .border-slate-300 {
+    border-color: #64748b !important; /* slate-500 */
+    border-width: 1px !important;
+  }
+
+  .border-orange-500\/60, .border-orange-500\/50, .border-orange-200 {
+    border-color: #9a3412 !important; /* orange-900 */
+    border-width: 1.5px !important;
+  }
+
+  .border-slate-200\/40, .border-slate-200\/10, .border-slate-200\/5 {
+    border-color: #94a3b8 !important; /* slate-400 */
+    border-width: 0.5px !important;
+  }
+
+  /* Ensure text is dark and legible */
+  .text-slate-400, .text-slate-500, .text-slate-600 {
+    color: #1e293b !important; /* slate-900 */
+  }
+
+  .text-orange-700 {
+    color: #7c2d12 !important; /* orange-950 */
+  }
+
+  .bg-orange-50\/50, .bg-orange-50 {
+    background-color: #fff7ed !important;
+  }
+
+  .bg-slate-50\/50, .bg-slate-50 {
+    background-color: #f8fafc !important;
+  }
+
+  /* Fix for sticky elements in headers */
+  .sticky.top-0 {
+    position: relative !important;
+    top: 0 !important;
+    transform: none !important;
+  }
+
+  .bg-red-500 {
+    background-color: #b91c1c !important; /* red-700 */
+    width: 2px !important;
+  }
+
+  .rotate-45 {
+    border-color: black !important;
+    border-width: 2px !important;
+  }
+}
