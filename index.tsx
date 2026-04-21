@@ -220,11 +220,11 @@ const INITIAL_EXHIBITIONS: Exhibition[] = [
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const FY_QUARTERS = ['Q4', 'Q1', 'Q2', 'Q3'];
-const BASE_LANE_HEIGHT = 80; 
-const TRACK_HEIGHT = 44; 
+const BASE_LANE_HEIGHT = 60; 
+const TRACK_HEIGHT = 34; 
 const HEADER_HEIGHT = 90; 
-const STANDARD_BAR_HEIGHT = 34; 
-const PHASE_BAR_HEIGHT = 18;
+const STANDARD_BAR_HEIGHT = 26; 
+const PHASE_BAR_HEIGHT = 14;
 
 const getStatusStyles = (status: string) => {
   switch(status) {
@@ -1465,14 +1465,14 @@ export default function MasterScheduler() {
         {activeTab === 'portfolio' ? (
           <>
             <header className="bg-white border-b border-slate-200 z-50 shrink-0">
-              <nav className="px-4 py-2 flex items-center justify-between">
-                <div className="flex items-center space-x-6">
+              <nav className="px-4 py-2 flex items-center justify-between gap-4 overflow-x-auto hide-scrollbar">
+                <div className="flex items-center shrink-0">
                   <div className="flex flex-col">
                     <h1 className="text-[11px] font-black tracking-tight uppercase leading-none">{museumName}</h1>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-4 no-print">
+                <div className="flex items-center space-x-4 no-print shrink-0">
                   {/* Cloud Sync Status Indicator */}
                   <div className={`flex items-center space-x-1.5 px-2 py-1 rounded text-[8px] font-black uppercase tracking-tighter border transition-colors ${
                     !currentUser ? 'bg-slate-100 text-slate-400 border-slate-200' :
@@ -1634,7 +1634,7 @@ export default function MasterScheduler() {
                 <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-slate-50 border-b border-slate-200 flex flex-col justify-end p-4">
                 </div>
                 <div className="flex-1 overflow-hidden" ref={sidebarListRef}>
-                  <div style={{ height: '50px' }} className="relative border-b-[3px] border-slate-800 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
+                  <div style={{ height: '36px' }} className="relative border-b-[3px] border-slate-800 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
                     <div className="absolute top-0 left-0 w-full h-full bg-slate-50 flex items-center px-4 py-2 z-20">
                       <div className="flex flex-col">
                         {/* Labels removed as redundant */}
@@ -1643,20 +1643,20 @@ export default function MasterScheduler() {
                   </div>
                   {galleries.map((gallery) => {
                     const tracksCount = galleryLayouts[gallery]?.maxTracks || 1;
-                    const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 50);
+                    const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
                     const galleryProjects = exhibitions.filter(ex => ex.gallery === gallery);
                     return (
                       <div key={gallery} style={{ height: `${laneHeight}px` }} className="relative border-b-[3px] border-slate-800 bg-white">
-                        <div className="absolute top-0 left-0 w-full min-h-[36px] bg-slate-900 flex items-center px-4 py-2 z-20">
+                        <div className="absolute top-0 left-0 w-full min-h-[28px] bg-slate-900 flex items-center px-4 py-1 z-20">
                           <span className="font-black uppercase text-[10px] tracking-widest text-white leading-tight break-words">{gallery}</span>
                         </div>
                         {galleryProjects.map(ex => {
                           const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
                           if (trackIndex === undefined) return null;
-                          const topPos = 46 + (trackIndex * TRACK_HEIGHT);
+                          const topPos = 28 + (trackIndex * TRACK_HEIGHT);
                           return (
-                            <div key={`title-${ex.id}`} className="absolute left-4 w-[calc(100%-1rem)] pr-2" style={{ top: topPos + 10 }}>
-                              <div className="text-[10px] font-bold text-slate-800 leading-tight whitespace-normal break-words underline decoration-slate-200 decoration-1 underline-offset-2">{ex.title}</div>
+                            <div key={`title-${ex.id}`} className="absolute left-4 w-[calc(100%-1rem)] pr-2" style={{ top: topPos + 6 }}>
+                              <div className="text-[10px] font-bold text-slate-800 leading-tight truncate underline decoration-slate-200 decoration-1 underline-offset-2" title={ex.title}>{ex.title}</div>
                               {ex.exhibitionId && (
                                 <div className="text-[8px] font-bold text-slate-400 mt-0.5 uppercase tracking-tight">
                                   {ex.exhibitionId}
@@ -1674,7 +1674,7 @@ export default function MasterScheduler() {
                           const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
                           if (trackIndex === undefined || trackIndex === 0) return null;
                           return (
-                            <div key={`side-div-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-200 left-0" style={{ top: 46 + trackIndex * TRACK_HEIGHT }} />
+                            <div key={`side-div-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-200 left-0" style={{ top: 28 + trackIndex * TRACK_HEIGHT }} />
                           );
                         })}
                       </div>
@@ -1814,7 +1814,7 @@ export default function MasterScheduler() {
                   <div className="relative flex-1">
                     <div className="flex flex-col">
                       {/* Provincial Holidays Lane */}
-                      <div style={{ height: '50px' }} className="border-b-[3px] border-slate-800 bg-white/40 relative overflow-visible z-10 no-print-lane">
+                      <div style={{ height: '36px' }} className="border-b-[3px] border-slate-800 bg-white/40 relative overflow-visible z-10 no-print-lane">
                         <div className="absolute inset-0 bg-slate-50/50 -z-10" />
                         {holidayMilestones.map((holiday, i) => {
                           if (holiday.xPos < 0 || holiday.xPos > viewMonths.length * monthWidth) return null;
@@ -1846,7 +1846,7 @@ export default function MasterScheduler() {
                       </div>
                       {galleries.map((g) => {
                          const tracksCount = galleryLayouts[g]?.maxTracks || 1;
-                         const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 50);
+                         const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
                          const galleryProjects = exhibitions.filter(ex => ex.gallery === g);
 
                          const footprints = galleryProjects.map(ex => {
@@ -1911,7 +1911,7 @@ export default function MasterScheduler() {
                                </div>
                              ))}
                              <div 
-                               className="absolute top-0 left-0 w-full h-[36px] bg-slate-100/50 border-b border-black/5 z-20 group relative cursor-crosshair overflow-visible"
+                               className="absolute top-0 left-0 w-full h-[28px] bg-slate-100/50 border-b border-black/5 z-20 group relative cursor-crosshair overflow-visible"
                                onDoubleClick={async (e) => {
                                  const rect = e.currentTarget.getBoundingClientRect();
                                  const x = Math.max(0, e.clientX - rect.left + timelineRef.current!.scrollLeft);
@@ -2004,7 +2004,7 @@ export default function MasterScheduler() {
                                const trackIndex = galleryLayouts[g]!.tracks[ex.id];
                                if (trackIndex === undefined || trackIndex === 0) return null;
                                return (
-                                 <div key={`line-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-300 z-10 pointer-events-none" style={{ top: 46 + trackIndex * TRACK_HEIGHT }} />
+                                 <div key={`line-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-300 z-10 pointer-events-none" style={{ top: 28 + trackIndex * TRACK_HEIGHT }} />
                                );
                              })}
                            </div>
@@ -2024,7 +2024,7 @@ export default function MasterScheduler() {
                           const galleryProjects = exhibitions.filter(ex => ex.gallery === gallery);
                           const layout = galleryLayouts[gallery];
                           const tracksCount = layout?.maxTracks || 1;
-                          const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 50);
+                          const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
                           const galleryYOffset = currentGalleryY;
                           currentGalleryY += laneHeight;
 
@@ -2034,7 +2034,7 @@ export default function MasterScheduler() {
                             const endPos = getPositionFromDate(ex.endDate, monthWidth, viewMonths);
                             const width = Math.max(endPos - startPos, 40);
                             const isDraggingThis = draggingBarId === ex.id;
-                            const trackTop = galleryYOffset + 46 + (trackIndex * TRACK_HEIGHT);
+                            const trackTop = galleryYOffset + 28 + (trackIndex * TRACK_HEIGHT);
 
                             const prePhasesRaw = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
                             const postPhasesRaw = (ex.phases || []).filter(p => phaseTypes.find(t => t.id === p.typeId)?.isPost);
@@ -2101,7 +2101,7 @@ export default function MasterScheduler() {
                                           style={{ left: `${phase.startX}px`, top: `${phase.y}px`, width: `${phase.width - 2}px`, height: `${PHASE_BAR_HEIGHT}px`, backgroundColor: phase.type?.color || '#eee' }}
                                           title={phase.label}
                                         >
-                                          <span className={`text-[9px] font-black uppercase whitespace-normal break-words leading-none ${getContrastColor(phase.type?.color || '#eee')} drop-shadow-sm`}>{phase.label}</span>
+                                          <span className={`text-[9px] font-black uppercase truncate leading-none ${getContrastColor(phase.type?.color || '#eee')} drop-shadow-sm`}>{phase.label}</span>
                                         </div>
                                         {hasNext && (
                                           <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
@@ -2156,17 +2156,17 @@ export default function MasterScheduler() {
                                   }}
                                 >
                                   <div className="w-1.5 h-full shrink-0" style={{ backgroundColor: getStatusStyles(ex.status).accent }} />
-                                  <div className="flex-1 flex flex-col justify-center px-3 min-w-0">
-                                    <div className="flex items-center justify-between">
-                                      <h4 className="font-black whitespace-normal break-words uppercase text-[10px] leading-tight tracking-tight text-slate-900 line-clamp-1">{ex.title}</h4>
+                                  <div className="flex-1 flex flex-col justify-center px-1.5 min-w-0 overflow-hidden">
+                                    <div className="flex items-center justify-between min-w-0">
+                                      <h4 className="font-black truncate uppercase text-[10px] leading-tight tracking-tight text-slate-900">{ex.title}</h4>
                                       <span 
-                                        className="text-[7px] font-black uppercase px-1 py-0.5 rounded border border-black/10 ml-2 shrink-0 bg-white/50"
+                                        className="text-[7px] font-black uppercase px-1 py-0.5 rounded border border-black/10 ml-2 shrink-0 bg-white/50 hidden sm:block"
                                         style={{ color: getStatusStyles(ex.status).text }}
                                       >
                                         {getStatusStyles(ex.status).label}
                                       </span>
                                     </div>
-                                    <div className="flex items-center mt-0.5 space-x-1.5 text-[8px] font-black uppercase text-slate-600">
+                                    <div className="flex items-center mt-0.5 space-x-1.5 text-[8px] font-black uppercase text-slate-600 truncate">
                                       <span>{formatBarDate(ex.startDate)}</span>
                                       <span className="opacity-40">/</span>
                                       <span>{formatBarDate(ex.endDate)}</span>
@@ -2213,7 +2213,7 @@ export default function MasterScheduler() {
 
               <section className="space-y-6">
                 <div className="flex items-center text-sm font-black uppercase tracking-widest space-x-3 text-slate-900"><Palette size={18} /><span>PHASE TYPES</span></div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {phaseTypes.map((type, idx) => (
                     <div key={type.id} className="flex items-center space-x-3 p-3 border border-slate-300 rounded bg-white shadow-sm hover:shadow-md hover:border-slate-400 transition-all">
                       <div className="flex flex-col">
