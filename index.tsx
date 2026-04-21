@@ -32,8 +32,35 @@ import {
   MoreVertical,
   GripVertical,
   Flag,
-  AlertTriangle
+  AlertTriangle,
+  LogOut,
+  LogIn,
+  Cloud,
+  CloudOff,
+  History
 } from 'lucide-react';
+
+import { 
+  auth, 
+  db, 
+  signInWithGoogle, 
+  logout, 
+  serverTimestamp 
+} from './src/lib/firebase';
+import { 
+  onAuthStateChanged, 
+  User as FirebaseUser 
+} from 'firebase/auth';
+import { 
+  doc, 
+  setDoc, 
+  onSnapshot, 
+  collection, 
+  query, 
+  where,
+  writeBatch,
+  getDoc
+} from 'firebase/firestore';
 
 // --- Types & Constants ---
 
@@ -747,6 +774,11 @@ const DetailPanel = ({
 // --- Main App ---
 
 export default function MasterScheduler() {
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   const [exhibitions, setExhibitions] = useState<Exhibition[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -974,16 +1006,213 @@ export default function MasterScheduler() {
     return () => clearTimeout(timeout);
   }, [museumName, galleries, phaseTypes]);
 
-  const handleUpdateExhibition = (updatedEx: Exhibition) => {
+  // --- Firebase Synchronization Hooks ---
+
+  // 1. Auth Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      if (user) {
+        setSyncStatus('syncing');
+      } else {
+        setSyncStatus('idle');
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  // 2. Real-time Firebase Sync
+  useEffect(() => {
+    if (!currentUser) {
+      setIsInitialLoad(false);
+      return;
+    }
+
+    // Set up listeners for the three main data parts
+    const userDocRef = doc(db, 'users', currentUser.uid);
+    const exhibitionsColRef = collection(db, 'users', currentUser.uid, 'exhibitions');
+    const milestonesColRef = collection(db, 'users', currentUser.uid, 'milestones');
+
+    let profileUnsub: () => void;
+    let exhibitionsUnsub: () => void;
+    let milestonesUnsub: () => void;
+
+    const startSync = async () => {
+      setSyncStatus('syncing');
+      
+      // Check if user has a profile, if not migrate
+      const docSnap = await getDoc(userDocRef);
+      if (!docSnap.exists()) {
+        // Migration logic
+        try {
+          const batch = writeBatch(db);
+          batch.set(userDocRef, {
+            museumName,
+            galleries,
+            phaseTypes,
+            updatedAt: serverTimestamp()
+          });
+
+          exhibitions.forEach(ex => {
+            const exRef = doc(exhibitionsColRef, ex.id);
+            batch.set(exRef, { ...ex, ownerId: currentUser.uid, updatedAt: serverTimestamp() });
+          });
+
+          locationMilestones.forEach(m => {
+            const mRef = doc(milestonesColRef, m.id);
+            batch.set(mRef, { ...m, ownerId: currentUser.uid, updatedAt: serverTimestamp() });
+          });
+
+          await batch.commit();
+          console.log("Migration successful");
+        } catch (err) {
+          console.error("Migration error:", err);
+        }
+      }
+
+      // Local state is now considered migrated/initialized
+      setIsInitialLoad(false);
+
+      // Listen for profile changes
+      profileUnsub = onSnapshot(userDocRef, (doc) => {
+        if (doc.exists()) {
+          const data = doc.data();
+          setMuseumName(data.museumName);
+          setGalleries(data.galleries);
+          setPhaseTypes(data.phaseTypes);
+          setSyncStatus('synced');
+        }
+      });
+
+      // Listen for exhibitions
+      exhibitionsUnsub = onSnapshot(exhibitionsColRef, (snapshot) => {
+        const exs: Exhibition[] = [];
+        snapshot.forEach(doc => {
+          exs.push(doc.data() as Exhibition);
+        });
+        setExhibitions(exs);
+        setSyncStatus('synced');
+      });
+
+      // Listen for milestones
+      milestonesUnsub = onSnapshot(milestonesColRef, (snapshot) => {
+        const ms: LocationMilestone[] = [];
+        snapshot.forEach(doc => {
+          ms.push(doc.data() as LocationMilestone);
+        });
+        setLocationMilestones(ms);
+        setSyncStatus('synced');
+      });
+    };
+
+    startSync();
+
+    return () => {
+      if (profileUnsub) profileUnsub();
+      if (exhibitionsUnsub) exhibitionsUnsub();
+      if (milestonesUnsub) milestonesUnsub();
+    };
+  }, [currentUser]);
+
+  // 3. Local State Change -> Push to Firebase
+  // Only push if not in initial load and a user is signed in
+  useEffect(() => {
+    if (isInitialLoad || !currentUser || draggingBarId) return;
+    
+    const timeout = setTimeout(async () => {
+      try {
+        setSyncStatus('syncing');
+        await setDoc(doc(db, 'users', currentUser.uid), {
+          museumName,
+          galleries,
+          phaseTypes,
+          updatedAt: serverTimestamp()
+        });
+        setSyncStatus('synced');
+      } catch (err) {
+        console.error("Sync error:", err);
+        setSyncStatus('error');
+      }
+    }, 1000);
+    return () => clearTimeout(timeout);
+  }, [museumName, galleries, phaseTypes, currentUser, isInitialLoad, draggingBarId]);
+
+  const handleUpdateExhibition = async (updatedEx: Exhibition) => {
     setExhibitions(prev => prev.map(ex => (ex.id === updatedEx.id ? updatedEx : ex)));
+    if (currentUser) {
+      try {
+        setSyncStatus('syncing');
+        await setDoc(doc(db, 'users', currentUser.uid, 'exhibitions', updatedEx.id), {
+          ...updatedEx,
+          ownerId: currentUser.uid,
+          updatedAt: serverTimestamp()
+        });
+        setSyncStatus('synced');
+      } catch (err) {
+        console.error("Cloud update error:", err);
+        setSyncStatus('error');
+      }
+    }
   };
 
-  const handleUpdateGalleryName = (oldName: string, newName: string) => {
+  const handleRemoveExhibition = async (id: string) => {
+    if (!window.confirm('PERMANENTLY DELETE THIS PROJECT?')) return;
+    setExhibitions(prev => prev.filter(ex => ex.id !== id));
+    if (currentUser) {
+      try {
+        setSyncStatus('syncing');
+        const { deleteDoc } = await import('firebase/firestore');
+        await deleteDoc(doc(db, 'users', currentUser.uid, 'exhibitions', id));
+        setSyncStatus('synced');
+      } catch (err) {
+        setSyncStatus('error');
+      }
+    }
+  };
+
+  const handleUpdateGalleryName = async (oldName: string, newName: string) => {
     if (!newName || newName.trim() === '' || oldName === newName) return;
     if (galleries.includes(newName)) return;
+    
     setGalleries(prev => prev.map(g => g === oldName ? newName : g));
-    setExhibitions(prev => prev.map(ex => ex.gallery === oldName ? { ...ex, gallery: newName } : ex));
-    setLocationMilestones(prev => prev.map(m => m.gallery === oldName ? { ...m, gallery: newName } : m));
+    const updatedExs = exhibitions.map(ex => ex.gallery === oldName ? { ...ex, gallery: newName } : ex);
+    setExhibitions(updatedExs);
+    const updatedMs = locationMilestones.map(m => m.gallery === oldName ? { ...m, gallery: newName } : m);
+    setLocationMilestones(updatedMs);
+
+    if (currentUser) {
+      try {
+        setSyncStatus('syncing');
+        const batch = writeBatch(db);
+        
+        // Update profile
+        batch.update(doc(db, 'users', currentUser.uid), {
+          galleries: galleries.map(g => g === oldName ? newName : g),
+          updatedAt: serverTimestamp()
+        });
+
+        // Update affected exhibitions
+        exhibitions.filter(ex => ex.gallery === oldName).forEach(ex => {
+          batch.update(doc(db, 'users', currentUser.uid, 'exhibitions', ex.id), {
+            gallery: newName,
+            updatedAt: serverTimestamp()
+          });
+        });
+
+        // Update affected milestones
+        locationMilestones.filter(m => m.gallery === oldName).forEach(m => {
+          batch.update(doc(db, 'users', currentUser.uid, 'milestones', m.id), {
+            gallery: newName,
+            updatedAt: serverTimestamp()
+          });
+        });
+
+        await batch.commit();
+        setSyncStatus('synced');
+      } catch (err) {
+        setSyncStatus('error');
+      }
+    }
   };
 
   const handleAddGallery = () => {
@@ -1155,20 +1384,55 @@ export default function MasterScheduler() {
               
               <div className="flex justify-between items-center pt-4 border-t border-slate-200/10 mt-6">
                 <button 
-                  onClick={() => {
-                    setLocationMilestones(prev => prev.filter(m => m.id !== editMilestoneDraft.id));
+                  onClick={async () => {
+                    const idToRemove = editMilestoneDraft.id;
+                    setLocationMilestones(prev => prev.filter(m => m.id !== idToRemove));
                     setEditMilestoneDraft(null);
+                    if (currentUser) {
+                      try {
+                        setSyncStatus('syncing');
+                        const { deleteDoc } = await import('firebase/firestore');
+                        await deleteDoc(doc(db, 'users', currentUser.uid, 'milestones', idToRemove));
+                        setSyncStatus('synced');
+                      } catch (err) {
+                        setSyncStatus('error');
+                      }
+                    }
                   }} 
                   className="text-red-600 font-black text-[10px] uppercase tracking-widest hover:underline flex items-center"
                 >
                   <Trash2 size={12} className="mr-1.5" strokeWidth={3} /> DELETE
                 </button>
                 <button 
-                  onClick={() => {
+                  onClick={async () => {
                     if (editMilestoneDraft.title.trim() === '') {
-                      setLocationMilestones(prev => prev.filter(m => m.id !== editMilestoneDraft.id));
+                      const idToRemove = editMilestoneDraft.id;
+                      setLocationMilestones(prev => prev.filter(m => m.id !== idToRemove));
+                      if (currentUser) {
+                        try {
+                          setSyncStatus('syncing');
+                          const { deleteDoc } = await import('firebase/firestore');
+                          await deleteDoc(doc(db, 'users', currentUser.uid, 'milestones', idToRemove));
+                          setSyncStatus('synced');
+                        } catch (err) {
+                          setSyncStatus('error');
+                        }
+                      }
                     } else {
                       setLocationMilestones(prev => prev.map(m => m.id === editMilestoneDraft.id ? editMilestoneDraft : m));
+                      if (currentUser) {
+                        try {
+                          setSyncStatus('syncing');
+                          await setDoc(doc(db, 'users', currentUser.uid, 'milestones', editMilestoneDraft.id), {
+                            ...editMilestoneDraft,
+                            ownerId: currentUser.uid,
+                            updatedAt: serverTimestamp()
+                          });
+                          setSyncStatus('synced');
+                        } catch (err) {
+                          setSyncStatus('error');
+                        }
+                      }
                     }
                     setEditMilestoneDraft(null);
                   }} 
@@ -1209,6 +1473,54 @@ export default function MasterScheduler() {
                 </div>
 
                 <div className="flex items-center space-x-4 no-print">
+                  {/* Cloud Sync Status Indicator */}
+                  <div className={`flex items-center space-x-1.5 px-2 py-1 rounded text-[8px] font-black uppercase tracking-tighter border transition-colors ${
+                    !currentUser ? 'bg-slate-100 text-slate-400 border-slate-200' :
+                    syncStatus === 'syncing' ? 'bg-orange-50 text-orange-600 border-orange-200 animate-pulse' :
+                    syncStatus === 'synced' ? 'bg-green-50 text-green-600 border-green-200' :
+                    syncStatus === 'error' ? 'bg-red-50 text-red-600 border-red-200 shadow-[2px_2px_0_rgba(220,38,38,0.1)]' :
+                    'bg-slate-50 text-slate-500 border-slate-200'
+                  }`}>
+                    {!currentUser ? <CloudOff size={10} /> : syncStatus === 'syncing' ? <RefreshCw size={10} className="animate-spin" /> : <Cloud size={10} />}
+                    <span>{
+                      !currentUser ? 'Local Mode' :
+                      syncStatus === 'syncing' ? 'Syncing...' :
+                      syncStatus === 'synced' ? 'Cloud Synced' :
+                      syncStatus === 'error' ? 'Sync Error' : 'Online'
+                    }</span>
+                  </div>
+
+                  {/* Auth Buttons */}
+                  <div className="flex items-center mr-2 border-r border-slate-200 pr-4">
+                    {currentUser ? (
+                      <div className="flex items-center space-x-3">
+                        <div className="flex flex-col items-end">
+                          <span className="text-[9px] font-black uppercase leading-none text-slate-800">{currentUser.displayName || 'Me'}</span>
+                          <span className="text-[7px] font-bold text-slate-400 leading-none mt-1">{currentUser.email}</span>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            if (window.confirm('Sign out and switch to local mode?')) {
+                              logout().then(() => window.location.reload());
+                            }
+                          }}
+                          className="p-1.5 border border-slate-300 rounded bg-white hover:bg-slate-50 text-slate-600 hover:text-red-600 transition-colors"
+                          title="Sign Out"
+                        >
+                          <LogOut size={16} strokeWidth={2} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={signInWithGoogle}
+                        className="flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-300 rounded font-black uppercase text-[9px] hover:bg-slate-800 hover:text-white transition-all shadow-sm active:scale-95"
+                      >
+                        <LogIn size={12} strokeWidth={3} />
+                        <span>Sign In to Sync</span>
+                      </button>
+                    )}
+                  </div>
+
                   <div className="flex items-center space-x-2 border border-slate-300 rounded px-2 py-1 bg-slate-50">
                     <input aria-label="Timeline start date" type="date" value={timelineStartDate} onChange={(e) => setTimelineStartDate(e.target.value)} className="bg-transparent text-[9px] font-black uppercase outline-none w-[100px]" />
                     <span className="font-bold text-slate-300">-</span>
@@ -1262,13 +1574,14 @@ export default function MasterScheduler() {
 
                   <button 
                     aria-label="Create new exhibition project"
-                    onClick={() => {
+                    onClick={async () => {
                       const id = Math.random().toString(36).substr(2,9);
                       const now = new Date();
                       const exStart = new Date(now.getTime() + 12 * 30 * 24 * 60 * 60 * 1000); // 12 months ahead
                       const exEnd = new Date(exStart.getTime() + 3 * 30 * 24 * 60 * 60 * 1000); // 3 months duration
-                      setExhibitions([...exhibitions, { 
+                      const newEx: Exhibition = { 
                         id, 
+                        exhibitionId: '',
                         title: 'NEW EXHIBITION', 
                         status: 'Proposed', 
                         startDate: toISODate(exStart), 
@@ -1282,8 +1595,23 @@ export default function MasterScheduler() {
                           typeId: pt.id
                         })), 
                         description: '' 
-                      }]);
+                      };
+                      setExhibitions([...exhibitions, newEx]);
                       setSelectedProjectId(id);
+
+                      if (currentUser) {
+                        try {
+                          setSyncStatus('syncing');
+                          await setDoc(doc(db, 'users', currentUser.uid, 'exhibitions', id), {
+                            ...newEx,
+                            ownerId: currentUser.uid,
+                            updatedAt: serverTimestamp()
+                          });
+                          setSyncStatus('synced');
+                        } catch (err) {
+                          setSyncStatus('error');
+                        }
+                      }
                     }} 
                     className="px-4 py-1.5 bg-black text-white border border-slate-300 rounded font-black uppercase text-[9px] hover:bg-slate-800 transition-colors flex items-center"
                   >
@@ -1584,18 +1912,33 @@ export default function MasterScheduler() {
                              ))}
                              <div 
                                className="absolute top-0 left-0 w-full h-[36px] bg-slate-100/50 border-b border-black/5 z-20 group relative cursor-crosshair overflow-visible"
-                               onDoubleClick={(e) => {
+                               onDoubleClick={async (e) => {
                                  const rect = e.currentTarget.getBoundingClientRect();
                                  const x = Math.max(0, e.clientX - rect.left + timelineRef.current!.scrollLeft);
                                  const date = getDateFromPosition(x, monthWidth, viewMonths);
+                                 const id = Math.random().toString(36).substr(2,9);
                                  const newMilestone: LocationMilestone = { 
-                                   id: Math.random().toString(36).substr(2,9), 
+                                   id, 
                                    gallery: g, 
                                    title: 'MILESTONE', 
                                    date 
                                  };
                                  setLocationMilestones([...locationMilestones, newMilestone]);
                                  setEditMilestoneDraft(newMilestone);
+
+                                 if (currentUser) {
+                                   try {
+                                     setSyncStatus('syncing');
+                                     await setDoc(doc(db, 'users', currentUser.uid, 'milestones', id), {
+                                       ...newMilestone,
+                                       ownerId: currentUser.uid,
+                                       updatedAt: serverTimestamp()
+                                     });
+                                     setSyncStatus('synced');
+                                   } catch (err) {
+                                     setSyncStatus('error');
+                                   }
+                                 }
                                }}
                              >
                                 <div className="hidden group-hover:flex absolute left-4 h-full items-center text-[9px] text-slate-400 font-bold uppercase pointer-events-none tracking-widest gap-2">

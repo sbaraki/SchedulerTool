@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User specific configurations and museum branding.",
+      "type": "object",
+      "properties": {
+        "museumName": { "type": "string" },
+        "galleries": { "type": "array", "items": { "type": "string" } },
+        "phaseTypes": { 
+          "type": "array", 
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "color": { "type": "string" },
+              "isPost": { "type": "boolean" }
+            }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["museumName", "galleries", "phaseTypes", "updatedAt"]
+    },
+    "Exhibition": {
+      "title": "Exhibition",
+      "description": "Details for a specific museum exhibition project.",
+      "type": "object",
+      "properties": {
+        "exhibitionId": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string", "enum": ["Proposed", "In Development", "Open to Public", "Closed"] },
+        "startDate": { "type": "string", "format": "date" },
+        "endDate": { "type": "string", "format": "date" },
+        "gallery": { "type": "string" },
+        "phases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "durationMonths": { "type": "number" },
+              "typeId": { "type": "string" }
+            }
+          }
+        },
+        "milestones": { "type": "array" },
+        "description": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["exhibitionId", "title", "status", "startDate", "endDate", "gallery", "updatedAt", "ownerId"]
+    },
+    "LocationMilestone": {
+      "title": "Location Milestone",
+      "description": "Timeline milestones specific to a gallery location.",
+      "type": "object",
+      "properties": {
+        "gallery": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "color": { "type": "string" },
+        "icon": { "type": "string", "enum": ["diamond", "flag"] },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["gallery", "title", "date", "updatedAt", "ownerId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Root user configuration and settings."
+    },
+    "/users/{userId}/exhibitions/{exhibitionId}": {
+      "schema": "Exhibition",
+      "description": "The exhibitions belonging to the user."
+    },
+    "/users/{userId}/milestones/{milestoneId}": {
+      "schema": "LocationMilestone",
+      "description": "Global location-based milestones for the user's timeline."
+    }
+  }
+}

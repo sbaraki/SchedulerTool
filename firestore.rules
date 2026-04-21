@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validations ---
+
+    function isValidUserProfile(data) {
+      return data.museumName is string && data.museumName.size() <= 200 &&
+             data.galleries is list && data.galleries.size() <= 50 &&
+             data.phaseTypes is list && data.phaseTypes.size() <= 20 &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidExhibition(data) {
+      return data.ownerId == request.auth.uid &&
+             data.exhibitionId is string && data.exhibitionId.size() <= 50 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.status in ['Proposed', 'In Development', 'Open to Public', 'Closed'] &&
+             data.startDate is string && data.startDate.size() == 10 &&
+             data.endDate is string && data.endDate.size() == 10 &&
+             data.gallery is string &&
+             data.phases is list && data.phases.size() <= 15 &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidLocationMilestone(data) {
+      return data.ownerId == request.auth.uid &&
+             data.title is string && data.title.size() <= 200 &&
+             data.date is string && data.date.size() == 10 &&
+             data.gallery is string &&
+             data.updatedAt == request.time;
+    }
+
+    // --- Collections ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(incoming());
+      allow update: if isOwner(userId) && isValidUserProfile(incoming()) && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['museumName', 'galleries', 'phaseTypes', 'updatedAt']);
+
+      match /exhibitions/{exhibitionId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(exhibitionId) && isValidExhibition(incoming());
+        allow update: if isOwner(userId) && isValidExhibition(incoming()) &&
+                      incoming().ownerId == existing().ownerId &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'status', 'startDate', 'endDate', 'gallery', 'phases', 'milestones', 'description', 'updatedAt']);
+        allow delete: if isOwner(userId);
+      }
+
+      match /milestones/{milestoneId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(milestoneId) && isValidLocationMilestone(incoming());
+        allow update: if isOwner(userId) && isValidLocationMilestone(incoming()) &&
+                      incoming().ownerId == existing().ownerId &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'date', 'gallery', 'color', 'icon', 'updatedAt']);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
