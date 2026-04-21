@@ -27,7 +27,6 @@ import {
   ChevronDown,
   Palette,
   Info,
-  LayoutDashboard,
   Filter,
   Search,
   MoreVertical,
@@ -44,6 +43,7 @@ interface PhaseType {
   id: string;
   label: string;
   color: string;
+  isPost?: boolean;
 }
 
 interface ProjectPhase {
@@ -91,6 +91,7 @@ const DEFAULT_PHASE_TYPES: PhaseType[] = [
   { id: 'pt2', label: 'CONTENT DEVELOPMENT', color: '#3b82f6' },
   { id: 'pt3', label: 'DESIGN DEVELOPMENT', color: '#22c55e' },
   { id: 'pt4', label: 'IMPLEMENTATION', color: '#f97316' },
+  { id: 'pt5', label: 'DEINSTALL', color: '#ef4444', isPost: true },
 ];
 
 const MILESTONE_COLORS = [
@@ -100,6 +101,62 @@ const MILESTONE_COLORS = [
   { value: '#22c55e', label: 'DESIGN / APPROVAL' },
   { value: '#f97316', label: 'EXECUTION / BUILD' },
   { value: '#000000', label: 'FINAL / OPENING' },
+  { value: '#64748b', label: 'SECONDARY / HOLIDAY' }
+];
+
+const ALBERTA_HOLIDAYS = [
+  { date: '2026-01-01', label: "New Year's Day", type: 'Statutory' },
+  { date: '2026-02-16', label: 'Family Day', type: 'Statutory' },
+  { date: '2026-04-03', label: 'Good Friday', type: 'Statutory' },
+  { date: '2026-04-06', label: 'Easter Monday', type: 'Optional' },
+  { date: '2026-05-18', label: 'Victoria Day', type: 'Statutory' },
+  { date: '2026-07-01', label: 'Canada Day', type: 'Statutory' },
+  { date: '2026-08-03', label: 'Heritage Day', type: 'Optional' },
+  { date: '2026-09-07', label: 'Labour Day', type: 'Statutory' },
+  { date: '2026-09-30', label: 'National Day for Truth and Reconciliation', type: 'Optional' },
+  { date: '2026-10-12', label: 'Thanksgiving Day', type: 'Statutory' },
+  { date: '2026-11-11', label: 'Remembrance Day', type: 'Statutory' },
+  { date: '2026-12-25', label: 'Christmas Day', type: 'Statutory' },
+  { date: '2026-12-26', label: 'Boxing Day', type: 'Optional' },
+  { date: '2027-01-01', label: "New Year's Day", type: 'Statutory' },
+  { date: '2027-02-15', label: 'Family Day', type: 'Statutory' },
+  { date: '2027-03-26', label: 'Good Friday', type: 'Statutory' },
+  { date: '2027-03-29', label: 'Easter Monday', type: 'Optional' },
+  { date: '2027-05-24', label: 'Victoria Day', type: 'Statutory' },
+  { date: '2027-07-01', label: 'Canada Day', type: 'Statutory' },
+  { date: '2027-08-02', label: 'Heritage Day', type: 'Optional' },
+  { date: '2027-09-06', label: 'Labour Day', type: 'Statutory' },
+  { date: '2027-09-30', label: 'National Day for Truth and Reconciliation', type: 'Optional' },
+  { date: '2027-10-11', label: 'Thanksgiving Day', type: 'Statutory' },
+  { date: '2027-11-11', label: 'Remembrance Day', type: 'Statutory' },
+  { date: '2027-12-25', label: 'Christmas Day', type: 'Statutory' },
+  { date: '2027-12-26', label: 'Boxing Day', type: 'Optional' },
+  { date: '2028-01-01', label: "New Year's Day", type: 'Statutory' },
+  { date: '2028-02-21', label: 'Family Day', type: 'Statutory' },
+  { date: '2028-04-14', label: 'Good Friday', type: 'Statutory' },
+  { date: '2028-04-17', label: 'Easter Monday', type: 'Optional' },
+  { date: '2028-05-22', label: 'Victoria Day', type: 'Statutory' },
+  { date: '2028-07-01', label: 'Canada Day', type: 'Statutory' },
+  { date: '2028-08-07', label: 'Heritage Day', type: 'Optional' },
+  { date: '2028-09-04', label: 'Labour Day', type: 'Statutory' },
+  { date: '2028-09-30', label: 'National Day for Truth and Reconciliation', type: 'Optional' },
+  { date: '2028-10-09', label: 'Thanksgiving Day', type: 'Statutory' },
+  { date: '2028-11-11', label: 'Remembrance Day', type: 'Statutory' },
+  { date: '2028-12-25', label: 'Christmas Day', type: 'Statutory' },
+  { date: '2028-12-26', label: 'Boxing Day', type: 'Optional' },
+  { date: '2029-01-01', label: "New Year's Day", type: 'Statutory' },
+  { date: '2029-02-19', label: 'Family Day', type: 'Statutory' },
+  { date: '2029-03-30', label: 'Good Friday', type: 'Statutory' },
+  { date: '2029-04-02', label: 'Easter Monday', type: 'Optional' },
+  { date: '2029-05-21', label: 'Victoria Day', type: 'Statutory' },
+  { date: '2029-07-01', label: 'Canada Day', type: 'Statutory' },
+  { date: '2029-08-06', label: 'Heritage Day', type: 'Optional' },
+  { date: '2029-09-03', label: 'Labour Day', type: 'Statutory' },
+  { date: '2029-09-30', label: 'National Day for Truth and Reconciliation', type: 'Optional' },
+  { date: '2029-10-08', label: 'Thanksgiving Day', type: 'Statutory' },
+  { date: '2029-11-11', label: 'Remembrance Day', type: 'Statutory' },
+  { date: '2029-12-25', label: 'Christmas Day', type: 'Statutory' },
+  { date: '2029-12-26', label: 'Boxing Day', type: 'Optional' },
 ];
 
 const INITIAL_EXHIBITIONS: Exhibition[] = [
@@ -142,15 +199,47 @@ const HEADER_HEIGHT = 90;
 const STANDARD_BAR_HEIGHT = 34; 
 const PHASE_BAR_HEIGHT = 18;
 
-const getStatusColor = (status: string) => {
+const getStatusStyles = (status: string) => {
   switch(status) {
-    case 'Open to Public': return '#10b981'; // emerald-500
-    case 'In Development': return '#facc15'; // yellow-400
-    case 'Proposed': return '#f1f5f9'; // slate-100
-    case 'Closed': return '#f8fafc'; // slate-50
-    default: return '#cbd5e1';
+    case 'Open to Public': return { 
+      accent: '#059669', 
+      bg: '#ecfdf5', 
+      border: '#10b981', 
+      text: '#064e3b',
+      label: '● OPEN TO PUBLIC'
+    };
+    case 'In Development': return { 
+      accent: '#d97706', 
+      bg: '#fffbeb', 
+      border: '#f59e0b', 
+      text: '#78350f',
+      label: '◈ IN DEVELOPMENT'
+    };
+    case 'Proposed': return { 
+      accent: '#4b5563', 
+      bg: '#f9fafb', 
+      border: '#d1d5db', 
+      text: '#1f2937',
+      label: '◌ PROPOSED'
+    };
+    case 'Closed': return { 
+      accent: '#000000', 
+      bg: '#f3f4f6', 
+      border: '#1f2937', 
+      text: '#000000',
+      label: '■ CLOSED'
+    };
+    default: return { 
+      accent: '#94a3b8', 
+      bg: '#f8fafc', 
+      border: '#e2e8f0', 
+      text: '#475569',
+      label: '?'
+    };
   }
 };
+
+const getStatusColor = (status: string) => getStatusStyles(status).bg;
 
 const getContrastColor = (hexcolor: string) => {
   if (!hexcolor || hexcolor.length < 7) return 'text-black';
@@ -202,10 +291,12 @@ const formatBarDate = (dateStr: string) => {
 
 // --- Collision Utility ---
 
-const calculateTracks = (projects: Exhibition[], monthWidth: number, vMonths: any[]) => {
+const calculateTracks = (projects: Exhibition[], monthWidth: number, vMonths: any[], phaseTypes: PhaseType[]) => {
   const sorted = [...projects].sort((a, b) => {
-    const startA = getPositionFromDate(a.startDate, monthWidth, vMonths) - (a.phases?.reduce((acc, p) => acc + (p.durationMonths * monthWidth), 0) || 0);
-    const startB = getPositionFromDate(b.startDate, monthWidth, vMonths) - (b.phases?.reduce((acc, p) => acc + (p.durationMonths * monthWidth), 0) || 0);
+    const prePhasesA = (a.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
+    const prePhasesB = (b.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
+    const startA = getPositionFromDate(a.startDate, monthWidth, vMonths) - prePhasesA.reduce((acc, p) => acc + (p.durationMonths * monthWidth), 0);
+    const startB = getPositionFromDate(b.startDate, monthWidth, vMonths) - prePhasesB.reduce((acc, p) => acc + (p.durationMonths * monthWidth), 0);
     return startA - startB;
   });
 
@@ -377,7 +468,16 @@ const DetailPanel = ({
               </select>
             ) : (
               <div>
-                <p className="font-bold text-sm uppercase px-2 py-0.5 border border-slate-300 rounded inline-block" style={{ backgroundColor: getStatusColor(exhibition.status) }}>{exhibition.status}</p>
+                <p 
+                  className="font-black text-[10px] uppercase px-3 py-1 border rounded inline-flex items-center shadow-sm" 
+                  style={{ 
+                    backgroundColor: getStatusStyles(exhibition.status).bg,
+                    borderColor: getStatusStyles(exhibition.status).border,
+                    color: getStatusStyles(exhibition.status).text
+                  }}
+                >
+                  {getStatusStyles(exhibition.status).label}
+                </p>
               </div>
             )}
           </div>
@@ -467,10 +567,10 @@ const DetailPanel = ({
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-1">
-            <h3 className="text-xs font-black uppercase">INTERNAL PHASING</h3>
-            {isEditing && (
+        {isEditing && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+              <h3 className="text-xs font-black uppercase">INTERNAL PHASING</h3>
               <button 
                 aria-label="Add new phase"
                 onClick={handleAddPhase} 
@@ -478,123 +578,123 @@ const DetailPanel = ({
               >
                 + ADD PHASE
               </button>
-            )}
-          </div>
-          <div className="space-y-2">
-            {editedEx.phases.map((phase, idx) => {
-              const isPhaseEditing = editingPhaseId === phase.id;
-              
-              return (
-                <div key={phase.id} className={`border border-slate-300 rounded p-3 flex items-start justify-between bg-white shadow-sm hover:shadow-md transition-colors ${isPhaseEditing ? 'bg-yellow-50/30' : ''}`}>
-                  <div className="flex items-start space-x-3 w-full">
-                    <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-1">{idx + 1}</div>
-                    <div className="flex flex-col flex-1 min-w-0">
-                      {isPhaseEditing ? (
-                        <div className="flex flex-col space-y-3">
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black text-slate-400 uppercase">LABEL</label>
-                            <input 
-                              autoFocus
-                              aria-label={`Phase ${idx + 1} Label`}
-                              className="font-bold text-xs uppercase border border-slate-300 rounded outline-none bg-white text-black focus:bg-yellow-50 w-full p-2"
-                              value={localPhaseDraft?.label || ''}
-                              onChange={(e) => setLocalPhaseDraft(prev => prev ? { ...prev, label: e.target.value.toUpperCase() } : null)}
-                            />
-                          </div>
-                          <div className="flex items-center space-x-4">
+            </div>
+            <div className="space-y-2">
+              {editedEx.phases.map((phase, idx) => {
+                const isPhaseEditing = editingPhaseId === phase.id;
+                
+                return (
+                  <div key={phase.id} className={`border border-slate-300 rounded p-3 flex items-start justify-between bg-white shadow-sm hover:shadow-md transition-colors ${isPhaseEditing ? 'bg-yellow-50/30' : ''}`}>
+                    <div className="flex items-start space-x-3 w-full">
+                      <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-1">{idx + 1}</div>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        {isPhaseEditing ? (
+                          <div className="flex flex-col space-y-3">
                             <div className="space-y-1">
-                              <label className="text-[9px] font-black text-slate-400 uppercase">DURATION (MO)</label>
+                              <label className="text-[9px] font-black text-slate-400 uppercase">LABEL</label>
                               <input 
-                                type="number"
-                                min="0"
-                                step="0.1"
-                                aria-label={`Phase ${idx + 1} Duration`}
-                                className="font-black text-xs uppercase border border-slate-300 rounded bg-white text-black outline-none w-20 p-2 text-center focus:bg-yellow-50"
-                                value={localPhaseDraft?.durationMonths || 0}
-                                onChange={(e) => {
-                                  const val = parseFloat(e.target.value);
-                                  setLocalPhaseDraft(prev => prev ? { ...prev, durationMonths: isNaN(val) ? 0 : val } : null);
-                                }}
+                                autoFocus
+                                aria-label={`Phase ${idx + 1} Label`}
+                                className="font-bold text-xs uppercase border border-slate-300 rounded outline-none bg-white text-black focus:bg-yellow-50 w-full p-2"
+                                value={localPhaseDraft?.label || ''}
+                                onChange={(e) => setLocalPhaseDraft(prev => prev ? { ...prev, label: e.target.value.toUpperCase() } : null)}
                               />
                             </div>
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-black text-slate-400 uppercase">TYPE</label>
-                              <select 
-                                className="font-black text-[10px] uppercase border border-slate-300 rounded bg-white text-black outline-none p-1.5 focus:bg-yellow-50"
-                                value={localPhaseDraft?.typeId || ''}
-                                onChange={(e) => setLocalPhaseDraft(prev => prev ? { ...prev, typeId: e.target.value } : null)}
+                            <div className="flex items-center space-x-4">
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black text-slate-400 uppercase">DURATION (MO)</label>
+                                <input 
+                                  type="number"
+                                  min="0"
+                                  step="0.1"
+                                  aria-label={`Phase ${idx + 1} Duration`}
+                                  className="font-black text-xs uppercase border border-slate-300 rounded bg-white text-black outline-none w-20 p-2 text-center focus:bg-yellow-50"
+                                  value={localPhaseDraft?.durationMonths || 0}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    setLocalPhaseDraft(prev => prev ? { ...prev, durationMonths: isNaN(val) ? 0 : val } : null);
+                                  }}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black text-slate-400 uppercase">TYPE</label>
+                                <select 
+                                  className="font-black text-[10px] uppercase border border-slate-300 rounded bg-white text-black outline-none p-1.5 focus:bg-yellow-50"
+                                  value={localPhaseDraft?.typeId || ''}
+                                  onChange={(e) => setLocalPhaseDraft(prev => prev ? { ...prev, typeId: e.target.value } : null)}
+                                >
+                                  {phaseTypes.map(pt => <option key={pt.id} value={pt.id}>{pt.label}</option>)}
+                                </select>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2 pt-1">
+                               <button 
+                                onClick={handleSavePhaseLocal}
+                                className="bg-black text-white px-3 py-1.5 text-[10px] font-bold uppercase flex items-center hover:bg-slate-800 transition-colors shadow-sm active:scale-95"
                               >
-                                {phaseTypes.map(pt => <option key={pt.id} value={pt.id}>{pt.label}</option>)}
-                              </select>
+                                <Check size={14} className="mr-1.5" /> CONFIRM
+                              </button>
+                              <button 
+                                onClick={handleCancelPhaseLocal}
+                                className="bg-white border border-slate-300 rounded text-black px-3 py-1.5 text-[10px] font-bold uppercase flex items-center hover:bg-slate-50 transition-colors shadow-sm active:scale-95"
+                              >
+                                <X size={14} className="mr-1.5" /> CANCEL
+                              </button>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-2 pt-1">
-                             <button 
-                              onClick={handleSavePhaseLocal}
-                              className="bg-black text-white px-3 py-1.5 text-[10px] font-bold uppercase flex items-center hover:bg-slate-800 transition-colors shadow-sm active:scale-95"
-                            >
-                              <Check size={14} className="mr-1.5" /> CONFIRM
-                            </button>
-                            <button 
-                              onClick={handleCancelPhaseLocal}
-                              className="bg-white border border-slate-300 rounded text-black px-3 py-1.5 text-[10px] font-bold uppercase flex items-center hover:bg-slate-50 transition-colors shadow-sm active:scale-95"
-                            >
-                              <X size={14} className="mr-1.5" /> CANCEL
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center space-x-2">
-                             <span className="font-bold text-xs uppercase truncate text-black">{phase.label}</span>
-                             <div className="w-2 h-2 rounded-full border border-black/10" style={{ backgroundColor: phaseTypes.find(t => t.id === phase.typeId)?.color }} />
-                          </div>
-                          <span className="text-[9px] font-black text-slate-500 uppercase">{phase.durationMonths} MO</span>
-                        </>
-                      )}
+                        ) : (
+                          <>
+                            <div className="flex items-center space-x-2">
+                               <span className="font-bold text-xs uppercase truncate text-black">{phase.label}</span>
+                               <div className="w-2 h-2 rounded-full border border-black/10" style={{ backgroundColor: phaseTypes.find(t => t.id === phase.typeId)?.color }} />
+                            </div>
+                            <span className="text-[9px] font-black text-slate-500 uppercase">{phase.durationMonths} MO</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  {isEditing && !isPhaseEditing && (
-                    <div className="flex items-center space-x-1 shrink-0 ml-2 mt-1">
-                      <div className="flex flex-col">
+                    {!isPhaseEditing && (
+                      <div className="flex items-center space-x-1 shrink-0 ml-2 mt-1">
+                        <div className="flex flex-col">
+                          <button 
+                            aria-label={`Move phase ${idx + 1} up`}
+                            disabled={idx === 0}
+                            onClick={() => handleMovePhase(idx, 'up')}
+                            className={`p-0.5 hover:bg-black hover:text-white transition-colors border border-transparent hover:border-black ${idx === 0 ? 'opacity-20 cursor-not-allowed' : ''}`}
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                          <button 
+                            aria-label={`Move phase ${idx + 1} down`}
+                            disabled={idx === editedEx.phases.length - 1}
+                            onClick={() => handleMovePhase(idx, 'down')}
+                            className={`p-0.5 hover:bg-black hover:text-white transition-colors border border-transparent hover:border-black ${idx === editedEx.phases.length - 1 ? 'opacity-20 cursor-not-allowed' : ''}`}
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                        </div>
                         <button 
-                          aria-label={`Move phase ${idx + 1} up`}
-                          disabled={idx === 0}
-                          onClick={() => handleMovePhase(idx, 'up')}
-                          className={`p-0.5 hover:bg-black hover:text-white transition-colors border border-transparent hover:border-black ${idx === 0 ? 'opacity-20 cursor-not-allowed' : ''}`}
+                          aria-label={`Edit phase ${idx + 1}`}
+                          onClick={() => handleStartEditPhase(phase)} 
+                          className="p-1 text-black hover:text-blue-600 transition-colors border border-transparent hover:border-black"
                         >
-                          <ChevronUp size={14} />
+                          <Edit2 size={16}/>
                         </button>
                         <button 
-                          aria-label={`Move phase ${idx + 1} down`}
-                          disabled={idx === editedEx.phases.length - 1}
-                          onClick={() => handleMovePhase(idx, 'down')}
-                          className={`p-0.5 hover:bg-black hover:text-white transition-colors border border-transparent hover:border-black ${idx === editedEx.phases.length - 1 ? 'opacity-20 cursor-not-allowed' : ''}`}
+                          aria-label={`Remove phase ${idx + 1}`}
+                          onClick={() => handleRemovePhase(phase.id)} 
+                          className="p-1 text-black hover:text-red-600 transition-colors border border-transparent hover:border-black"
                         >
-                          <ChevronDown size={14} />
+                          <Trash2 size={16}/>
                         </button>
                       </div>
-                      <button 
-                        aria-label={`Edit phase ${idx + 1}`}
-                        onClick={() => handleStartEditPhase(phase)} 
-                        className="p-1 text-black hover:text-blue-600 transition-colors border border-transparent hover:border-black"
-                      >
-                        <Edit2 size={16}/>
-                      </button>
-                      <button 
-                        aria-label={`Remove phase ${idx + 1}`}
-                        onClick={() => handleRemovePhase(phase.id)} 
-                        className="p-1 text-black hover:text-red-600 transition-colors border border-transparent hover:border-black"
-                      >
-                        <Trash2 size={16}/>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="space-y-2">
           <label htmlFor="ex-description" className="text-xs font-black uppercase border-b border-slate-200 pb-1 block">NARRATIVE</label>
@@ -671,7 +771,16 @@ export default function MasterScheduler() {
   const [phaseTypes, setPhaseTypes] = useState<PhaseType[]>(() => {
     try {
       const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
-      return saved ? JSON.parse(saved).phaseTypes : DEFAULT_PHASE_TYPES;
+      if (!saved) return DEFAULT_PHASE_TYPES;
+      const parsed = JSON.parse(saved);
+      const existing = (parsed.phaseTypes || []).filter((pt: PhaseType) => pt.label !== 'PRODUCTION / FAB');
+      const merged = [...existing];
+      DEFAULT_PHASE_TYPES.forEach(dpt => {
+        if (!merged.find(pt => pt.label === dpt.label)) {
+          merged.push(dpt);
+        }
+      });
+      return merged;
     } catch { return DEFAULT_PHASE_TYPES; }
   });
 
@@ -749,6 +858,34 @@ export default function MasterScheduler() {
     return months;
   }, [timelineStartDate, timelineEndDate]);
 
+  const holidayMilestones = useMemo(() => {
+    return ALBERTA_HOLIDAYS.map(h => ({
+      ...h,
+      xPos: getPositionFromDate(h.date, monthWidth, viewMonths)
+    })).sort((a, b) => a.xPos - b.xPos);
+  }, [monthWidth, viewMonths]);
+
+  const holidayLabelPositions = useMemo(() => {
+    const positions = new Array(holidayMilestones.length).fill('top');
+    let lastTopX = -9999;
+    let lastBottomX = -9999;
+    for (let i = 0; i < holidayMilestones.length; i++) {
+      const curr = holidayMilestones[i];
+      if (curr.xPos < -100 || curr.xPos > viewMonths.length * monthWidth + 100) continue;
+      
+      if (curr.xPos - lastTopX >= 55) {
+        positions[i] = 'top';
+        lastTopX = curr.xPos;
+      } else if (curr.xPos - lastBottomX >= 55) {
+        positions[i] = 'bottom';
+        lastBottomX = curr.xPos;
+      } else {
+        positions[i] = 'top';
+      }
+    }
+    return positions;
+  }, [holidayMilestones, viewMonths.length, monthWidth]);
+
   const yearBlocks = useMemo(() => {
     const blocks: {label: number, count: number}[] = [];
     let currentYear = -1;
@@ -809,11 +946,11 @@ export default function MasterScheduler() {
     const layouts: { [gallery: string]: { tracks: { [id: string]: number }, maxTracks: number } } = {};
     galleries.forEach(gallery => {
       const galleryProjects = exhibitions.filter(ex => ex.gallery === gallery);
-      const layoutInfo = calculateTracks(galleryProjects, monthWidth, viewMonths);
+      const layoutInfo = calculateTracks(galleryProjects, monthWidth, viewMonths, phaseTypes);
       layouts[gallery] = { tracks: layoutInfo.tracks, maxTracks: layoutInfo.maxTracks };
     });
     return layouts;
-  }, [exhibitions, galleries, monthWidth, viewMonths]);
+  }, [exhibitions, galleries, monthWidth, viewMonths, phaseTypes]);
 
   useEffect(() => {
     if (draggingBarId) return; // Prevent blocking the main thread with synchronous I/O during drag
@@ -839,6 +976,28 @@ export default function MasterScheduler() {
 
   const handleUpdateExhibition = (updatedEx: Exhibition) => {
     setExhibitions(prev => prev.map(ex => (ex.id === updatedEx.id ? updatedEx : ex)));
+  };
+
+  const handleUpdateGalleryName = (oldName: string, newName: string) => {
+    if (!newName || newName.trim() === '' || oldName === newName) return;
+    if (galleries.includes(newName)) return;
+    setGalleries(prev => prev.map(g => g === oldName ? newName : g));
+    setExhibitions(prev => prev.map(ex => ex.gallery === oldName ? { ...ex, gallery: newName } : ex));
+    setLocationMilestones(prev => prev.map(m => m.gallery === oldName ? { ...m, gallery: newName } : m));
+  };
+
+  const handleAddGallery = () => {
+    const newName = `NEW LOCATION ${galleries.length + 1}`;
+    if (galleries.includes(newName)) return;
+    setGalleries([...galleries, newName]);
+  };
+
+  const handleRemoveGallery = (name: string) => {
+    if (galleries.length <= 1) return;
+    const remaining = galleries.filter(g => g !== name);
+    setGalleries(remaining);
+    setExhibitions(prev => prev.map(ex => ex.gallery === name ? { ...ex, gallery: remaining[0] } : ex));
+    setLocationMilestones(prev => prev.filter(m => m.gallery !== name));
   };
 
   const handleDuplicateProject = (id: string) => {
@@ -1044,13 +1203,8 @@ export default function MasterScheduler() {
             <header className="bg-white border-b border-slate-200 z-50 shrink-0">
               <nav className="px-4 py-2 flex items-center justify-between">
                 <div className="flex items-center space-x-6">
-                  <div className="flex items-center space-x-3 group">
-                    <div className="w-8 h-8 bg-black flex items-center justify-center text-white border border-slate-300 rounded shadow-sm transition-transform group-hover:scale-95">
-                      <LayoutDashboard size={16} strokeWidth={2.5} />
-                    </div>
-                    <div className="flex flex-col">
-                      <h1 className="text-[11px] font-black tracking-tight uppercase leading-none">{museumName}</h1>
-                    </div>
+                  <div className="flex flex-col">
+                    <h1 className="text-[11px] font-black tracking-tight uppercase leading-none">{museumName}</h1>
                   </div>
                 </div>
 
@@ -1124,7 +1278,7 @@ export default function MasterScheduler() {
                         phases: phaseTypes.map(pt => ({
                           id: Math.random().toString(36).substr(2,9),
                           label: pt.label,
-                          durationMonths: 3,
+                          durationMonths: pt.isPost ? 1 : 3,
                           typeId: pt.id
                         })), 
                         description: '' 
@@ -1152,6 +1306,13 @@ export default function MasterScheduler() {
                 <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-slate-50 border-b border-slate-200 flex flex-col justify-end p-4">
                 </div>
                 <div className="flex-1 overflow-hidden" ref={sidebarListRef}>
+                  <div style={{ height: '50px' }} className="relative border-b-[3px] border-slate-800 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
+                    <div className="absolute top-0 left-0 w-full h-full bg-slate-50 flex items-center px-4 py-2 z-20">
+                      <div className="flex flex-col">
+                        {/* Labels removed as redundant */}
+                      </div>
+                    </div>
+                  </div>
                   {galleries.map((gallery) => {
                     const tracksCount = galleryLayouts[gallery]?.maxTracks || 1;
                     const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 50);
@@ -1324,6 +1485,37 @@ export default function MasterScheduler() {
                   {/* Grid / Lanes */}
                   <div className="relative flex-1">
                     <div className="flex flex-col">
+                      {/* Provincial Holidays Lane */}
+                      <div style={{ height: '50px' }} className="border-b-[3px] border-slate-800 bg-white/40 relative overflow-visible z-10 no-print-lane">
+                        <div className="absolute inset-0 bg-slate-50/50 -z-10" />
+                        {holidayMilestones.map((holiday, i) => {
+                          if (holiday.xPos < 0 || holiday.xPos > viewMonths.length * monthWidth) return null;
+                          const labelPos = holidayLabelPositions[i];
+                          return (
+                            <div 
+                              key={`holiday-${i}`}
+                              className="absolute top-1/2 flex items-center justify-center pointer-events-auto"
+                              style={{ left: `${holiday.xPos}px`, transform: 'translate(-50%, -50%)' }}
+                            >
+                              <div 
+                                className="group/holiday relative flex items-center justify-center cursor-help"
+                                title={`${holiday.label} (${holiday.type} Holiday)`}
+                              >
+                                <div className={`w-2 h-2 rotate-45 border-[1.5px] border-slate-900 shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-transform group-hover/holiday:scale-125 ${holiday.type === 'Statutory' ? 'bg-slate-800' : 'bg-white'}`} />
+                                
+                                <div className={`absolute left-1/2 -translate-x-1/2 text-[7px] font-black uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white rounded shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2'}`}>
+                                  {holiday.label}
+                                  <span className="text-[5px] text-slate-400 font-bold opacity-60">
+                                    {holiday.date.split('-')[1]}/{holiday.date.split('-')[2]}
+                                  </span>
+                                </div>
+
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-400/0 group-hover/holiday:bg-slate-400/10 transition-colors pointer-events-none" />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                       {galleries.map((g) => {
                          const tracksCount = galleryLayouts[g]?.maxTracks || 1;
                          const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 50);
@@ -1501,20 +1693,35 @@ export default function MasterScheduler() {
                             const isDraggingThis = draggingBarId === ex.id;
                             const trackTop = galleryYOffset + 46 + (trackIndex * TRACK_HEIGHT);
 
-                            let currentPhaseOffset = 0;
-                            const totalPhaseWidth = (ex.phases || []).reduce((acc, p) => acc + p.durationMonths * monthWidth, 0);
-                            const phaseStartPos = startPos - totalPhaseWidth;
-
-                            const renderedPhases = (ex.phases || []).map((p, i) => {
+                            const prePhasesRaw = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
+                            const postPhasesRaw = (ex.phases || []).filter(p => phaseTypes.find(t => t.id === p.typeId)?.isPost);
+                            
+                            const totalPreWidth = prePhasesRaw.reduce((acc, p) => acc + p.durationMonths * monthWidth, 0);
+                            const phaseStartPos = startPos - totalPreWidth;
+                            
+                            let preOffset = 0;
+                            const renderedPre = prePhasesRaw.map((p, i) => {
                               const pWidth = p.durationMonths * monthWidth;
-                              const pStart = phaseStartPos + currentPhaseOffset;
+                              const pStart = phaseStartPos + preOffset;
                               const pEnd = pStart + pWidth;
                               const pY = trackTop + (i * TRACK_HEIGHT) + (TRACK_HEIGHT - PHASE_BAR_HEIGHT) / 2;
-                              currentPhaseOffset += pWidth;
-                              return { ...p, startX: pStart, width: pWidth, endX: pEnd, y: pY, type: phaseTypes.find(t => t.id === p.typeId), i };
+                              preOffset += pWidth;
+                              return { ...p, startX: pStart, width: pWidth, endX: pEnd, y: pY, type: phaseTypes.find(t => t.id === p.typeId), i, isPost: false };
                             });
 
-                            const mainBarY = trackTop + ((ex.phases?.length || 0) * TRACK_HEIGHT) + (TRACK_HEIGHT - STANDARD_BAR_HEIGHT) / 2;
+                            const mainBarY = trackTop + (prePhasesRaw.length * TRACK_HEIGHT) + (TRACK_HEIGHT - STANDARD_BAR_HEIGHT) / 2;
+
+                            let postOffset = 0;
+                            const renderedPost = postPhasesRaw.map((p, i) => {
+                              const pWidth = p.durationMonths * monthWidth;
+                              const pStart = endPos + postOffset;
+                              const pEnd = pStart + pWidth;
+                              const pY = trackTop + ((prePhasesRaw.length + 1 + i) * TRACK_HEIGHT) + (TRACK_HEIGHT - PHASE_BAR_HEIGHT) / 2;
+                              postOffset += pWidth;
+                              return { ...p, startX: pStart, width: pWidth, endX: pEnd, y: pY, type: phaseTypes.find(t => t.id === p.typeId), i: prePhasesRaw.length + 1 + i, isPost: true };
+                            });
+
+                            const renderedPhases = [...renderedPre, ...renderedPost];
 
                             return (
                               <React.Fragment key={ex.id}>
@@ -1523,12 +1730,25 @@ export default function MasterScheduler() {
                                     const yCenter = phase.y + PHASE_BAR_HEIGHT / 2;
                                     let nextYCenter = -1;
                                     let nextX = -1;
-                                    if (idx < renderedPhases.length - 1) {
-                                      nextYCenter = renderedPhases[idx + 1].y + PHASE_BAR_HEIGHT / 2;
-                                      nextX = phase.endX;
+                                    let hasNext = true;
+
+                                    if (!phase.isPost) {
+                                      const preIdx = idx;
+                                      if (preIdx < renderedPre.length - 1) {
+                                        nextYCenter = renderedPre[preIdx + 1].y + PHASE_BAR_HEIGHT / 2;
+                                        nextX = renderedPre[preIdx + 1].startX;
+                                      } else {
+                                        nextYCenter = mainBarY + STANDARD_BAR_HEIGHT / 2;
+                                        nextX = startPos;
+                                      }
                                     } else {
-                                      nextYCenter = mainBarY + STANDARD_BAR_HEIGHT / 2;
-                                      nextX = startPos;
+                                      const postIdx = idx - renderedPre.length;
+                                      if (postIdx < renderedPost.length - 1) {
+                                        nextYCenter = renderedPost[postIdx + 1].y + PHASE_BAR_HEIGHT / 2;
+                                        nextX = renderedPost[postIdx + 1].startX;
+                                      } else {
+                                        hasNext = false;
+                                      }
                                     }
 
                                     return (
@@ -1540,19 +1760,39 @@ export default function MasterScheduler() {
                                         >
                                           <span className={`text-[9px] font-black uppercase whitespace-normal break-words leading-none ${getContrastColor(phase.type?.color || '#eee')} drop-shadow-sm`}>{phase.label}</span>
                                         </div>
-                                        <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
-                                          <path 
-                                            d={`M ${phase.endX} ${yCenter} L ${phase.endX} ${yCenter + 12} L ${phase.endX - 8} ${yCenter + 12} L ${phase.endX - 8} ${nextYCenter} L ${nextX - 2} ${nextYCenter}`} 
-                                            fill="none" 
-                                            stroke="#94a3b8" 
-                                            strokeWidth="2" 
-                                          />
-                                          <circle cx={phase.endX} cy={yCenter} r="2.5" fill="#94a3b8" />
-                                          <polygon points={`${nextX},${nextYCenter} ${nextX-6},${nextYCenter-4} ${nextX-6},${nextYCenter+4}`} fill="#94a3b8" />
-                                        </svg>
+                                        {hasNext && (
+                                          <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
+                                            <path 
+                                              d={`M ${phase.endX} ${yCenter} L ${phase.endX} ${yCenter + 12} L ${phase.endX - 8} ${yCenter + 12} L ${phase.endX - 8} ${nextYCenter} L ${nextX - 2} ${nextYCenter}`} 
+                                              fill="none" 
+                                              stroke="#94a3b8" 
+                                              strokeWidth="2" 
+                                            />
+                                            <circle cx={phase.endX} cy={yCenter} r="2.5" fill="#94a3b8" />
+                                            <polygon points={`${nextX},${nextYCenter} ${nextX-6},${nextYCenter-4} ${nextX-6},${nextYCenter+4}`} fill="#94a3b8" />
+                                          </svg>
+                                        )}
                                       </React.Fragment>
                                     );
                                   })}
+
+                                  {renderedPost.length > 0 && (() => {
+                                    const nX = renderedPost[0].startX;
+                                    const nYCenter = renderedPost[0].y + PHASE_BAR_HEIGHT / 2;
+                                    const curYCenter = mainBarY + STANDARD_BAR_HEIGHT / 2;
+                                    return (
+                                      <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
+                                        <path 
+                                          d={`M ${endPos} ${curYCenter} L ${endPos} ${curYCenter + 12} L ${endPos - 8} ${curYCenter + 12} L ${endPos - 8} ${nYCenter} L ${nX - 2} ${nYCenter}`} 
+                                          fill="none" 
+                                          stroke="#94a3b8" 
+                                          strokeWidth="2" 
+                                        />
+                                        <circle cx={endPos} cy={curYCenter} r="2.5" fill="#94a3b8" />
+                                        <polygon points={`${nX},${nYCenter} ${nX-6},${nYCenter-4} ${nX-6},${nYCenter+4}`} fill="#94a3b8" />
+                                      </svg>
+                                    );
+                                  })()}
                                 </div>
 
                                 <div 
@@ -1562,12 +1802,27 @@ export default function MasterScheduler() {
                                   onMouseDown={(e) => onBarMouseDown(e, ex)}
                                   onClick={() => { if (!draggingBarId) setSelectedProjectId(ex.id); }}
                                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedProjectId(ex.id); }}
-                                  className={`absolute pointer-events-auto border border-slate-300 rounded overflow-hidden bg-white shadow-sm hover:shadow-md hover:border-blue-400 hover:-translate-y-0.5 transition-all cursor-pointer flex focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`} 
-                                  style={{ left: `${startPos}px`, width: `${width}px`, top: `${mainBarY}px`, height: `${STANDARD_BAR_HEIGHT}px` }}
+                                  className={`absolute pointer-events-auto border rounded overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`} 
+                                  style={{ 
+                                    left: `${startPos}px`, 
+                                    width: `${width}px`, 
+                                    top: `${mainBarY}px`, 
+                                    height: `${STANDARD_BAR_HEIGHT}px`,
+                                    backgroundColor: getStatusStyles(ex.status).bg,
+                                    borderColor: getStatusStyles(ex.status).border
+                                  }}
                                 >
-                                  <div className="w-1.5 h-full shrink-0" style={{ backgroundColor: getStatusColor(ex.status) }} />
+                                  <div className="w-1.5 h-full shrink-0" style={{ backgroundColor: getStatusStyles(ex.status).accent }} />
                                   <div className="flex-1 flex flex-col justify-center px-3 min-w-0">
-                                    <h4 className="font-black whitespace-normal break-words uppercase text-[10px] leading-tight tracking-tight text-slate-900">{ex.title}</h4>
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="font-black whitespace-normal break-words uppercase text-[10px] leading-tight tracking-tight text-slate-900 line-clamp-1">{ex.title}</h4>
+                                      <span 
+                                        className="text-[7px] font-black uppercase px-1 py-0.5 rounded border border-black/10 ml-2 shrink-0 bg-white/50"
+                                        style={{ color: getStatusStyles(ex.status).text }}
+                                      >
+                                        {getStatusStyles(ex.status).label}
+                                      </span>
+                                    </div>
                                     <div className="flex items-center mt-0.5 space-x-1.5 text-[8px] font-black uppercase text-slate-600">
                                       <span>{formatBarDate(ex.startDate)}</span>
                                       <span className="opacity-40">/</span>
@@ -1645,6 +1900,39 @@ export default function MasterScheduler() {
                           }} 
                         />
                       </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="space-y-6 pb-20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center text-sm font-black uppercase tracking-widest space-x-3 text-slate-900"><MapPin size={18} /><span>LOCATIONS & GALLERIES</span></div>
+                  <button 
+                    onClick={handleAddGallery}
+                    className="text-[9px] font-black uppercase bg-black text-white px-3 py-1.5 rounded hover:bg-slate-800 transition-colors shadow-sm"
+                  >
+                    + ADD LOCATION
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {galleries.map((gallery, idx) => (
+                    <div key={`${gallery}-${idx}`} className="flex items-center space-x-3 p-3 border border-slate-300 rounded bg-white shadow-sm hover:shadow-md transition-all">
+                      <div className="w-8 h-8 bg-slate-100 rounded flex items-center justify-center font-black text-slate-400 text-xs">{idx + 1}</div>
+                      <input 
+                        aria-label={`Location name ${idx + 1}`}
+                        className="flex-1 font-black uppercase text-sm border-b-2 border-transparent focus:border-black bg-transparent outline-none py-1" 
+                        value={gallery} 
+                        onChange={(e) => handleUpdateGalleryName(gallery, e.target.value.toUpperCase())}
+                      />
+                      <button 
+                        aria-label={`Remove location ${gallery}`}
+                        disabled={galleries.length <= 1}
+                        onClick={() => handleRemoveGallery(gallery)}
+                        className={`p-2 text-slate-400 hover:text-red-600 transition-colors ${galleries.length <= 1 ? 'opacity-20 cursor-not-allowed' : ''}`}
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   ))}
                 </div>
