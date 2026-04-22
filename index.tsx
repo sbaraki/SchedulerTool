@@ -1501,14 +1501,14 @@ export default function MasterScheduler() {
                     <div className="relative group">
                       <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-black transition-colors" />
                       <input 
-                        className="h-8 pl-9 pr-4 bg-slate-100 border border-slate-200 rounded-full text-[10px] font-bold uppercase outline-none focus:bg-white focus:ring-2 focus:ring-black/5 focus:border-black transition-all w-[180px]"
+                        className="h-8 pl-9 pr-4 bg-slate-100 border border-slate-200 rounded text-[10px] font-bold uppercase outline-none focus:bg-white focus:ring-2 focus:ring-black/5 focus:border-black transition-all w-[180px]"
                         placeholder="Search Portfolio..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
                     
-                    <div className="flex items-center space-x-1 border border-slate-200 rounded-full h-8 px-1.5 bg-slate-50">
+                    <div className="flex items-center space-x-1 border border-slate-200 rounded h-8 px-1.5 bg-slate-50">
                       <Filter size={12} className="text-slate-400 ml-1" />
                       <select 
                         className="bg-transparent border-none outline-none text-[9px] font-black uppercase cursor-pointer px-1 pr-6"
@@ -1687,7 +1687,7 @@ export default function MasterScheduler() {
                 <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-slate-50 border-b border-slate-200 flex flex-col justify-end p-4">
                 </div>
                 <div className="flex-1 overflow-hidden" ref={sidebarListRef}>
-                  <div style={{ height: '36px' }} className="relative border-b-[3px] border-slate-800 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
+                  <div style={{ height: '56px' }} className="relative border-b-[3px] border-slate-800 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
                     <div className="absolute top-0 left-0 w-full h-full bg-slate-50 flex items-center px-4 py-2 z-20">
                       <div className="flex flex-col">
                         {/* Labels removed as redundant */}
@@ -1713,11 +1713,6 @@ export default function MasterScheduler() {
                               {ex.exhibitionId && (
                                 <div className="text-[8px] font-bold text-slate-400 mt-0.5 uppercase tracking-tight">
                                   {ex.exhibitionId}
-                                </div>
-                              )}
-                              {ex.phases && ex.phases.length > 0 && (
-                                <div className="text-[8px] font-bold text-slate-400 mt-0.5 uppercase">
-                                  {ex.phases.length} Phases
                                 </div>
                               )}
                             </div>
@@ -1874,7 +1869,7 @@ export default function MasterScheduler() {
                         </div>
                       )}
                       {/* Provincial Holidays Lane */}
-                      <div style={{ height: '36px' }} className="border-b-[3px] border-slate-800 bg-white/40 relative overflow-visible z-10 no-print-lane">
+                      <div style={{ height: '56px' }} className="border-b-[3px] border-slate-800 bg-white/40 relative overflow-visible z-10 no-print-lane">
                         <div className="absolute inset-0 bg-slate-50/50 -z-10" />
                         {holidayMilestones.map((holiday, i) => {
                           if (holiday.xPos < 0 || holiday.xPos > viewMonths.length * monthWidth) return null;
@@ -1891,7 +1886,7 @@ export default function MasterScheduler() {
                               >
                                 <div className={`w-2 h-2 rotate-45 border-[1.5px] border-slate-900 shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-transform group-hover/holiday:scale-125 ${holiday.type === 'Statutory' ? 'bg-slate-800' : 'bg-white'}`} />
                                 
-                                <div className={`absolute left-1/2 -translate-x-1/2 text-[7px] font-black uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white rounded shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2'}`}>
+                                <div className={`absolute left-1/2 -translate-x-1/2 text-[7px] font-black uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white rounded shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
                                   {holiday.label}
                                   <span className="text-[5px] text-slate-400 font-bold opacity-60">
                                     {holiday.date.split('-')[1]}/{holiday.date.split('-')[2]}
@@ -2079,7 +2074,7 @@ export default function MasterScheduler() {
                     {/* Project Bars */}
                     <div className="absolute inset-0 pointer-events-none z-20">
                       {(() => {
-                        let currentGalleryY = 0;
+                        let currentGalleryY = 56;
                         return galleries.flatMap((gallery) => {
                           const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
                           const layout = galleryLayouts[gallery];
