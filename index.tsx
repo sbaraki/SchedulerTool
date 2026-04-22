@@ -224,7 +224,7 @@ const FY_QUARTERS = ['Q4', 'Q1', 'Q2', 'Q3'];
 const BASE_LANE_HEIGHT = 60; 
 const TRACK_HEIGHT = 34; 
 const HEADER_HEIGHT = 90; 
-const STANDARD_BAR_HEIGHT = 26; 
+const STANDARD_BAR_HEIGHT = 28; 
 const PHASE_BAR_HEIGHT = 14;
 
 const getStatusStyles = (status: string) => {
@@ -2216,17 +2216,17 @@ export default function MasterScheduler() {
                                   }}
                                 >
                                   <div className="w-1.5 h-full shrink-0" style={{ backgroundColor: getStatusStyles(ex.status).accent }} />
-                                  <div className="flex-1 flex flex-col justify-center px-1.5 min-w-0 overflow-hidden">
+                                  <div className="flex-1 flex flex-col justify-center px-1.5 min-w-0 overflow-hidden space-y-0.5">
                                     <div className="flex items-center justify-between min-w-0">
-                                      <h4 className="font-black truncate uppercase text-[10px] leading-tight tracking-tight text-slate-900">{ex.title}</h4>
+                                      <h4 className="font-black truncate uppercase text-[10px] leading-none tracking-tight text-slate-900">{ex.title}</h4>
                                       <span 
-                                        className="text-[7px] font-black uppercase px-1 py-0.5 rounded border border-black/10 ml-2 shrink-0 bg-white/50 hidden sm:block"
+                                        className="text-[7px] font-black uppercase px-1 py-0.5 rounded border border-black/10 ml-2 shrink-0 bg-white/50 hidden sm:block leading-none"
                                         style={{ color: getStatusStyles(ex.status).text }}
                                       >
                                         {getStatusStyles(ex.status).label}
                                       </span>
                                     </div>
-                                    <div className="flex items-center mt-0.5 space-x-1.5 text-[8px] font-black uppercase text-slate-600 truncate">
+                                    <div className="flex items-center space-x-1.5 text-[8.5px] font-black uppercase text-slate-600 truncate leading-none pb-[1px]">
                                       <span>{formatBarDate(ex.startDate)}</span>
                                       <span className="opacity-40">/</span>
                                       <span>{formatBarDate(ex.endDate)}</span>
