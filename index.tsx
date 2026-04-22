@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, 
   X,
@@ -435,7 +436,13 @@ const DetailPanel = ({
   };
 
   return (
-    <aside className="fixed inset-y-0 right-0 w-full sm:w-[460px] bg-white border-l border-slate-200 z-[100] flex flex-col no-print shadow-2xl focus-within:ring-2 focus-within:ring-blue-500/20">
+    <motion.aside 
+      initial={{ x: '100%' }}
+      animate={{ x: 0 }}
+      exit={{ x: '100%' }}
+      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      className="fixed inset-y-0 right-0 w-full sm:w-[500px] bg-white border-l border-slate-200 z-[100] flex flex-col no-print shadow-[-20px_0_50px_rgba(0,0,0,0.1)] focus-within:ring-2 focus-within:ring-blue-500/20"
+    >
       <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white">
         <div className="flex-1 mr-4">
           {isEditing ? (
@@ -767,7 +774,7 @@ const DetailPanel = ({
           </>
         )}
       </div>
-    </aside>
+    </motion.aside>
   );
 };
 
@@ -847,6 +854,9 @@ export default function MasterScheduler() {
 
   const [editMilestoneDraft, setEditMilestoneDraft] = useState<LocationMilestone | null>(null);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<ExhibitionStatus | 'All'>('All');
+
   const [timelineEndDate, setTimelineEndDate] = useState(() => {
     const d = new Date();
     d.setFullYear(d.getFullYear() + 3);
@@ -863,6 +873,15 @@ export default function MasterScheduler() {
     e.setFullYear(e.getFullYear() + years);
     setTimelineEndDate(toISODate(new Date(e.getFullYear(), e.getMonth(), 0)));
   };
+
+  const filteredExhibitions = useMemo(() => {
+    return exhibitions.filter(ex => {
+      const matchesSearch = ex.title.toUpperCase().includes(searchQuery.toUpperCase()) || 
+                           (ex.exhibitionId || '').toUpperCase().includes(searchQuery.toUpperCase());
+      const matchesStatus = statusFilter === 'All' || ex.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [exhibitions, searchQuery, statusFilter]);
 
   const viewMonths = useMemo(() => {
     let start = new Date(timelineStartDate + 'T12:00:00');
@@ -977,12 +996,12 @@ export default function MasterScheduler() {
   const galleryLayouts = useMemo(() => {
     const layouts: { [gallery: string]: { tracks: { [id: string]: number }, maxTracks: number } } = {};
     galleries.forEach(gallery => {
-      const galleryProjects = exhibitions.filter(ex => ex.gallery === gallery);
+      const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
       const layoutInfo = calculateTracks(galleryProjects, monthWidth, viewMonths, phaseTypes);
       layouts[gallery] = { tracks: layoutInfo.tracks, maxTracks: layoutInfo.maxTracks };
     });
     return layouts;
-  }, [exhibitions, galleries, monthWidth, viewMonths, phaseTypes]);
+  }, [filteredExhibitions, galleries, monthWidth, viewMonths, phaseTypes]);
 
   useEffect(() => {
     if (draggingBarId) return; // Prevent blocking the main thread with synchronous I/O during drag
@@ -1447,9 +1466,16 @@ export default function MasterScheduler() {
       )}
 
       {selectedProjectId && (
-        <>
-          <div className="fixed inset-0 bg-black/20 z-[90] no-print backdrop-blur-[1px]" onClick={() => setSelectedProjectId(null)} />
+        <AnimatePresence>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 z-[90] no-print backdrop-blur-[2px]" 
+            onClick={() => setSelectedProjectId(null)} 
+          />
           <DetailPanel 
+            key={selectedProjectId}
             exhibition={exhibitions.find(p => p.id === selectedProjectId)!} 
             onClose={() => setSelectedProjectId(null)} 
             onUpdate={handleUpdateExhibition} 
@@ -1458,17 +1484,44 @@ export default function MasterScheduler() {
             galleries={galleries}
             phaseTypes={phaseTypes}
           />
-        </>
+        </AnimatePresence>
       )}
 
       <main className="flex-1 flex flex-col min-w-0">
         {activeTab === 'portfolio' ? (
           <>
             <header className="bg-white border-b border-slate-200 z-50 shrink-0">
-              <nav className="px-4 py-2 flex items-center justify-between gap-4 overflow-x-auto hide-scrollbar">
-                <div className="flex items-center shrink-0">
+      <nav className="px-4 py-2 flex items-center justify-between gap-4 overflow-x-auto hide-scrollbar">
+                <div className="flex items-center shrink-0 space-x-6">
                   <div className="flex flex-col">
                     <h1 className="text-[11px] font-black tracking-tight uppercase leading-none">{museumName}</h1>
+                  </div>
+
+                  <div className="flex items-center space-x-2 no-print border-l border-slate-200 pl-6">
+                    <div className="relative group">
+                      <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-black transition-colors" />
+                      <input 
+                        className="h-8 pl-9 pr-4 bg-slate-100 border border-slate-200 rounded-full text-[10px] font-bold uppercase outline-none focus:bg-white focus:ring-2 focus:ring-black/5 focus:border-black transition-all w-[180px]"
+                        placeholder="Search Portfolio..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center space-x-1 border border-slate-200 rounded-full h-8 px-1.5 bg-slate-50">
+                      <Filter size={12} className="text-slate-400 ml-1" />
+                      <select 
+                        className="bg-transparent border-none outline-none text-[9px] font-black uppercase cursor-pointer px-1 pr-6"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                      >
+                        <option value="All">ALL STATUS</option>
+                        <option value="Proposed">PROPOSED</option>
+                        <option value="In Development">IN DEV</option>
+                        <option value="Open to Public">OPEN</option>
+                        <option value="Closed">CLOSED</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -1644,7 +1697,7 @@ export default function MasterScheduler() {
                   {galleries.map((gallery) => {
                     const tracksCount = galleryLayouts[gallery]?.maxTracks || 1;
                     const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
-                    const galleryProjects = exhibitions.filter(ex => ex.gallery === gallery);
+                    const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
                     return (
                       <div key={gallery} style={{ height: `${laneHeight}px` }} className="relative border-b-[3px] border-slate-800 bg-white">
                         <div className="absolute top-0 left-0 w-full min-h-[28px] bg-slate-900 flex items-center px-4 py-1 z-20">
@@ -1813,6 +1866,13 @@ export default function MasterScheduler() {
                   {/* Grid / Lanes */}
                   <div className="relative flex-1">
                     <div className="flex flex-col">
+                      {filteredExhibitions.length === 0 && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-20 pointer-events-none opacity-20 z-0">
+                          <Search size={48} className="mb-4" />
+                          <p className="text-xl font-black uppercase tracking-widest text-center">No Projects Found</p>
+                          <p className="text-[10px] font-bold uppercase mt-2 text-center">Try adjusting your search or filters</p>
+                        </div>
+                      )}
                       {/* Provincial Holidays Lane */}
                       <div style={{ height: '36px' }} className="border-b-[3px] border-slate-800 bg-white/40 relative overflow-visible z-10 no-print-lane">
                         <div className="absolute inset-0 bg-slate-50/50 -z-10" />
@@ -1847,7 +1907,7 @@ export default function MasterScheduler() {
                       {galleries.map((g) => {
                          const tracksCount = galleryLayouts[g]?.maxTracks || 1;
                          const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
-                         const galleryProjects = exhibitions.filter(ex => ex.gallery === g);
+                         const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === g);
 
                          const footprints = galleryProjects.map(ex => {
                            const startPos = getPositionFromDate(ex.startDate, monthWidth, viewMonths);
@@ -2021,7 +2081,7 @@ export default function MasterScheduler() {
                       {(() => {
                         let currentGalleryY = 0;
                         return galleries.flatMap((gallery) => {
-                          const galleryProjects = exhibitions.filter(ex => ex.gallery === gallery);
+                          const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
                           const layout = galleryLayouts[gallery];
                           const tracksCount = layout?.maxTracks || 1;
                           const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
