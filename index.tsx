@@ -187,45 +187,15 @@ const ALBERTA_HOLIDAYS = [
   { date: '2029-12-26', label: 'Boxing Day', type: 'Optional' },
 ];
 
-const INITIAL_EXHIBITIONS: Exhibition[] = [
-  {
-    id: '1',
-    exhibitionId: 'EX-2026-001',
-    title: 'THE DIGITAL RENAISSANCE',
-    status: 'Open to Public',
-    startDate: '2026-04-15',
-    endDate: '2026-10-30',
-    gallery: 'NATURAL HISTORY SOUTH',
-    description: 'INTERSECTION OF CLASSICAL ART AND MODERN ALGORITHMIC GENERATION.',
-    milestones: [],
-    phases: [
-      { id: 'p1', label: 'IDEA DEVELOPMENT', durationMonths: 2, typeId: 'pt1' },
-      { id: 'p2', label: 'CONTENT DEVELOPMENT', durationMonths: 1, typeId: 'pt2' }
-    ]
-  },
-  {
-    id: '2',
-    exhibitionId: 'EX-2026-002',
-    title: 'OVERLAPPING VISION',
-    status: 'Proposed',
-    startDate: '2026-03-01',
-    endDate: '2026-06-01',
-    gallery: 'NATURAL HISTORY SOUTH',
-    description: 'TESTING THE OVERLAP CAPABILITY WITHIN THE SAME GALLERY.',
-    milestones: [],
-    phases: [
-      { id: 'p3', label: 'IDEA DEVELOPMENT', durationMonths: 1, typeId: 'pt1' }
-    ]
-  }
-];
+const INITIAL_EXHIBITIONS: Exhibition[] = [];
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const FY_QUARTERS = ['Q4', 'Q1', 'Q2', 'Q3'];
-const BASE_LANE_HEIGHT = 60; 
-const TRACK_HEIGHT = 34; 
-const HEADER_HEIGHT = 90; 
-const STANDARD_BAR_HEIGHT = 28; 
-const PHASE_BAR_HEIGHT = 14;
+const BASE_LANE_HEIGHT = 48; 
+const TRACK_HEIGHT = 26; 
+const HEADER_HEIGHT = 76; 
+const STANDARD_BAR_HEIGHT = 20; 
+const PHASE_BAR_HEIGHT = 10;
 
 const getStatusStyles = (status: string) => {
   switch(status) {
@@ -831,6 +801,7 @@ export default function MasterScheduler() {
   });
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [showHolidays, setShowHolidays] = useState(true);
   const [monthWidth, setMonthWidth] = useState(120); 
   const [activeTab, setActiveTab] = useState<'portfolio' | 'settings'>('portfolio');
   const [isDraggingScroll, setIsDraggingScroll] = useState(false);
@@ -872,6 +843,13 @@ export default function MasterScheduler() {
     const e = new Date(d);
     e.setFullYear(e.getFullYear() + years);
     setTimelineEndDate(toISODate(new Date(e.getFullYear(), e.getMonth(), 0)));
+    
+    // Auto-adjust zoom for 3Y print compatibility if 3 years selected
+    if (years === 3) {
+      setMonthWidth(45);
+    } else if (years === 1) {
+      setMonthWidth(120);
+    }
   };
 
   const filteredExhibitions = useMemo(() => {
@@ -1295,7 +1273,13 @@ export default function MasterScheduler() {
         .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; border-left: 2px solid #000; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #000; }
         .is-grabbing { cursor: grabbing !important; }
-        @media print { .no-print { display: none !important; } }
+        @media print { 
+          .no-print { display: none !important; } 
+          @page { size: 17in 11in landscape; margin: 0.5in; }
+          .timeline-root { overflow: visible !important; height: auto !important; }
+          .timeline-container { overflow: visible !important; height: auto !important; }
+          body { background: white !important; }
+        }
         
         .timeline-container {
           outline: none;
@@ -1334,7 +1318,8 @@ export default function MasterScheduler() {
         }
 
         .gallery-lane-bg {
-          background-image: repeating-linear-gradient(0deg, transparent, transparent 63px, rgba(0,0,0,0.02) 63px, rgba(0,0,0,0.02) 64px);
+          background-image: repeating-linear-gradient(0deg, transparent, transparent ${TRACK_HEIGHT - 1}px, rgba(0,0,0,0.02) ${TRACK_HEIGHT - 1}px, rgba(0,0,0,0.02) ${TRACK_HEIGHT}px);
+          background-position: 0 24px;
         }
       `}</style>
       
@@ -1626,6 +1611,15 @@ export default function MasterScheduler() {
                   </button>
 
                   <button 
+                    aria-label={showHolidays ? "Hide Provincial Holidays" : "Show Provincial Holidays"}
+                    onClick={() => setShowHolidays(!showHolidays)} 
+                    className={`p-1.5 border rounded transition-colors focus:ring-2 focus:ring-black ${showHolidays ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white border-slate-300 text-slate-400'}`}
+                    title={showHolidays ? "Hide Holidays" : "Show Holidays"}
+                  >
+                    {showHolidays ? <Calendar size={16} strokeWidth={2.5} /> : <CalendarOff size={16} strokeWidth={2} />}
+                  </button>
+
+                  <button 
                     aria-label="Create new exhibition project"
                     onClick={async () => {
                       const id = Math.random().toString(36).substr(2,9);
@@ -1687,31 +1681,33 @@ export default function MasterScheduler() {
                 <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-slate-50 border-b border-slate-200 flex flex-col justify-end p-4">
                 </div>
                 <div className="flex-1 overflow-hidden" ref={sidebarListRef}>
-                  <div style={{ height: '56px' }} className="relative border-b-[3px] border-slate-800 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
-                    <div className="absolute top-0 left-0 w-full h-full bg-slate-50 flex items-center px-4 py-2 z-20">
-                      <div className="flex flex-col">
-                        {/* Labels removed as redundant */}
+                  {showHolidays && (
+                    <div style={{ height: '48px' }} className="relative border-b-[3px] border-slate-800 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
+                      <div className="absolute top-0 left-0 w-full h-full bg-slate-50 flex items-center px-4 py-2 z-20">
+                        <div className="flex flex-col">
+                          {/* Labels removed as redundant */}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                   {galleries.map((gallery) => {
                     const tracksCount = galleryLayouts[gallery]?.maxTracks || 1;
-                    const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
+                    const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 28);
                     const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
                     return (
                       <div key={gallery} style={{ height: `${laneHeight}px` }} className="relative border-b-[3px] border-slate-800 bg-white">
-                        <div className="absolute top-0 left-0 w-full min-h-[28px] bg-slate-900 flex items-center px-4 py-1 z-20">
-                          <span className="font-black uppercase text-[10px] tracking-widest text-white leading-tight break-words">{gallery}</span>
+                        <div className="absolute top-0 left-0 w-full min-h-[24px] bg-slate-900 flex items-center px-4 py-1 z-20">
+                          <span className="font-black uppercase text-[9px] tracking-widest text-white leading-tight break-words">{gallery}</span>
                         </div>
                         {galleryProjects.map(ex => {
                           const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
                           if (trackIndex === undefined) return null;
-                          const topPos = 28 + (trackIndex * TRACK_HEIGHT);
+                          const topPos = 24 + (trackIndex * TRACK_HEIGHT);
                           return (
-                            <div key={`title-${ex.id}`} className="absolute left-4 w-[calc(100%-1rem)] pr-2" style={{ top: topPos + 6 }}>
-                              <div className="text-[10px] font-bold text-slate-800 leading-tight truncate underline decoration-slate-200 decoration-1 underline-offset-2" title={ex.title}>{ex.title}</div>
+                            <div key={`title-${ex.id}`} className="absolute left-4 w-[calc(100%-1rem)] pr-2" style={{ top: topPos + 3 }}>
+                              <div className="text-[9px] font-bold text-slate-800 leading-tight break-words underline decoration-slate-200 decoration-1 underline-offset-2" title={ex.title}>{ex.title}</div>
                               {ex.exhibitionId && (
-                                <div className="text-[8px] font-bold text-slate-400 mt-0.5 uppercase tracking-tight">
+                                <div className="text-[7px] font-bold text-slate-400 mt-0 uppercase tracking-tight">
                                   {ex.exhibitionId}
                                 </div>
                               )}
@@ -1722,7 +1718,7 @@ export default function MasterScheduler() {
                           const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
                           if (trackIndex === undefined || trackIndex === 0) return null;
                           return (
-                            <div key={`side-div-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-200 left-0" style={{ top: 28 + trackIndex * TRACK_HEIGHT }} />
+                            <div key={`side-div-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-200 left-0" style={{ top: 24 + trackIndex * TRACK_HEIGHT }} />
                           );
                         })}
                       </div>
@@ -1869,39 +1865,41 @@ export default function MasterScheduler() {
                         </div>
                       )}
                       {/* Provincial Holidays Lane */}
-                      <div style={{ height: '56px' }} className="border-b-[3px] border-slate-800 bg-white/40 relative overflow-visible z-10 no-print-lane">
-                        <div className="absolute inset-0 bg-slate-50/50 -z-10" />
-                        {holidayMilestones.map((holiday, i) => {
-                          if (holiday.xPos < 0 || holiday.xPos > viewMonths.length * monthWidth) return null;
-                          const labelPos = holidayLabelPositions[i];
-                          return (
-                            <div 
-                              key={`holiday-${i}`}
-                              className="absolute top-1/2 flex items-center justify-center pointer-events-auto"
-                              style={{ left: `${holiday.xPos}px`, transform: 'translate(-50%, -50%)' }}
-                            >
+                      {showHolidays && (
+                        <div style={{ height: '48px' }} className="border-b-[3px] border-slate-800 bg-white/40 relative overflow-visible z-10 no-print-lane">
+                          <div className={`absolute inset-0 bg-slate-50/50 -z-10`} />
+                          {holidayMilestones.map((holiday, i) => {
+                            if (holiday.xPos < 0 || holiday.xPos > viewMonths.length * monthWidth) return null;
+                            const labelPos = holidayLabelPositions[i];
+                            return (
                               <div 
-                                className="group/holiday relative flex items-center justify-center cursor-help"
-                                title={`${holiday.label} (${holiday.type} Holiday)`}
+                                key={`holiday-${i}`}
+                                className="absolute top-1/2 flex items-center justify-center pointer-events-auto"
+                                style={{ left: `${holiday.xPos}px`, transform: 'translate(-50%, -50%)' }}
                               >
-                                <div className={`w-2 h-2 rotate-45 border-[1.5px] border-slate-900 shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-transform group-hover/holiday:scale-125 ${holiday.type === 'Statutory' ? 'bg-slate-800' : 'bg-white'}`} />
-                                
-                                <div className={`absolute left-1/2 -translate-x-1/2 text-[7px] font-black uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white rounded shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
-                                  {holiday.label}
-                                  <span className="text-[5px] text-slate-400 font-bold opacity-60">
-                                    {holiday.date.split('-')[1]}/{holiday.date.split('-')[2]}
-                                  </span>
-                                </div>
+                                <div 
+                                  className="group/holiday relative flex items-center justify-center cursor-help"
+                                  title={`${holiday.label} (${holiday.type} Holiday)`}
+                                >
+                                  <div className={`w-2 h-2 rotate-45 border-[1.5px] border-slate-900 shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-transform group-hover/holiday:scale-125 ${holiday.type === 'Statutory' ? 'bg-slate-800' : 'bg-white'}`} />
+                                  
+                                  <div className={`absolute left-1/2 -translate-x-1/2 text-[7px] font-black uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white rounded shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
+                                    {holiday.label}
+                                    <span className="text-[5px] text-slate-400 font-bold opacity-60">
+                                      {holiday.date.split('-')[1]}/{holiday.date.split('-')[2]}
+                                    </span>
+                                  </div>
 
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-400/0 group-hover/holiday:bg-slate-400/10 transition-colors pointer-events-none" />
+                                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-400/0 group-hover/holiday:bg-slate-400/10 transition-colors pointer-events-none" />
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      )}
                       {galleries.map((g) => {
                          const tracksCount = galleryLayouts[g]?.maxTracks || 1;
-                         const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
+                         const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 28);
                          const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === g);
 
                          const footprints = galleryProjects.map(ex => {
@@ -1958,7 +1956,7 @@ export default function MasterScheduler() {
                                <div 
                                  key={`overlap-${i}`}
                                  className="absolute bottom-0 z-[15] bg-red-500/5 border-l-2 border-r-2 border-dashed border-red-500/50 pointer-events-none"
-                                 style={{ left: overlap.startX, width: Math.max(2, overlap.endX - overlap.startX), top: '36px' }}
+                                 style={{ left: overlap.startX, width: Math.max(2, overlap.endX - overlap.startX), top: '24px' }}
                                >
                                  <div className="bg-white border-2 border-red-500/50 text-red-600 font-black uppercase text-[8px] tracking-widest flex items-center shadow-sm w-max ml-2 mt-2" style={{ padding: '2px 4px' }}>
                                    <AlertTriangle size={10} className="mr-1.5 shrink-0" strokeWidth={3} /> CONFLICT
@@ -1966,7 +1964,7 @@ export default function MasterScheduler() {
                                </div>
                              ))}
                              <div 
-                               className="absolute top-0 left-0 w-full h-[28px] bg-slate-100/50 border-b border-black/5 z-20 group relative cursor-crosshair overflow-visible"
+                               className="absolute top-0 left-0 w-full h-[24px] bg-slate-100/50 border-b border-black/5 z-20 group relative cursor-crosshair overflow-visible"
                                onDoubleClick={async (e) => {
                                  const rect = e.currentTarget.getBoundingClientRect();
                                  const x = Math.max(0, e.clientX - rect.left + timelineRef.current!.scrollLeft);
@@ -2059,7 +2057,7 @@ export default function MasterScheduler() {
                                const trackIndex = galleryLayouts[g]!.tracks[ex.id];
                                if (trackIndex === undefined || trackIndex === 0) return null;
                                return (
-                                 <div key={`line-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-300 z-10 pointer-events-none" style={{ top: 28 + trackIndex * TRACK_HEIGHT }} />
+                                 <div key={`line-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-300 z-10 pointer-events-none" style={{ top: 24 + trackIndex * TRACK_HEIGHT }} />
                                );
                              })}
                            </div>
@@ -2074,12 +2072,12 @@ export default function MasterScheduler() {
                     {/* Project Bars */}
                     <div className="absolute inset-0 pointer-events-none z-20">
                       {(() => {
-                        let currentGalleryY = 56;
+                        let currentGalleryY = showHolidays ? 48 : 0;
                         return galleries.flatMap((gallery) => {
                           const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
                           const layout = galleryLayouts[gallery];
                           const tracksCount = layout?.maxTracks || 1;
-                          const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
+                          const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 28);
                           const galleryYOffset = currentGalleryY;
                           currentGalleryY += laneHeight;
 
@@ -2089,7 +2087,7 @@ export default function MasterScheduler() {
                             const endPos = getPositionFromDate(ex.endDate, monthWidth, viewMonths);
                             const width = Math.max(endPos - startPos, 40);
                             const isDraggingThis = draggingBarId === ex.id;
-                            const trackTop = galleryYOffset + 28 + (trackIndex * TRACK_HEIGHT);
+                            const trackTop = galleryYOffset + 24 + (trackIndex * TRACK_HEIGHT);
 
                             const prePhasesRaw = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
                             const postPhasesRaw = (ex.phases || []).filter(p => phaseTypes.find(t => t.id === p.typeId)?.isPost);
@@ -2156,7 +2154,7 @@ export default function MasterScheduler() {
                                           style={{ left: `${phase.startX}px`, top: `${phase.y}px`, width: `${phase.width - 2}px`, height: `${PHASE_BAR_HEIGHT}px`, backgroundColor: phase.type?.color || '#eee' }}
                                           title={phase.label}
                                         >
-                                          <span className={`text-[9px] font-black uppercase truncate leading-none ${getContrastColor(phase.type?.color || '#eee')} drop-shadow-sm`}>{phase.label}</span>
+                                          <span className={`text-[7px] font-black uppercase truncate leading-tight ${getContrastColor(phase.type?.color || '#eee')} drop-shadow-[0_1px_0_rgba(0,0,0,0.1)]`}>{phase.label}</span>
                                         </div>
                                         {hasNext && (
                                           <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
@@ -2211,17 +2209,17 @@ export default function MasterScheduler() {
                                   }}
                                 >
                                   <div className="w-1.5 h-full shrink-0" style={{ backgroundColor: getStatusStyles(ex.status).accent }} />
-                                  <div className="flex-1 flex flex-col justify-center px-1.5 min-w-0 overflow-hidden space-y-0.5">
-                                    <div className="flex items-center justify-between min-w-0">
-                                      <h4 className="font-black truncate uppercase text-[10px] leading-none tracking-tight text-slate-900">{ex.title}</h4>
+                                  <div className="flex-1 flex flex-col justify-center px-2 min-w-0 overflow-hidden">
+                                    <div className="flex items-center justify-between min-w-0 mb-[1px]">
+                                      <h4 className="font-black truncate uppercase text-[9px] leading-tight tracking-tight text-slate-900">{ex.title}</h4>
                                       <span 
-                                        className="text-[7px] font-black uppercase px-1 py-0.5 rounded border border-black/10 ml-2 shrink-0 bg-white/50 hidden sm:block leading-none"
-                                        style={{ color: getStatusStyles(ex.status).text }}
+                                        className="text-[6.5px] font-black uppercase px-1 py-[1.5px] rounded border border-black/5 ml-2 shrink-0 bg-white/50 hidden lg:block leading-none"
+                                        style={{ color: getStatusStyles(ex.status).text, transform: 'translateY(-1px)' }}
                                       >
                                         {getStatusStyles(ex.status).label}
                                       </span>
                                     </div>
-                                    <div className="flex items-center space-x-1.5 text-[8.5px] font-black uppercase text-slate-600 truncate leading-none pb-[1px]">
+                                    <div className="flex items-center space-x-1.5 text-[7.5px] font-black uppercase text-slate-500/80 truncate leading-none">
                                       <span>{formatBarDate(ex.startDate)}</span>
                                       <span className="opacity-40">/</span>
                                       <span>{formatBarDate(ex.endDate)}</span>
