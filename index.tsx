@@ -1,3 +1,11 @@
+import { useStore } from './src/store/useStore';
+import { useMuseumSync } from './src/hooks/useMuseumSync';
+import { useMuseumActions } from './src/hooks/useMuseumActions';
+import { getStatusStyles, getContrastColor, ALBERTA_HOLIDAYS, MONTHS, FY_QUARTERS, BASE_LANE_HEIGHT, TRACK_HEIGHT, HEADER_HEIGHT, STANDARD_BAR_HEIGHT, PHASE_BAR_HEIGHT, MILESTONE_COLORS } from './src/constants';
+import { toISODate, getPositionFromDate, getDateFromPosition, formatBarDate } from './src/lib/dateUtils';
+import { calculateTracks } from './src/lib/layoutEngine';
+import { Exhibition, PhaseType, LocationMilestone, ProjectPhase, ExhibitionStatus } from './src/types';
+import { DetailPanel } from './src/components/DetailPanel';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { motion, AnimatePresence } from 'motion/react';
@@ -65,744 +73,29 @@ import {
 
 // --- Types & Constants ---
 
-type ExhibitionStatus = 'Proposed' | 'In Development' | 'Open to Public' | 'Closed';
-
-interface PhaseType {
-  id: string;
-  label: string;
-  color: string;
-  isPost?: boolean;
-}
-
-interface ProjectPhase {
-  id: string;
-  label: string;
-  durationMonths: number;
-  typeId: string;
-}
-
-interface LocationMilestone {
-  id: string;
-  gallery: string;
-  title: string;
-  date: string;
-  color?: string;
-  icon?: 'diamond' | 'flag';
-}
-
-interface Exhibition {
-  id: string;
-  exhibitionId: string;
-  title: string;
-  status: ExhibitionStatus;
-  startDate: string;
-  endDate: string;
-  gallery: string;
-  milestones: any[];
-  phases: ProjectPhase[];
-  description?: string;
-}
-
-const STORAGE_KEY = 'exhibition_planner_brutalist_v4';
-const CONFIG_STORAGE_KEY = 'exhibition_planner_config_brutalist_v4';
-const MILESTONES_STORAGE_KEY = 'exhibition_planner_milestones_v4';
-
-const DEFAULT_GALLERIES = [
-  'FEATURE GALLERY',
-  'NATURAL HISTORY SOUTH',
-  'HUMAN HISTORY NORTH',
-  'HUMAN HISTORY SOUTH'
-];
-
-const DEFAULT_PHASE_TYPES: PhaseType[] = [
-  { id: 'pt1', label: 'IDEA DEVELOPMENT', color: '#94a3b8' },
-  { id: 'pt2', label: 'CONTENT DEVELOPMENT', color: '#3b82f6' },
-  { id: 'pt3', label: 'DESIGN DEVELOPMENT', color: '#22c55e' },
-  { id: 'pt4', label: 'IMPLEMENTATION', color: '#f97316' },
-  { id: 'pt5', label: 'DEINSTALL', color: '#ef4444', isPost: true },
-];
-
-const MILESTONE_COLORS = [
-  { value: '#dc2626', label: 'CRITICAL / DEFAULT' },
-  { value: '#94a3b8', label: 'IDEA / PLANNING' },
-  { value: '#3b82f6', label: 'CONTENT / REVIEW' },
-  { value: '#22c55e', label: 'DESIGN / APPROVAL' },
-  { value: '#f97316', label: 'EXECUTION / BUILD' },
-  { value: '#000000', label: 'FINAL / OPENING' },
-  { value: '#64748b', label: 'SECONDARY / HOLIDAY' }
-];
-
-const ALBERTA_HOLIDAYS = [
-  { date: '2026-01-01', label: "New Year's Day", type: 'Statutory' },
-  { date: '2026-02-16', label: 'Family Day', type: 'Statutory' },
-  { date: '2026-04-03', label: 'Good Friday', type: 'Statutory' },
-  { date: '2026-04-06', label: 'Easter Monday', type: 'Optional' },
-  { date: '2026-05-18', label: 'Victoria Day', type: 'Statutory' },
-  { date: '2026-07-01', label: 'Canada Day', type: 'Statutory' },
-  { date: '2026-08-03', label: 'Heritage Day', type: 'Optional' },
-  { date: '2026-09-07', label: 'Labour Day', type: 'Statutory' },
-  { date: '2026-09-30', label: 'National Day for Truth and Reconciliation', type: 'Optional' },
-  { date: '2026-10-12', label: 'Thanksgiving Day', type: 'Statutory' },
-  { date: '2026-11-11', label: 'Remembrance Day', type: 'Statutory' },
-  { date: '2026-12-25', label: 'Christmas Day', type: 'Statutory' },
-  { date: '2026-12-26', label: 'Boxing Day', type: 'Optional' },
-  { date: '2027-01-01', label: "New Year's Day", type: 'Statutory' },
-  { date: '2027-02-15', label: 'Family Day', type: 'Statutory' },
-  { date: '2027-03-26', label: 'Good Friday', type: 'Statutory' },
-  { date: '2027-03-29', label: 'Easter Monday', type: 'Optional' },
-  { date: '2027-05-24', label: 'Victoria Day', type: 'Statutory' },
-  { date: '2027-07-01', label: 'Canada Day', type: 'Statutory' },
-  { date: '2027-08-02', label: 'Heritage Day', type: 'Optional' },
-  { date: '2027-09-06', label: 'Labour Day', type: 'Statutory' },
-  { date: '2027-09-30', label: 'National Day for Truth and Reconciliation', type: 'Optional' },
-  { date: '2027-10-11', label: 'Thanksgiving Day', type: 'Statutory' },
-  { date: '2027-11-11', label: 'Remembrance Day', type: 'Statutory' },
-  { date: '2027-12-25', label: 'Christmas Day', type: 'Statutory' },
-  { date: '2027-12-26', label: 'Boxing Day', type: 'Optional' },
-  { date: '2028-01-01', label: "New Year's Day", type: 'Statutory' },
-  { date: '2028-02-21', label: 'Family Day', type: 'Statutory' },
-  { date: '2028-04-14', label: 'Good Friday', type: 'Statutory' },
-  { date: '2028-04-17', label: 'Easter Monday', type: 'Optional' },
-  { date: '2028-05-22', label: 'Victoria Day', type: 'Statutory' },
-  { date: '2028-07-01', label: 'Canada Day', type: 'Statutory' },
-  { date: '2028-08-07', label: 'Heritage Day', type: 'Optional' },
-  { date: '2028-09-04', label: 'Labour Day', type: 'Statutory' },
-  { date: '2028-09-30', label: 'National Day for Truth and Reconciliation', type: 'Optional' },
-  { date: '2028-10-09', label: 'Thanksgiving Day', type: 'Statutory' },
-  { date: '2028-11-11', label: 'Remembrance Day', type: 'Statutory' },
-  { date: '2028-12-25', label: 'Christmas Day', type: 'Statutory' },
-  { date: '2028-12-26', label: 'Boxing Day', type: 'Optional' },
-  { date: '2029-01-01', label: "New Year's Day", type: 'Statutory' },
-  { date: '2029-02-19', label: 'Family Day', type: 'Statutory' },
-  { date: '2029-03-30', label: 'Good Friday', type: 'Statutory' },
-  { date: '2029-04-02', label: 'Easter Monday', type: 'Optional' },
-  { date: '2029-05-21', label: 'Victoria Day', type: 'Statutory' },
-  { date: '2029-07-01', label: 'Canada Day', type: 'Statutory' },
-  { date: '2029-08-06', label: 'Heritage Day', type: 'Optional' },
-  { date: '2029-09-03', label: 'Labour Day', type: 'Statutory' },
-  { date: '2029-09-30', label: 'National Day for Truth and Reconciliation', type: 'Optional' },
-  { date: '2029-10-08', label: 'Thanksgiving Day', type: 'Statutory' },
-  { date: '2029-11-11', label: 'Remembrance Day', type: 'Statutory' },
-  { date: '2029-12-25', label: 'Christmas Day', type: 'Statutory' },
-  { date: '2029-12-26', label: 'Boxing Day', type: 'Optional' },
-];
-
-const INITIAL_EXHIBITIONS: Exhibition[] = [];
-
-const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-const FY_QUARTERS = ['Q4', 'Q1', 'Q2', 'Q3'];
-const BASE_LANE_HEIGHT = 48; 
-const TRACK_HEIGHT = 26; 
-const HEADER_HEIGHT = 76; 
-const STANDARD_BAR_HEIGHT = 20; 
-const PHASE_BAR_HEIGHT = 10;
-
-const getStatusStyles = (status: string) => {
-  switch(status) {
-    case 'Open to Public': return { 
-      accent: '#059669', 
-      bg: '#ecfdf5', 
-      border: '#10b981', 
-      text: '#064e3b',
-      label: '● OPEN TO PUBLIC'
-    };
-    case 'In Development': return { 
-      accent: '#d97706', 
-      bg: '#fffbeb', 
-      border: '#f59e0b', 
-      text: '#78350f',
-      label: '◈ IN DEVELOPMENT'
-    };
-    case 'Proposed': return { 
-      accent: '#4b5563', 
-      bg: '#f9fafb', 
-      border: '#d1d5db', 
-      text: '#1f2937',
-      label: '◌ PROPOSED'
-    };
-    case 'Closed': return { 
-      accent: '#000000', 
-      bg: '#f3f4f6', 
-      border: '#1f2937', 
-      text: '#000000',
-      label: '■ CLOSED'
-    };
-    default: return { 
-      accent: '#94a3b8', 
-      bg: '#f8fafc', 
-      border: '#e2e8f0', 
-      text: '#475569',
-      label: '?'
-    };
-  }
-};
-
-const getStatusColor = (status: string) => getStatusStyles(status).bg;
-
-const getContrastColor = (hexcolor: string) => {
-  if (!hexcolor || hexcolor.length < 7) return 'text-black';
-  const r = parseInt(hexcolor.substring(1, 3), 16);
-  const g = parseInt(hexcolor.substring(3, 5), 16);
-  const b = parseInt(hexcolor.substring(5, 7), 16);
-  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-  return (yiq >= 160) ? 'text-black' : 'text-white';
-};
-
-const toISODate = (date: Date) => {
-  if (isNaN(date.getTime())) return '2026-01-01';
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-};
-
-const getPositionFromDate = (dateStr: string, monthWidth: number, vMonths: any[]) => {
-  const date = new Date(dateStr + 'T12:00:00');
-  if (isNaN(date.getTime()) || !vMonths || vMonths.length === 0) return 0;
-  const start = vMonths[0];
-  const startAbs = start.year * 12 + start.month;
-  const targetAbs = date.getFullYear() * 12 + date.getMonth();
-  const monthDiff = targetAbs - startAbs;
-  const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  return (monthDiff * monthWidth) + ((date.getDate() - 1) / daysInMonth * monthWidth);
-};
-
-const getDateFromPosition = (x: number, monthWidth: number, vMonths: any[]) => {
-  if (!vMonths || vMonths.length === 0) return toISODate(new Date());
-  const totalMonths = x / monthWidth;
-  const start = vMonths[0];
-  const startAbs = start.year * 12 + start.month;
-  const targetAbs = startAbs + totalMonths;
-  const targetYear = Math.floor(targetAbs / 12);
-  const targetMonth = Math.floor(targetAbs % 12);
-  const dayFrac = targetAbs - Math.floor(targetAbs);
-  const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
-  const day = Math.max(1, Math.min(daysInMonth, Math.round(dayFrac * daysInMonth) + 1));
-  return toISODate(new Date(targetYear, targetMonth, day));
-};
-
-const formatBarDate = (dateStr: string) => {
-  const date = new Date(dateStr + 'T12:00:00');
-  if (isNaN(date.getTime())) return '---';
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
-};
-
-// --- Collision Utility ---
-
-const calculateTracks = (projects: Exhibition[], monthWidth: number, vMonths: any[], phaseTypes: PhaseType[]) => {
-  const sorted = [...projects].sort((a, b) => {
-    const prePhasesA = (a.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
-    const prePhasesB = (b.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
-    const startA = getPositionFromDate(a.startDate, monthWidth, vMonths) - prePhasesA.reduce((acc, p) => acc + (p.durationMonths * monthWidth), 0);
-    const startB = getPositionFromDate(b.startDate, monthWidth, vMonths) - prePhasesB.reduce((acc, p) => acc + (p.durationMonths * monthWidth), 0);
-    return startA - startB;
-  });
-
-  const tracks: { [id: string]: number } = {};
-  let overallMaxTrack = 0;
-
-  sorted.forEach(project => {
-    const numSubTracks = (project.phases?.length || 0) + 1;
-    tracks[project.id] = overallMaxTrack;
-    overallMaxTrack += numSubTracks;
-  });
-
-  return { tracks, maxTracks: overallMaxTrack || 1 };
-};
-
 // --- Components ---
 
-const DetailPanel = ({ 
-  exhibition, 
-  onClose, 
-  onUpdate, 
-  onDelete, 
-  onDuplicate,
-  galleries,
-  phaseTypes
-}: { 
-  exhibition: Exhibition; 
-  onClose: () => void; 
-  onUpdate: (ex: Exhibition) => void; 
-  onDelete: (id: string) => void; 
-  onDuplicate: (id: string) => void;
-  galleries: string[];
-  phaseTypes: PhaseType[];
-}) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedEx, setEditedEx] = useState<Exhibition>(exhibition);
-  const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
-  const [localPhaseDraft, setLocalPhaseDraft] = useState<ProjectPhase | null>(null);
-
-  useEffect(() => { 
-    setEditedEx(exhibition); 
-    setIsEditing(false); 
-    setEditingPhaseId(null);
-  }, [exhibition]);
-
-  const handleSaveAll = () => { onUpdate(editedEx); setIsEditing(false); };
-  const handleFieldChange = (field: keyof Exhibition, value: any) => { setEditedEx(prev => ({ ...prev, [field]: value })); };
-
-  const handleAddPhase = () => {
-    const newPhase: ProjectPhase = {
-      id: Math.random().toString(36).substr(2, 9),
-      label: 'NEW PHASE',
-      durationMonths: 1,
-      typeId: phaseTypes[0]?.id || 'pt1'
-    };
-    const updatedPhases = [...editedEx.phases, newPhase];
-    setEditedEx(prev => ({ ...prev, phases: updatedPhases }));
-    // Auto-edit new phase
-    setEditingPhaseId(newPhase.id);
-    setLocalPhaseDraft(newPhase);
-  };
-
-  const handleRemovePhase = (id: string) => {
-    setEditedEx(prev => ({ ...prev, phases: prev.phases.filter(p => p.id !== id) }));
-  };
-
-  const handleStartEditPhase = (phase: ProjectPhase) => {
-    setEditingPhaseId(phase.id);
-    setLocalPhaseDraft({ ...phase });
-  };
-
-  const handleSavePhaseLocal = () => {
-    if (!localPhaseDraft) return;
-    const newPhases = editedEx.phases.map(p => p.id === localPhaseDraft.id ? localPhaseDraft : p);
-    handleFieldChange('phases', newPhases);
-    setEditingPhaseId(null);
-    setLocalPhaseDraft(null);
-  };
-
-  const handleCancelPhaseLocal = () => {
-    setEditingPhaseId(null);
-    setLocalPhaseDraft(null);
-  };
-
-  const handleMovePhase = (idx: number, direction: 'up' | 'down') => {
-    const newPhases = [...editedEx.phases];
-    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (targetIdx < 0 || targetIdx >= newPhases.length) return;
-    [newPhases[idx], newPhases[targetIdx]] = [newPhases[targetIdx], newPhases[idx]];
-    handleFieldChange('phases', newPhases);
-  };
-
-  const totalProjectDuration = useMemo(() => {
-    const start = new Date(editedEx.startDate + 'T12:00:00');
-    const end = new Date(editedEx.endDate + 'T12:00:00');
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
-    const diffTime = end.getTime() - start.getTime();
-    const diffDays = diffTime / (1000 * 60 * 60 * 24);
-    const preciseMonths = diffDays / 30;
-    return Math.max(0, Math.round(preciseMonths * 10) / 10);
-  }, [editedEx.startDate, editedEx.endDate]);
-
-  const handleDurationChange = (months: number) => {
-    const start = new Date(editedEx.startDate + 'T12:00:00');
-    if (isNaN(start.getTime())) return;
-    const newEnd = new Date(start);
-    newEnd.setTime(start.getTime() + (months * 30 * 24 * 60 * 60 * 1000));
-    handleFieldChange('endDate', toISODate(newEnd));
-  };
-
-  return (
-    <motion.aside 
-      initial={{ x: '100%' }}
-      animate={{ x: 0 }}
-      exit={{ x: '100%' }}
-      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="fixed inset-y-0 right-0 w-full sm:w-[500px] bg-white border-l border-slate-200 z-[100] flex flex-col no-print shadow-[-20px_0_50px_rgba(0,0,0,0.1)] focus-within:ring-2 focus-within:ring-blue-500/20"
-    >
-      <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white">
-        <div className="flex-1 mr-4">
-          {isEditing ? (
-            <div className="flex flex-col">
-              <label htmlFor="ex-title" className="text-[10px] font-bold uppercase text-slate-400">Project Title</label>
-              <input 
-                id="ex-title"
-                className="text-lg font-bold text-slate-900 w-full bg-slate-50 border border-slate-200 rounded-md p-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" 
-                value={editedEx.title} 
-                onChange={(e) => handleFieldChange('title', e.target.value.toUpperCase())} 
-              />
-            </div>
-          ) : (
-            <h2 className="text-lg font-black text-black leading-none uppercase tracking-tight">{exhibition.title}</h2>
-          )}
-        </div>
-        <div className="flex items-center space-x-2">
-          {isEditing ? (
-            <button 
-              aria-label="Save all changes"
-              onClick={handleSaveAll} 
-              className="w-10 h-10 bg-black text-white border border-slate-300 rounded flex items-center justify-center hover:bg-white hover:text-black transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-black"
-            >
-              <Check size={20} />
-            </button>
-          ) : (
-            <button 
-              aria-label="Edit project"
-              onClick={() => setIsEditing(true)} 
-              className="w-10 h-10 bg-white border border-slate-300 rounded text-black flex items-center justify-center hover:bg-black hover:text-white transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-black"
-            >
-              <Edit2 size={18} />
-            </button>
-          )}
-          <button 
-            aria-label="Close panel"
-            onClick={onClose} 
-            className="w-10 h-10 bg-white border border-slate-300 rounded text-black flex items-center justify-center hover:bg-black hover:text-white transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-black"
-          >
-            <X size={22} />
-          </button>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-        <div className="grid grid-cols-1 gap-4">
-          <div className="space-y-1">
-            <span id="label-status" className="text-[10px] font-black uppercase text-slate-400">PROJECT STATUS</span>
-            {isEditing ? (
-              <select 
-                id="ex-status"
-                className="w-full font-bold border border-slate-300 rounded p-2 outline-none text-sm bg-white text-black focus:bg-yellow-50" 
-                value={editedEx.status} 
-                onChange={(e) => handleFieldChange('status', e.target.value)}
-              >
-                {['Proposed', 'In Development', 'Open to Public', 'Closed'].map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
-              </select>
-            ) : (
-              <div>
-                <p 
-                  className="font-black text-[10px] uppercase px-3 py-1 border rounded inline-flex items-center shadow-sm" 
-                  style={{ 
-                    backgroundColor: getStatusStyles(exhibition.status).bg,
-                    borderColor: getStatusStyles(exhibition.status).border,
-                    color: getStatusStyles(exhibition.status).text
-                  }}
-                >
-                  {getStatusStyles(exhibition.status).label}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="p-4 border border-slate-300 rounded space-y-4 bg-slate-50/50">
-          <div className="space-y-1">
-            <label htmlFor="ex-id" className="text-[10px] font-black uppercase text-slate-400">EXHIBITION ID</label>
-            {isEditing ? (
-              <input 
-                id="ex-id"
-                className="w-full font-bold border border-slate-300 rounded p-2 text-sm bg-white text-black outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/50" 
-                value={editedEx.exhibitionId || ''} 
-                placeholder="EX-0000-000"
-                onChange={(e) => handleFieldChange('exhibitionId', e.target.value.toUpperCase())} 
-              />
-            ) : (
-              <p className="font-bold text-sm uppercase text-blue-600 tracking-tight">{exhibition.exhibitionId || 'UNASSIGNED'}</p>
-            )}
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="ex-gallery" className="text-[10px] font-black uppercase text-slate-400">GALLERY LANE</label>
-            {isEditing ? (
-              <select 
-                id="ex-gallery"
-                className="w-full font-bold border border-slate-300 rounded p-2 outline-none text-sm bg-white text-black focus:bg-yellow-50" 
-                value={editedEx.gallery} 
-                onChange={(e) => handleFieldChange('gallery', e.target.value)}
-              >
-                {galleries.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-            ) : (
-              <p className="font-bold text-sm uppercase">{exhibition.gallery}</p>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label htmlFor="ex-start-date" className="text-[10px] font-black uppercase text-slate-400">START DATE</label>
-              {isEditing ? (
-                <input 
-                  id="ex-start-date"
-                  type="date" 
-                  className="w-full border border-slate-300 rounded p-2 text-xs bg-white text-black outline-none focus:bg-yellow-50" 
-                  value={editedEx.startDate} 
-                  onChange={(e) => handleFieldChange('startDate', e.target.value)} 
-                />
-              ) : (
-                <p className="text-sm font-bold">{exhibition.startDate}</p>
-              )}
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="ex-end-date" className="text-[10px] font-black uppercase text-slate-400">END DATE</label>
-              {isEditing ? (
-                <input 
-                  id="ex-end-date"
-                  type="date" 
-                  className="w-full border border-slate-300 rounded p-2 text-xs bg-white text-black outline-none focus:bg-yellow-50" 
-                  value={editedEx.endDate} 
-                  onChange={(e) => handleFieldChange('endDate', e.target.value)} 
-                />
-              ) : (
-                <p className="text-sm font-bold">{exhibition.endDate}</p>
-              )}
-            </div>
-          </div>
-          <div className="pt-2 border-t border-black/10">
-            <label htmlFor="ex-duration" className="text-[10px] font-black uppercase text-slate-400 block">TOTAL PROJECT DURATION</label>
-            {isEditing ? (
-              <div className="flex items-center space-x-2 mt-1">
-                <input 
-                  id="ex-duration"
-                  type="number"
-                  min="0.1"
-                  step="0.1"
-                  className="w-24 border border-slate-300 rounded bg-white text-black font-black p-2 outline-none focus:bg-yellow-50"
-                  value={totalProjectDuration}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    if (!isNaN(val)) handleDurationChange(val);
-                  }}
-                />
-                <span className="text-xs font-black uppercase tracking-tight">MONTHS</span>
-              </div>
-            ) : (
-              <p className="text-sm font-black text-black mt-1 uppercase tracking-tight">{totalProjectDuration} MONTHS</p>
-            )}
-          </div>
-        </div>
-
-        {isEditing && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-1">
-              <h3 className="text-xs font-black uppercase">INTERNAL PHASING</h3>
-              <button 
-                aria-label="Add new phase"
-                onClick={handleAddPhase} 
-                className="text-[10px] font-black uppercase bg-black text-white px-3 py-1 hover:bg-slate-700 focus:ring-2 focus:ring-black"
-              >
-                + ADD PHASE
-              </button>
-            </div>
-            <div className="space-y-2">
-              {editedEx.phases.map((phase, idx) => {
-                const isPhaseEditing = editingPhaseId === phase.id;
-                
-                return (
-                  <div key={phase.id} className={`border border-slate-300 rounded p-3 flex items-start justify-between bg-white shadow-sm hover:shadow-md transition-colors ${isPhaseEditing ? 'bg-yellow-50/30' : ''}`}>
-                    <div className="flex items-start space-x-3 w-full">
-                      <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-1">{idx + 1}</div>
-                      <div className="flex flex-col flex-1 min-w-0">
-                        {isPhaseEditing ? (
-                          <div className="flex flex-col space-y-3">
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-black text-slate-400 uppercase">LABEL</label>
-                              <input 
-                                autoFocus
-                                aria-label={`Phase ${idx + 1} Label`}
-                                className="font-bold text-xs uppercase border border-slate-300 rounded outline-none bg-white text-black focus:bg-yellow-50 w-full p-2"
-                                value={localPhaseDraft?.label || ''}
-                                onChange={(e) => setLocalPhaseDraft(prev => prev ? { ...prev, label: e.target.value.toUpperCase() } : null)}
-                              />
-                            </div>
-                            <div className="flex items-center space-x-4">
-                              <div className="space-y-1">
-                                <label className="text-[9px] font-black text-slate-400 uppercase">DURATION (MO)</label>
-                                <input 
-                                  type="number"
-                                  min="0"
-                                  step="0.1"
-                                  aria-label={`Phase ${idx + 1} Duration`}
-                                  className="font-black text-xs uppercase border border-slate-300 rounded bg-white text-black outline-none w-20 p-2 text-center focus:bg-yellow-50"
-                                  value={localPhaseDraft?.durationMonths || 0}
-                                  onChange={(e) => {
-                                    const val = parseFloat(e.target.value);
-                                    setLocalPhaseDraft(prev => prev ? { ...prev, durationMonths: isNaN(val) ? 0 : val } : null);
-                                  }}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label className="text-[9px] font-black text-slate-400 uppercase">TYPE</label>
-                                <select 
-                                  className="font-black text-[10px] uppercase border border-slate-300 rounded bg-white text-black outline-none p-1.5 focus:bg-yellow-50"
-                                  value={localPhaseDraft?.typeId || ''}
-                                  onChange={(e) => setLocalPhaseDraft(prev => prev ? { ...prev, typeId: e.target.value } : null)}
-                                >
-                                  {phaseTypes.map(pt => <option key={pt.id} value={pt.id}>{pt.label}</option>)}
-                                </select>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2 pt-1">
-                               <button 
-                                onClick={handleSavePhaseLocal}
-                                className="bg-black text-white px-3 py-1.5 text-[10px] font-bold uppercase flex items-center hover:bg-slate-800 transition-colors shadow-sm active:scale-95"
-                              >
-                                <Check size={14} className="mr-1.5" /> CONFIRM
-                              </button>
-                              <button 
-                                onClick={handleCancelPhaseLocal}
-                                className="bg-white border border-slate-300 rounded text-black px-3 py-1.5 text-[10px] font-bold uppercase flex items-center hover:bg-slate-50 transition-colors shadow-sm active:scale-95"
-                              >
-                                <X size={14} className="mr-1.5" /> CANCEL
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="flex items-center space-x-2">
-                               <span className="font-bold text-xs uppercase truncate text-black">{phase.label}</span>
-                               <div className="w-2 h-2 rounded-full border border-black/10" style={{ backgroundColor: phaseTypes.find(t => t.id === phase.typeId)?.color }} />
-                            </div>
-                            <span className="text-[9px] font-black text-slate-500 uppercase">{phase.durationMonths} MO</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    {!isPhaseEditing && (
-                      <div className="flex items-center space-x-1 shrink-0 ml-2 mt-1">
-                        <div className="flex flex-col">
-                          <button 
-                            aria-label={`Move phase ${idx + 1} up`}
-                            disabled={idx === 0}
-                            onClick={() => handleMovePhase(idx, 'up')}
-                            className={`p-0.5 hover:bg-black hover:text-white transition-colors border border-transparent hover:border-black ${idx === 0 ? 'opacity-20 cursor-not-allowed' : ''}`}
-                          >
-                            <ChevronUp size={14} />
-                          </button>
-                          <button 
-                            aria-label={`Move phase ${idx + 1} down`}
-                            disabled={idx === editedEx.phases.length - 1}
-                            onClick={() => handleMovePhase(idx, 'down')}
-                            className={`p-0.5 hover:bg-black hover:text-white transition-colors border border-transparent hover:border-black ${idx === editedEx.phases.length - 1 ? 'opacity-20 cursor-not-allowed' : ''}`}
-                          >
-                            <ChevronDown size={14} />
-                          </button>
-                        </div>
-                        <button 
-                          aria-label={`Edit phase ${idx + 1}`}
-                          onClick={() => handleStartEditPhase(phase)} 
-                          className="p-1 text-black hover:text-blue-600 transition-colors border border-transparent hover:border-black"
-                        >
-                          <Edit2 size={16}/>
-                        </button>
-                        <button 
-                          aria-label={`Remove phase ${idx + 1}`}
-                          onClick={() => handleRemovePhase(phase.id)} 
-                          className="p-1 text-black hover:text-red-600 transition-colors border border-transparent hover:border-black"
-                        >
-                          <Trash2 size={16}/>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <label htmlFor="ex-description" className="text-xs font-black uppercase border-b border-slate-200 pb-1 block">NARRATIVE</label>
-          <div className="p-4 border border-slate-300 rounded bg-white min-h-[120px] shadow-inner">
-            {isEditing ? (
-              <textarea 
-                id="ex-description"
-                className="w-full text-xs font-bold bg-transparent text-black border-none outline-none h-28 uppercase resize-none focus:bg-yellow-50/50" 
-                value={editedEx.description} 
-                onChange={(e) => handleFieldChange('description', e.target.value.toUpperCase())} 
-              />
-            ) : (
-              <p className="text-xs font-bold uppercase leading-relaxed text-slate-700">
-                {exhibition.description || "NO PROJECT DESCRIPTION PROVIDED."}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-          <div className="p-4 border-t border-slate-200 flex gap-3 bg-white shrink-0">
-        {isEditing ? (
-          <>
-            <button onClick={() => setIsEditing(false)} className="flex-1 py-2 bg-white border border-slate-300 rounded font-black uppercase text-xs hover:bg-slate-100 focus:ring-2 focus:ring-black">DISCARD</button>
-            <button onClick={handleSaveAll} className="flex-1 py-2 bg-black text-white border border-slate-300 rounded font-black uppercase text-xs hover:bg-slate-800 focus:ring-2 focus:ring-black">SAVE ALL</button>
-          </>
-        ) : (
-          <>
-            <button 
-              aria-label="Duplicate this project"
-              onClick={() => onDuplicate(exhibition.id)} 
-              className="flex-1 py-2 bg-white border border-slate-300 rounded font-black uppercase text-[10px] flex items-center justify-center hover:bg-slate-100 focus:ring-2 focus:ring-black transition-colors"
-            >
-              <Copy size={13} className="mr-2" /> DUPLICATE
-            </button>
-            <button 
-              aria-label="Delete this project"
-              onClick={() => onDelete(exhibition.id)} 
-              className="flex-1 py-2 bg-white border border-slate-300 rounded font-black uppercase text-[10px] flex items-center justify-center hover:bg-red-500 hover:text-white focus:ring-2 focus:ring-red-500 transition-colors"
-            >
-              <Trash2 size={13} className="mr-2" /> REMOVE
-            </button>
-          </>
-        )}
-      </div>
-    </motion.aside>
-  );
-};
 
 // --- Main App ---
 
 export default function MasterScheduler() {
-  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-
-  const [exhibitions, setExhibitions] = useState<Exhibition[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : INITIAL_EXHIBITIONS;
-    } catch { return INITIAL_EXHIBITIONS; }
-  });
-
-  const [museumName, setMuseumName] = useState(() => {
-    try {
-      const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
-      return saved ? JSON.parse(saved).museumName : 'NATIONAL HERITAGE TRUST';
-    } catch { return 'NATIONAL HERITAGE TRUST'; }
-  });
-
-  const [galleries, setGalleries] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
-      return saved ? JSON.parse(saved).galleries : DEFAULT_GALLERIES;
-    } catch { return DEFAULT_GALLERIES; }
-  });
-
-  const [phaseTypes, setPhaseTypes] = useState<PhaseType[]>(() => {
-    try {
-      const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
-      if (!saved) return DEFAULT_PHASE_TYPES;
-      const parsed = JSON.parse(saved);
-      const existing = (parsed.phaseTypes || []).filter((pt: PhaseType) => pt.label !== 'PRODUCTION / FAB');
-      const merged = [...existing];
-      DEFAULT_PHASE_TYPES.forEach(dpt => {
-        if (!merged.find(pt => pt.label === dpt.label)) {
-          merged.push(dpt);
-        }
-      });
-      return merged;
-    } catch { return DEFAULT_PHASE_TYPES; }
-  });
-
-  const [locationMilestones, setLocationMilestones] = useState<LocationMilestone[]>(() => {
-    try {
-      const saved = localStorage.getItem(MILESTONES_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
+  const { currentUser, syncStatus, setSyncStatus, isInitialLoad } = useMuseumSync();
+  const { 
+    museumName, setMuseumName,
+    galleries, setGalleries,
+    phaseTypes, setPhaseTypes,
+    exhibitions, setExhibitions,
+    locationMilestones, setLocationMilestones,
+    monthWidth, setMonthWidth,
+    timelineStartDate, setTimelineStartDate,
+    timelineEndDate, setTimelineEndDate,
+    searchQuery, setSearchQuery,
+    statusFilter, setStatusFilter,
+    showHolidays, setShowHolidays
+  } = useStore();
+  const { handleUpdateExhibition, handleRemoveExhibition, handleUpdateGalleryName, handleAddGallery, handleRemoveGallery, handleDuplicateProject } = useMuseumActions(currentUser, setSyncStatus);
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [showHolidays, setShowHolidays] = useState(true);
-  const [monthWidth, setMonthWidth] = useState(120); 
   const [activeTab, setActiveTab] = useState<'portfolio' | 'settings'>('portfolio');
   const [isDraggingScroll, setIsDraggingScroll] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -812,28 +105,14 @@ export default function MasterScheduler() {
   const [dragStartMouseX, setDragStartMouseX] = useState(0);
   const [dragStartProjectX, setDragStartProjectX] = useState(0);
   const [dragDurationDays, setDragDurationDays] = useState(0);
+  const [dragTempStartDate, setDragTempStartDate] = useState<string | null>(null);
+  const [dragTempEndDate, setDragTempEndDate] = useState<string | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
 
   const timelineRef = useRef<HTMLDivElement>(null);
   const sidebarListRef = useRef<HTMLDivElement>(null);
 
-  const [timelineStartDate, setTimelineStartDate] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 6);
-    return toISODate(new Date(d.getFullYear(), d.getMonth(), 1));
-  });
-
   const [editMilestoneDraft, setEditMilestoneDraft] = useState<LocationMilestone | null>(null);
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ExhibitionStatus | 'All'>('All');
-
-  const [timelineEndDate, setTimelineEndDate] = useState(() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() + 3);
-    d.setMonth(d.getMonth() + 6);
-    return toISODate(new Date(d.getFullYear(), d.getMonth(), 0));
-  });
 
   const applyPreset = (years: number) => {
     if (isNaN(years)) return;
@@ -981,263 +260,6 @@ export default function MasterScheduler() {
     return layouts;
   }, [filteredExhibitions, galleries, monthWidth, viewMonths, phaseTypes]);
 
-  useEffect(() => {
-    if (draggingBarId) return; // Prevent blocking the main thread with synchronous I/O during drag
-    const timeout = setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(exhibitions));
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [exhibitions, draggingBarId]);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      localStorage.setItem(MILESTONES_STORAGE_KEY, JSON.stringify(locationMilestones));
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [locationMilestones]);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify({ museumName, galleries, phaseTypes }));
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [museumName, galleries, phaseTypes]);
-
-  // --- Firebase Synchronization Hooks ---
-
-  // 1. Auth Listener
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      if (user) {
-        setSyncStatus('syncing');
-      } else {
-        setSyncStatus('idle');
-      }
-    });
-    return unsubscribe;
-  }, []);
-
-  // 2. Real-time Firebase Sync
-  useEffect(() => {
-    if (!currentUser) {
-      setIsInitialLoad(false);
-      return;
-    }
-
-    // Set up listeners for the three main data parts
-    const userDocRef = doc(db, 'users', currentUser.uid);
-    const exhibitionsColRef = collection(db, 'users', currentUser.uid, 'exhibitions');
-    const milestonesColRef = collection(db, 'users', currentUser.uid, 'milestones');
-
-    let profileUnsub: () => void;
-    let exhibitionsUnsub: () => void;
-    let milestonesUnsub: () => void;
-
-    const startSync = async () => {
-      setSyncStatus('syncing');
-      
-      // Check if user has a profile, if not migrate
-      const docSnap = await getDoc(userDocRef);
-      if (!docSnap.exists()) {
-        // Migration logic
-        try {
-          const batch = writeBatch(db);
-          batch.set(userDocRef, {
-            museumName,
-            galleries,
-            phaseTypes,
-            updatedAt: serverTimestamp()
-          });
-
-          exhibitions.forEach(ex => {
-            const exRef = doc(exhibitionsColRef, ex.id);
-            batch.set(exRef, { ...ex, ownerId: currentUser.uid, updatedAt: serverTimestamp() });
-          });
-
-          locationMilestones.forEach(m => {
-            const mRef = doc(milestonesColRef, m.id);
-            batch.set(mRef, { ...m, ownerId: currentUser.uid, updatedAt: serverTimestamp() });
-          });
-
-          await batch.commit();
-          console.log("Migration successful");
-        } catch (err) {
-          console.error("Migration error:", err);
-        }
-      }
-
-      // Local state is now considered migrated/initialized
-      setIsInitialLoad(false);
-
-      // Listen for profile changes
-      profileUnsub = onSnapshot(userDocRef, (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          setMuseumName(data.museumName);
-          setGalleries(data.galleries);
-          setPhaseTypes(data.phaseTypes);
-          setSyncStatus('synced');
-        }
-      });
-
-      // Listen for exhibitions
-      exhibitionsUnsub = onSnapshot(exhibitionsColRef, (snapshot) => {
-        const exs: Exhibition[] = [];
-        snapshot.forEach(doc => {
-          exs.push(doc.data() as Exhibition);
-        });
-        setExhibitions(exs);
-        setSyncStatus('synced');
-      });
-
-      // Listen for milestones
-      milestonesUnsub = onSnapshot(milestonesColRef, (snapshot) => {
-        const ms: LocationMilestone[] = [];
-        snapshot.forEach(doc => {
-          ms.push(doc.data() as LocationMilestone);
-        });
-        setLocationMilestones(ms);
-        setSyncStatus('synced');
-      });
-    };
-
-    startSync();
-
-    return () => {
-      if (profileUnsub) profileUnsub();
-      if (exhibitionsUnsub) exhibitionsUnsub();
-      if (milestonesUnsub) milestonesUnsub();
-    };
-  }, [currentUser]);
-
-  // 3. Local State Change -> Push to Firebase
-  // Only push if not in initial load and a user is signed in
-  useEffect(() => {
-    if (isInitialLoad || !currentUser || draggingBarId) return;
-    
-    const timeout = setTimeout(async () => {
-      try {
-        setSyncStatus('syncing');
-        await setDoc(doc(db, 'users', currentUser.uid), {
-          museumName,
-          galleries,
-          phaseTypes,
-          updatedAt: serverTimestamp()
-        });
-        setSyncStatus('synced');
-      } catch (err) {
-        console.error("Sync error:", err);
-        setSyncStatus('error');
-      }
-    }, 1000);
-    return () => clearTimeout(timeout);
-  }, [museumName, galleries, phaseTypes, currentUser, isInitialLoad, draggingBarId]);
-
-  const handleUpdateExhibition = async (updatedEx: Exhibition) => {
-    setExhibitions(prev => prev.map(ex => (ex.id === updatedEx.id ? updatedEx : ex)));
-    if (currentUser) {
-      try {
-        setSyncStatus('syncing');
-        await setDoc(doc(db, 'users', currentUser.uid, 'exhibitions', updatedEx.id), {
-          ...updatedEx,
-          ownerId: currentUser.uid,
-          updatedAt: serverTimestamp()
-        });
-        setSyncStatus('synced');
-      } catch (err) {
-        console.error("Cloud update error:", err);
-        setSyncStatus('error');
-      }
-    }
-  };
-
-  const handleRemoveExhibition = async (id: string) => {
-    if (!window.confirm('PERMANENTLY DELETE THIS PROJECT?')) return;
-    setExhibitions(prev => prev.filter(ex => ex.id !== id));
-    if (currentUser) {
-      try {
-        setSyncStatus('syncing');
-        const { deleteDoc } = await import('firebase/firestore');
-        await deleteDoc(doc(db, 'users', currentUser.uid, 'exhibitions', id));
-        setSyncStatus('synced');
-      } catch (err) {
-        setSyncStatus('error');
-      }
-    }
-  };
-
-  const handleUpdateGalleryName = async (oldName: string, newName: string) => {
-    if (!newName || newName.trim() === '' || oldName === newName) return;
-    if (galleries.includes(newName)) return;
-    
-    setGalleries(prev => prev.map(g => g === oldName ? newName : g));
-    const updatedExs = exhibitions.map(ex => ex.gallery === oldName ? { ...ex, gallery: newName } : ex);
-    setExhibitions(updatedExs);
-    const updatedMs = locationMilestones.map(m => m.gallery === oldName ? { ...m, gallery: newName } : m);
-    setLocationMilestones(updatedMs);
-
-    if (currentUser) {
-      try {
-        setSyncStatus('syncing');
-        const batch = writeBatch(db);
-        
-        // Update profile
-        batch.update(doc(db, 'users', currentUser.uid), {
-          galleries: galleries.map(g => g === oldName ? newName : g),
-          updatedAt: serverTimestamp()
-        });
-
-        // Update affected exhibitions
-        exhibitions.filter(ex => ex.gallery === oldName).forEach(ex => {
-          batch.update(doc(db, 'users', currentUser.uid, 'exhibitions', ex.id), {
-            gallery: newName,
-            updatedAt: serverTimestamp()
-          });
-        });
-
-        // Update affected milestones
-        locationMilestones.filter(m => m.gallery === oldName).forEach(m => {
-          batch.update(doc(db, 'users', currentUser.uid, 'milestones', m.id), {
-            gallery: newName,
-            updatedAt: serverTimestamp()
-          });
-        });
-
-        await batch.commit();
-        setSyncStatus('synced');
-      } catch (err) {
-        setSyncStatus('error');
-      }
-    }
-  };
-
-  const handleAddGallery = () => {
-    const newName = `NEW LOCATION ${galleries.length + 1}`;
-    if (galleries.includes(newName)) return;
-    setGalleries([...galleries, newName]);
-  };
-
-  const handleRemoveGallery = (name: string) => {
-    if (galleries.length <= 1) return;
-    const remaining = galleries.filter(g => g !== name);
-    setGalleries(remaining);
-    setExhibitions(prev => prev.map(ex => ex.gallery === name ? { ...ex, gallery: remaining[0] } : ex));
-    setLocationMilestones(prev => prev.filter(m => m.gallery !== name));
-  };
-
-  const handleDuplicateProject = (id: string) => {
-    const source = exhibitions.find(ex => ex.id === id);
-    if (!source) return;
-    const copy = { 
-      ...source, 
-      id: Math.random().toString(36).substr(2, 9), 
-      title: `${source.title} (COPY)`, 
-      phases: [...source.phases.map(p => ({ ...p, id: Math.random().toString(36).substr(2, 9) }))] 
-    };
-    setExhibitions([...exhibitions, copy]);
-  };
-
   const todayPos = useMemo(() => {
     return getPositionFromDate(toISODate(new Date()), monthWidth, viewMonths);
   }, [monthWidth, viewMonths]);
@@ -1266,20 +288,12 @@ export default function MasterScheduler() {
   };
 
   return (
-    <div className={`min-h-screen bg-slate-50 text-black flex flex-col font-mono overflow-hidden select-none antialiased ${draggingBarId ? 'cursor-grabbing' : ''}`}>
+    <div className={`min-h-screen bg-slate-50 text-black flex flex-col font-sans overflow-hidden select-none antialiased ${draggingBarId ? 'cursor-grabbing' : ''}`}>
       <style>{`
-        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; border-left: 2px solid #000; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #000; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; border-left: 1px solid #cbd5e1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
         .is-grabbing { cursor: grabbing !important; }
-        @media print { 
-          .no-print { display: none !important; } 
-          @page { size: 17in 11in landscape; margin: 0.5in; }
-          .timeline-root { overflow: visible !important; height: auto !important; }
-          .timeline-container { overflow: visible !important; height: auto !important; }
-          body { background: white !important; }
-        }
         
         .timeline-container {
           outline: none;
@@ -1324,9 +338,9 @@ export default function MasterScheduler() {
       `}</style>
       
       {editMilestoneDraft && (
-        <div className="fixed inset-0 bg-black/40 z-[100] backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setEditMilestoneDraft(null)}>
+        <div className="fixed inset-0 bg-slate-900/40 z-[100] backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setEditMilestoneDraft(null)}>
           <div className="bg-white border border-slate-300 rounded-xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="bg-black text-white px-4 py-3 font-black tracking-widest flex justify-between items-center text-[10px]">
+            <div className="bg-slate-900 text-white px-4 py-3 font-semibold tracking-widest flex justify-between items-center text-[10px]">
               <span>EDIT MILESTONE</span>
               <button aria-label="Close" onClick={() => setEditMilestoneDraft(null)} className="hover:text-red-400 transition-colors">
                 <X size={14} strokeWidth={3} />
@@ -1334,10 +348,10 @@ export default function MasterScheduler() {
             </div>
             <div className="p-6 space-y-6">
               <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase tracking-widest text-slate-500">Milestone Title</label>
+                <label className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Milestone Title</label>
                 <input 
                   type="text" 
-                  className="w-full border border-slate-300 rounded p-3 font-black uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
+                  className="w-full border border-slate-300 rounded p-3 font-semibold uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
                   value={editMilestoneDraft.title} 
                   onChange={(e) => setEditMilestoneDraft({ ...editMilestoneDraft, title: e.target.value.toUpperCase() })} 
                   autoFocus 
@@ -1345,31 +359,31 @@ export default function MasterScheduler() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase tracking-widest text-slate-500">Date</label>
+                <label className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Date</label>
                 <input 
                   type="date" 
-                  className="w-full border border-slate-300 rounded p-3 font-bold uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
+                  className="w-full border border-slate-300 rounded p-3 font-medium uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
                   value={editMilestoneDraft.date} 
                   onChange={(e) => setEditMilestoneDraft({ ...editMilestoneDraft, date: e.target.value })} 
                 />
               </div>
               
               <div className="space-y-4">
-                <label className="text-[9px] font-black uppercase tracking-widest text-slate-500">Milestone Icon & Color</label>
+                <label className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Milestone Icon & Color</label>
                 <div className="flex gap-4 mb-4">
                   <button 
                     onClick={() => setEditMilestoneDraft({ ...editMilestoneDraft, icon: 'diamond' })}
                     className={`flex items-center space-x-2 px-4 py-2 border-2 transition-colors ${editMilestoneDraft.icon !== 'flag' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200 hover:bg-slate-50'}`}
                   >
-                    <div className="w-3 h-3 bg-white border border-black rotate-45" />
-                    <span className="text-[10px] font-bold uppercase">Diamond</span>
+                    <div className="w-3 h-3 bg-white border border-slate-300 rotate-45" />
+                    <span className="text-[10px] font-medium uppercase">Diamond</span>
                   </button>
                   <button 
                     onClick={() => setEditMilestoneDraft({ ...editMilestoneDraft, icon: 'flag' })}
                     className={`flex items-center space-x-2 px-4 py-2 border-2 transition-colors ${editMilestoneDraft.icon === 'flag' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200 hover:bg-slate-50'}`}
                   >
                     <Flag size={14} fill="white" stroke="black" strokeWidth={2} />
-                    <span className="text-[10px] font-bold uppercase">Flag</span>
+                    <span className="text-[10px] font-medium uppercase">Flag</span>
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -1379,8 +393,8 @@ export default function MasterScheduler() {
                       onClick={() => setEditMilestoneDraft({ ...editMilestoneDraft, color: c.value })}
                       className={`flex items-center space-x-2 px-3 py-1.5 border-2 hover:bg-slate-50 transition-colors ${editMilestoneDraft.color === c.value || (!editMilestoneDraft.color && c.value === '#dc2626') ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200'}`}
                     >
-                      <div className="w-3 h-3 rounded-full border border-black" style={{ backgroundColor: c.value }} />
-                      <span className="text-[8px] font-bold tracking-widest uppercase">{c.label}</span>
+                      <div className="w-3 h-3 rounded-full border border-slate-300" style={{ backgroundColor: c.value }} />
+                      <span className="text-[8px] font-medium tracking-widest uppercase">{c.label}</span>
                     </button>
                   ))}
                 </div>
@@ -1403,7 +417,7 @@ export default function MasterScheduler() {
                       }
                     }
                   }} 
-                  className="text-red-600 font-black text-[10px] uppercase tracking-widest hover:underline flex items-center"
+                  className="text-red-600 font-semibold text-[10px] uppercase tracking-widest hover:underline flex items-center"
                 >
                   <Trash2 size={12} className="mr-1.5" strokeWidth={3} /> DELETE
                 </button>
@@ -1440,7 +454,7 @@ export default function MasterScheduler() {
                     }
                     setEditMilestoneDraft(null);
                   }} 
-                  className="bg-black text-white px-6 py-2.5 border border-slate-300 rounded font-bold uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-colors shadow-sm active:scale-95"
+                  className="bg-slate-900 text-white px-6 py-2.5 border border-slate-300 rounded font-medium uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-colors shadow-sm active:scale-95"
                 >
                   SAVE OVERRIDE
                 </button>
@@ -1456,7 +470,7 @@ export default function MasterScheduler() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 z-[90] no-print backdrop-blur-[2px]" 
+            className="fixed inset-0 bg-slate-900/40 z-[90] no-print backdrop-blur-[2px]" 
             onClick={() => setSelectedProjectId(null)} 
           />
           <DetailPanel 
@@ -1479,14 +493,14 @@ export default function MasterScheduler() {
       <nav className="px-4 py-2 flex items-center justify-between gap-4 overflow-x-auto hide-scrollbar">
                 <div className="flex items-center shrink-0 space-x-6">
                   <div className="flex flex-col">
-                    <h1 className="text-[11px] font-black tracking-tight uppercase leading-none">{museumName}</h1>
+                    <h1 className="text-[11px] font-semibold tracking-tight uppercase leading-none">{museumName}</h1>
                   </div>
 
                   <div className="flex items-center space-x-2 no-print border-l border-slate-200 pl-6">
                     <div className="relative group">
                       <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-black transition-colors" />
                       <input 
-                        className="h-8 pl-9 pr-4 bg-slate-100 border border-slate-200 rounded text-[10px] font-bold uppercase outline-none focus:bg-white focus:ring-2 focus:ring-black/5 focus:border-black transition-all w-[180px]"
+                        className="h-8 pl-9 pr-4 bg-slate-100 border border-slate-200 rounded text-[10px] font-medium uppercase outline-none focus:bg-white focus:ring-2 focus:ring-black/5 focus:border-slate-300 transition-all w-[180px]"
                         placeholder="Search Portfolio..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -1496,7 +510,7 @@ export default function MasterScheduler() {
                     <div className="flex items-center space-x-1 border border-slate-200 rounded h-8 px-1.5 bg-slate-50">
                       <Filter size={12} className="text-slate-400 ml-1" />
                       <select 
-                        className="bg-transparent border-none outline-none text-[9px] font-black uppercase cursor-pointer px-1 pr-6"
+                        className="bg-transparent border-none outline-none text-[9px] font-semibold uppercase cursor-pointer px-1 pr-6"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value as any)}
                       >
@@ -1512,7 +526,7 @@ export default function MasterScheduler() {
 
                 <div className="flex items-center space-x-4 no-print shrink-0">
                   {/* Cloud Sync Status Indicator */}
-                  <div className={`flex items-center space-x-1.5 px-2 py-1 rounded text-[8px] font-black uppercase tracking-tighter border transition-colors ${
+                  <div className={`flex items-center space-x-1.5 px-2 py-1 rounded text-[8px] font-semibold uppercase tracking-tighter border transition-colors ${
                     !currentUser ? 'bg-slate-100 text-slate-400 border-slate-200' :
                     syncStatus === 'syncing' ? 'bg-orange-50 text-orange-600 border-orange-200 animate-pulse' :
                     syncStatus === 'synced' ? 'bg-green-50 text-green-600 border-green-200' :
@@ -1533,8 +547,8 @@ export default function MasterScheduler() {
                     {currentUser ? (
                       <div className="flex items-center space-x-3">
                         <div className="flex flex-col items-end">
-                          <span className="text-[9px] font-black uppercase leading-none text-slate-800">{currentUser.displayName || 'Me'}</span>
-                          <span className="text-[7px] font-bold text-slate-400 leading-none mt-1">{currentUser.email}</span>
+                          <span className="text-[9px] font-semibold uppercase leading-none text-slate-800">{currentUser.displayName || 'Me'}</span>
+                          <span className="text-[7px] font-medium text-slate-400 leading-none mt-1">{currentUser.email}</span>
                         </div>
                         <button 
                           onClick={() => {
@@ -1551,7 +565,7 @@ export default function MasterScheduler() {
                     ) : (
                       <button 
                         onClick={signInWithGoogle}
-                        className="flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-300 rounded font-black uppercase text-[9px] hover:bg-slate-800 hover:text-white transition-all shadow-sm active:scale-95"
+                        className="flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-300 rounded font-semibold uppercase text-[9px] hover:bg-slate-800 hover:text-white transition-all shadow-sm active:scale-95"
                       >
                         <LogIn size={12} strokeWidth={3} />
                         <span>Sign In to Sync</span>
@@ -1560,10 +574,10 @@ export default function MasterScheduler() {
                   </div>
 
                   <div className="flex items-center space-x-2 border border-slate-300 rounded px-2 py-1 bg-slate-50">
-                    <input aria-label="Timeline start date" type="date" value={timelineStartDate} onChange={(e) => setTimelineStartDate(e.target.value)} className="bg-transparent text-[9px] font-black uppercase outline-none w-[100px]" />
-                    <span className="font-bold text-slate-300">-</span>
-                    <input aria-label="Timeline end date" type="date" value={timelineEndDate} onChange={(e) => setTimelineEndDate(e.target.value)} className="bg-transparent text-[9px] font-black uppercase outline-none w-[100px]" />
-                    <select aria-label="Select timeline view preset" onChange={(e) => applyPreset(parseInt(e.target.value))} className="bg-transparent text-[9px] font-black uppercase outline-none ml-1 border-l border-slate-200 pl-1 cursor-pointer">
+                    <input aria-label="Timeline start date" type="date" value={timelineStartDate} onChange={(e) => setTimelineStartDate(e.target.value)} className="bg-transparent text-[9px] font-semibold uppercase outline-none w-[100px]" />
+                    <span className="font-medium text-slate-300">-</span>
+                    <input aria-label="Timeline end date" type="date" value={timelineEndDate} onChange={(e) => setTimelineEndDate(e.target.value)} className="bg-transparent text-[9px] font-semibold uppercase outline-none w-[100px]" />
+                    <select aria-label="Select timeline view preset" onChange={(e) => applyPreset(parseInt(e.target.value))} className="bg-transparent text-[9px] font-semibold uppercase outline-none ml-1 border-l border-slate-200 pl-1 cursor-pointer">
                       <option value="3">PRESETS</option>
                       <option value="1">1 YEAR</option>
                       <option value="2">2 YEARS</option>
@@ -1660,7 +674,7 @@ export default function MasterScheduler() {
                         }
                       }
                     }} 
-                    className="px-4 py-1.5 bg-black text-white border border-slate-300 rounded font-black uppercase text-[9px] hover:bg-slate-800 transition-colors flex items-center"
+                    className="px-4 py-1.5 bg-slate-900 text-white border border-slate-300 rounded font-semibold uppercase text-[9px] hover:bg-slate-800 transition-colors flex items-center"
                   >
                     <Plus size={12} className="mr-1.5" strokeWidth={3} /> NEW PROJECT
                   </button>
@@ -1697,7 +711,7 @@ export default function MasterScheduler() {
                     return (
                       <div key={gallery} style={{ height: `${laneHeight}px` }} className="relative border-b-[3px] border-slate-800 bg-white">
                         <div className="absolute top-0 left-0 w-full min-h-[24px] bg-slate-900 flex items-center px-4 py-1 z-20">
-                          <span className="font-black uppercase text-[9px] tracking-widest text-white leading-tight break-words">{gallery}</span>
+                          <span className="font-semibold uppercase text-[9px] tracking-widest text-white leading-tight break-words">{gallery}</span>
                         </div>
                         {galleryProjects.map(ex => {
                           const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
@@ -1705,9 +719,9 @@ export default function MasterScheduler() {
                           const topPos = 24 + (trackIndex * TRACK_HEIGHT);
                           return (
                             <div key={`title-${ex.id}`} className="absolute left-4 w-[calc(100%-1rem)] pr-2" style={{ top: topPos + 3 }}>
-                              <div className="text-[9px] font-bold text-slate-800 leading-tight break-words underline decoration-slate-200 decoration-1 underline-offset-2" title={ex.title}>{ex.title}</div>
+                              <div className="text-[9px] font-medium text-slate-800 leading-tight break-words underline decoration-slate-200 decoration-1 underline-offset-2" title={ex.title}>{ex.title}</div>
                               {ex.exhibitionId && (
-                                <div className="text-[7px] font-bold text-slate-400 mt-0 uppercase tracking-tight">
+                                <div className="text-[7px] font-medium text-slate-400 mt-0 uppercase tracking-tight">
                                   {ex.exhibitionId}
                                 </div>
                               )}
@@ -1729,9 +743,9 @@ export default function MasterScheduler() {
               
               <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
                 {/* Print Only Branding Header */}
-                <div className="hidden print:block mb-4 p-8 border-b-4 border-black">
-                  <h1 className="text-4xl font-black uppercase tracking-tighter">{museumName}</h1>
-                  <p className="text-sm font-black uppercase tracking-[0.2em] mt-2 text-slate-500">Master Exhibition Timeline • {timelineStartDate} to {timelineEndDate}</p>
+                <div className="hidden print:flex justify-between items-end mb-2 pb-2 border-b-2 border-slate-300">
+                  <h1 className="text-xl font-bold uppercase tracking-tight">{museumName}</h1>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Master Exhibition Timeline • {timelineStartDate} to {timelineEndDate}</p>
                 </div>
 
                 <div 
@@ -1748,12 +762,36 @@ export default function MasterScheduler() {
                 }}
                 onMouseUp={() => {
                   setIsDraggingScroll(false);
+                  if (draggingBarId && dragTempStartDate && dragTempEndDate) {
+                    const ex = exhibitions.find(e => e.id === draggingBarId);
+                    if (ex) {
+                      handleUpdateExhibition({
+                        ...ex,
+                        startDate: dragTempStartDate,
+                        endDate: dragTempEndDate
+                      });
+                    }
+                  }
                   setDraggingBarId(null);
+                  setDragTempStartDate(null);
+                  setDragTempEndDate(null);
                   clearLongPress();
                 }}
                 onMouseLeave={() => {
                   setIsDraggingScroll(false);
+                  if (draggingBarId && dragTempStartDate && dragTempEndDate) {
+                    const ex = exhibitions.find(e => e.id === draggingBarId);
+                    if (ex) {
+                      handleUpdateExhibition({
+                        ...ex,
+                        startDate: dragTempStartDate,
+                        endDate: dragTempEndDate
+                      });
+                    }
+                  }
                   setDraggingBarId(null);
+                  setDragTempStartDate(null);
+                  setDragTempEndDate(null);
                   clearLongPress();
                 }}
                 onMouseMove={(e) => {
@@ -1766,9 +804,8 @@ export default function MasterScheduler() {
                     const start = new Date(newStartDate + 'T12:00:00');
                     const newEndDate = toISODate(new Date(start.getTime() + dragDurationDays * 24 * 60 * 60 * 1000));
                     
-                    setExhibitions(prev => prev.map(ex => 
-                      ex.id === draggingBarId ? { ...ex, startDate: newStartDate, endDate: newEndDate } : ex
-                    ));
+                    setDragTempStartDate(newStartDate);
+                    setDragTempEndDate(newEndDate);
                     return;
                   }
 
@@ -1780,7 +817,7 @@ export default function MasterScheduler() {
                 <div className="inline-flex flex-col relative min-h-full">
                   {/* Now Indicator */}
                   <div className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-[70] pointer-events-none" style={{ left: `${todayPos}px` }}>
-                    <div className="sticky top-[6px] bg-red-600 text-white font-black text-[8px] px-1.5 py-0.5 uppercase transform -translate-x-1/2 shadow-sm w-max whitespace-nowrap rounded-sm">TODAY</div>
+                    <div className="sticky top-[6px] bg-red-600 text-white font-semibold text-[8px] px-1.5 py-0.5 uppercase transform -translate-x-1/2 shadow-sm w-max whitespace-nowrap rounded-sm">TODAY</div>
                   </div>
 
                   {/* Header */}
@@ -1805,18 +842,18 @@ export default function MasterScheduler() {
                     </div>
 
                     <div className="flex h-[30px] border-b border-slate-300 bg-white/70 relative z-10 print:bg-white print:border-slate-400">
-                      {yearBlocks.map(block => <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center px-3 font-black text-sm tracking-tight uppercase text-black border-r border-slate-300 print:border-slate-400">{block.label}</div>)}
+                      {yearBlocks.map(block => <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center px-3 font-semibold text-sm tracking-tight uppercase text-black border-r border-slate-300 print:border-slate-400">{block.label}</div>)}
                     </div>
                     <div className="flex h-[26px] border-b border-orange-200 text-orange-900 bg-orange-100/90 relative z-10 print:bg-orange-100 print:border-orange-300">
                       {fyBlocks.map((block) => (
-                        <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center px-3 font-bold text-[9px] uppercase tracking-widest border-r border-orange-200 print:border-orange-300">{block.label}</div>
+                        <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center px-3 font-medium text-[9px] uppercase tracking-widest border-r border-orange-200 print:border-orange-300">{block.label}</div>
                       ))}
                     </div>
                     <div className="flex h-[17px] border-b border-slate-200/20 bg-slate-100/70 relative z-10 print:bg-slate-100">
-                      {fyQuarterBlocks.map((block, i) => <div key={`${block.label}-${i}`} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-slate-200/20 text-[8px] font-black uppercase tracking-widest text-slate-500 print:text-slate-900">{block.label}</div>)}
+                      {fyQuarterBlocks.map((block, i) => <div key={`${block.label}-${i}`} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-slate-200/20 text-[8px] font-semibold uppercase tracking-widest text-slate-500 print:text-slate-900">{block.label}</div>)}
                     </div>
                     <div className="flex h-[17px] bg-white border-b border-slate-200/30 relative z-10 print:bg-white">
-                      {viewMonths.map(m => <div key={`${m.year}-${m.month}`} style={{ width: `${monthWidth}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-slate-200/10 text-[8px] font-bold text-slate-600 print:text-slate-900">{m.label}</div>)}
+                      {viewMonths.map(m => <div key={`${m.year}-${m.month}`} style={{ width: `${monthWidth}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-slate-200/10 text-[8px] font-medium text-slate-600 print:text-slate-900">{m.label}</div>)}
                     </div>
                   </div>
 
@@ -1860,8 +897,8 @@ export default function MasterScheduler() {
                       {filteredExhibitions.length === 0 && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center p-20 pointer-events-none opacity-20 z-0">
                           <Search size={48} className="mb-4" />
-                          <p className="text-xl font-black uppercase tracking-widest text-center">No Projects Found</p>
-                          <p className="text-[10px] font-bold uppercase mt-2 text-center">Try adjusting your search or filters</p>
+                          <p className="text-xl font-semibold uppercase tracking-widest text-center">No Projects Found</p>
+                          <p className="text-[10px] font-medium uppercase mt-2 text-center">Try adjusting your search or filters</p>
                         </div>
                       )}
                       {/* Provincial Holidays Lane */}
@@ -1883,9 +920,9 @@ export default function MasterScheduler() {
                                 >
                                   <div className={`w-2 h-2 rotate-45 border-[1.5px] border-slate-900 shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-transform group-hover/holiday:scale-125 ${holiday.type === 'Statutory' ? 'bg-slate-800' : 'bg-white'}`} />
                                   
-                                  <div className={`absolute left-1/2 -translate-x-1/2 text-[7px] font-black uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white rounded shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
+                                  <div className={`absolute left-1/2 -translate-x-1/2 text-[7px] font-semibold uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white rounded shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
                                     {holiday.label}
-                                    <span className="text-[5px] text-slate-400 font-bold opacity-60">
+                                    <span className="text-[5px] text-slate-400 font-medium opacity-60">
                                       {holiday.date.split('-')[1]}/{holiday.date.split('-')[2]}
                                     </span>
                                   </div>
@@ -1905,11 +942,12 @@ export default function MasterScheduler() {
                          const footprints = galleryProjects.map(ex => {
                            const startPos = getPositionFromDate(ex.startDate, monthWidth, viewMonths);
                            const endPos = getPositionFromDate(ex.endDate, monthWidth, viewMonths);
-                           const totalPhaseWidth = (ex.phases || []).reduce((acc, p) => acc + p.durationMonths * monthWidth, 0);
-                           const phaseStartPos = startPos - totalPhaseWidth;
+                           const prePhases = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
+                           const totalPreWidth = prePhases.reduce((acc, p) => acc + p.durationMonths * monthWidth, 0);
+                           const phaseStartPos = startPos - totalPreWidth;
                            let implStartPos = startPos;
                            let currentOffset = 0;
-                           for (const p of (ex.phases || [])) {
+                           for (const p of prePhases) {
                              const pWidth = p.durationMonths * monthWidth;
                              const pType = phaseTypes.find(t => t.id === p.typeId);
                              if (pType && pType.label.toUpperCase().includes('IMPLEMENT')) {
@@ -1958,13 +996,13 @@ export default function MasterScheduler() {
                                  className="absolute bottom-0 z-[15] bg-red-500/5 border-l-2 border-r-2 border-dashed border-red-500/50 pointer-events-none"
                                  style={{ left: overlap.startX, width: Math.max(2, overlap.endX - overlap.startX), top: '24px' }}
                                >
-                                 <div className="bg-white border-2 border-red-500/50 text-red-600 font-black uppercase text-[8px] tracking-widest flex items-center shadow-sm w-max ml-2 mt-2" style={{ padding: '2px 4px' }}>
+                                 <div className="bg-white border-2 border-red-500/50 text-red-600 font-semibold uppercase text-[8px] tracking-widest flex items-center shadow-sm w-max ml-2 mt-2" style={{ padding: '2px 4px' }}>
                                    <AlertTriangle size={10} className="mr-1.5 shrink-0" strokeWidth={3} /> CONFLICT
                                  </div>
                                </div>
                              ))}
                              <div 
-                               className="absolute top-0 left-0 w-full h-[24px] bg-slate-100/50 border-b border-black/5 z-20 group relative cursor-crosshair overflow-visible"
+                               className="absolute top-0 left-0 w-full h-[24px] bg-slate-100/50 border-b border-slate-300/5 z-20 group relative cursor-crosshair overflow-visible"
                                onDoubleClick={async (e) => {
                                  const rect = e.currentTarget.getBoundingClientRect();
                                  const x = Math.max(0, e.clientX - rect.left + timelineRef.current!.scrollLeft);
@@ -1994,7 +1032,7 @@ export default function MasterScheduler() {
                                  }
                                }}
                              >
-                                <div className="hidden group-hover:flex absolute left-4 h-full items-center text-[9px] text-slate-400 font-bold uppercase pointer-events-none tracking-widest gap-2">
+                                <div className="hidden group-hover:flex absolute left-4 h-full items-center text-[9px] text-slate-400 font-medium uppercase pointer-events-none tracking-widest gap-2">
                                   <Plus size={10} strokeWidth={3} /> DBL-CLICK TO ADD MILESTONE
                                 </div>
                                 {(() => {
@@ -2040,12 +1078,12 @@ export default function MasterScheduler() {
                                               <Flag size={16} fill={m.color || '#dc2626'} stroke="black" strokeWidth={2} className="drop-shadow-[1px_1px_0_rgba(0,0,0,1)]" />
                                             </div>
                                           ) : (
-                                            <div className="w-3.5 h-3.5 bg-white border-[1.5px] border-black rotate-45 shadow-[1px_1px_0_0_rgba(0,0,0,1)] flex items-center justify-center pointer-events-none">
+                                            <div className="w-3.5 h-3.5 bg-white border-[1.5px] border-slate-300 rotate-45 shadow-[1px_1px_0_0_rgba(0,0,0,1)] flex items-center justify-center pointer-events-none">
                                               <div className="w-[4px] h-[4px] rounded-full" style={{ backgroundColor: m.color || '#dc2626' }} />
                                             </div>
                                           )}
                                         </div>
-                                        <div className={`absolute left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase text-slate-600 bg-white px-1.5 py-[1px] leading-tight border border-slate-200 rounded shadow-md opacity-90 transition-all hover:bg-slate-50 hover:opacity-100 whitespace-nowrap z-30 pointer-events-none ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
+                                        <div className={`absolute left-1/2 -translate-x-1/2 text-[9px] font-medium uppercase text-slate-600 bg-white px-1.5 py-[1px] leading-tight border border-slate-200 rounded shadow-md opacity-90 transition-all hover:bg-slate-50 hover:opacity-100 whitespace-nowrap z-30 pointer-events-none ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
                                           {m.title}
                                         </div>
                                       </div>
@@ -2083,10 +1121,14 @@ export default function MasterScheduler() {
 
                           return galleryProjects.map(ex => {
                             const trackIndex = layout?.tracks[ex.id] || 0;
-                            const startPos = getPositionFromDate(ex.startDate, monthWidth, viewMonths);
-                            const endPos = getPositionFromDate(ex.endDate, monthWidth, viewMonths);
-                            const width = Math.max(endPos - startPos, 40);
                             const isDraggingThis = draggingBarId === ex.id;
+                            
+                            const effStartDate = isDraggingThis && dragTempStartDate ? dragTempStartDate : ex.startDate;
+                            const effEndDate = isDraggingThis && dragTempEndDate ? dragTempEndDate : ex.endDate;
+
+                            const startPos = getPositionFromDate(effStartDate, monthWidth, viewMonths);
+                            const endPos = getPositionFromDate(effEndDate, monthWidth, viewMonths);
+                            const width = Math.max(endPos - startPos, 40);
                             const trackTop = galleryYOffset + 24 + (trackIndex * TRACK_HEIGHT);
 
                             const prePhasesRaw = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
@@ -2154,7 +1196,7 @@ export default function MasterScheduler() {
                                           style={{ left: `${phase.startX}px`, top: `${phase.y}px`, width: `${phase.width - 2}px`, height: `${PHASE_BAR_HEIGHT}px`, backgroundColor: phase.type?.color || '#eee' }}
                                           title={phase.label}
                                         >
-                                          <span className={`text-[7px] font-black uppercase truncate leading-tight ${getContrastColor(phase.type?.color || '#eee')} drop-shadow-[0_1px_0_rgba(0,0,0,0.1)]`}>{phase.label}</span>
+                                          <span className={`text-[7px] font-semibold uppercase truncate leading-tight ${getContrastColor(phase.type?.color || '#eee')} drop-shadow-[0_1px_0_rgba(0,0,0,0.1)]`}>{phase.label}</span>
                                         </div>
                                         {hasNext && (
                                           <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
@@ -2211,18 +1253,18 @@ export default function MasterScheduler() {
                                   <div className="w-1.5 h-full shrink-0" style={{ backgroundColor: getStatusStyles(ex.status).accent }} />
                                   <div className="flex-1 flex flex-col justify-center px-2 min-w-0 overflow-hidden">
                                     <div className="flex items-center justify-between min-w-0 mb-[1px]">
-                                      <h4 className="font-black truncate uppercase text-[9px] leading-tight tracking-tight text-slate-900">{ex.title}</h4>
+                                      <h4 className="font-semibold truncate uppercase text-[9px] leading-tight tracking-tight text-slate-900">{ex.title}</h4>
                                       <span 
-                                        className="text-[6.5px] font-black uppercase px-1 py-[1.5px] rounded border border-black/5 ml-2 shrink-0 bg-white/50 hidden lg:block leading-none"
+                                        className="text-[6.5px] font-semibold uppercase px-1 py-[1.5px] rounded border border-slate-300/5 ml-2 shrink-0 bg-white/50 hidden lg:block leading-none"
                                         style={{ color: getStatusStyles(ex.status).text, transform: 'translateY(-1px)' }}
                                       >
                                         {getStatusStyles(ex.status).label}
                                       </span>
                                     </div>
-                                    <div className="flex items-center space-x-1.5 text-[7.5px] font-black uppercase text-slate-500/80 truncate leading-none">
-                                      <span>{formatBarDate(ex.startDate)}</span>
+                                    <div className="flex items-center space-x-1.5 text-[7.5px] font-semibold uppercase text-slate-500/80 truncate leading-none">
+                                      <span>{formatBarDate(effStartDate)}</span>
                                       <span className="opacity-40">/</span>
-                                      <span>{formatBarDate(ex.endDate)}</span>
+                                      <span>{formatBarDate(effEndDate)}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -2243,21 +1285,21 @@ export default function MasterScheduler() {
             <header className="space-y-3">
               <button 
                 onClick={() => setActiveTab('portfolio')} 
-                className="inline-flex items-center font-bold uppercase text-[9px] border border-slate-300 rounded px-3 py-1.5 hover:bg-slate-50 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus:ring-2 focus:ring-blue-500/50"
+                className="inline-flex items-center font-medium uppercase text-[9px] border border-slate-300 rounded px-3 py-1.5 hover:bg-slate-50 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus:ring-2 focus:ring-blue-500/50"
               >
                 <ArrowLeft size={12} className="mr-2" /> DASHBOARD
               </button>
-              <h2 className="text-3xl font-black uppercase tracking-tight">SYSTEM SETTINGS</h2>
+              <h2 className="text-3xl font-semibold uppercase tracking-tight">SYSTEM SETTINGS</h2>
             </header>
             
-            <div className="space-y-8 border-t-4 border-black pt-8">
+            <div className="space-y-8 border-t-4 border-slate-300 pt-8">
               <section className="space-y-6">
-                <div className="flex items-center text-sm font-black uppercase tracking-widest space-x-3 text-slate-900"><Building2 size={18} /><span>ORG STANDARDS</span></div>
+                <div className="flex items-center text-sm font-semibold uppercase tracking-widest space-x-3 text-slate-900"><Building2 size={18} /><span>ORG STANDARDS</span></div>
                 <div className="border border-slate-300 rounded p-6 bg-slate-50 shadow-sm hover:shadow-md transition-all">
-                  <label htmlFor="museum-name-input" className="text-[9px] font-black uppercase mb-2 block text-slate-400">ORGANIZATION NAME</label>
+                  <label htmlFor="museum-name-input" className="text-[9px] font-semibold uppercase mb-2 block text-slate-400">ORGANIZATION NAME</label>
                   <input 
                     id="museum-name-input"
-                    className="w-full text-lg font-black bg-white border border-slate-300 rounded p-3 outline-none uppercase shadow-inner focus:border-black transition-colors" 
+                    className="w-full text-lg font-semibold bg-white border border-slate-300 rounded p-3 outline-none uppercase shadow-inner focus:border-slate-300 transition-colors" 
                     value={museumName} 
                     onChange={(e) => setMuseumName(e.target.value.toUpperCase())} 
                   />
@@ -2265,7 +1307,7 @@ export default function MasterScheduler() {
               </section>
 
               <section className="space-y-6">
-                <div className="flex items-center text-sm font-black uppercase tracking-widest space-x-3 text-slate-900"><Palette size={18} /><span>PHASE TYPES</span></div>
+                <div className="flex items-center text-sm font-semibold uppercase tracking-widest space-x-3 text-slate-900"><Palette size={18} /><span>PHASE TYPES</span></div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {phaseTypes.map((type, idx) => (
                     <div key={type.id} className="flex items-center space-x-3 p-3 border border-slate-300 rounded bg-white shadow-sm hover:shadow-md hover:border-slate-400 transition-all">
@@ -2287,7 +1329,7 @@ export default function MasterScheduler() {
                         <label htmlFor={`phase-label-${idx}`} className="sr-only">Phase Label {idx + 1}</label>
                         <input 
                           id={`phase-label-${idx}`}
-                          className="w-full font-bold uppercase text-[10px] outline-none border-b border-transparent focus:border-black bg-transparent" 
+                          className="w-full font-medium uppercase text-[10px] outline-none border-b border-transparent focus:border-slate-300 bg-transparent" 
                           value={type.label} 
                           onChange={(e) => {
                             const next = [...phaseTypes];
@@ -2303,10 +1345,10 @@ export default function MasterScheduler() {
 
               <section className="space-y-6 pb-20">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center text-sm font-black uppercase tracking-widest space-x-3 text-slate-900"><MapPin size={18} /><span>LOCATIONS & GALLERIES</span></div>
+                  <div className="flex items-center text-sm font-semibold uppercase tracking-widest space-x-3 text-slate-900"><MapPin size={18} /><span>LOCATIONS & GALLERIES</span></div>
                   <button 
                     onClick={handleAddGallery}
-                    className="text-[9px] font-black uppercase bg-black text-white px-3 py-1.5 rounded hover:bg-slate-800 transition-colors shadow-sm"
+                    className="text-[9px] font-semibold uppercase bg-slate-900 text-white px-3 py-1.5 rounded hover:bg-slate-800 transition-colors shadow-sm"
                   >
                     + ADD LOCATION
                   </button>
@@ -2314,10 +1356,10 @@ export default function MasterScheduler() {
                 <div className="space-y-3">
                   {galleries.map((gallery, idx) => (
                     <div key={`${gallery}-${idx}`} className="flex items-center space-x-3 p-3 border border-slate-300 rounded bg-white shadow-sm hover:shadow-md transition-all">
-                      <div className="w-8 h-8 bg-slate-100 rounded flex items-center justify-center font-black text-slate-400 text-xs">{idx + 1}</div>
+                      <div className="w-8 h-8 bg-slate-100 rounded flex items-center justify-center font-semibold text-slate-400 text-xs">{idx + 1}</div>
                       <input 
                         aria-label={`Location name ${idx + 1}`}
-                        className="flex-1 font-black uppercase text-sm border-b-2 border-transparent focus:border-black bg-transparent outline-none py-1" 
+                        className="flex-1 font-semibold uppercase text-sm border-b-2 border-transparent focus:border-slate-300 bg-transparent outline-none py-1" 
                         value={gallery} 
                         onChange={(e) => handleUpdateGalleryName(gallery, e.target.value.toUpperCase())}
                       />
