@@ -1,7 +1,7 @@
 import { PhaseType } from './types';
 
 export const STORAGE_KEY = 'exhibition_planner_brutalist_v4';
-export const CONFIG_STORAGE_KEY = 'exhibition_planner_config_brutalist_v4';
+export const CONFIG_STORAGE_KEY = 'exhibition_planner_config_v5';
 export const MILESTONES_STORAGE_KEY = 'exhibition_planner_milestones_v4';
 
 export const DEFAULT_GALLERIES = [
@@ -14,9 +14,9 @@ export const DEFAULT_GALLERIES = [
 export const DEFAULT_PHASE_TYPES: PhaseType[] = [
   { id: 'pt1', label: 'IDEA DEVELOPMENT', color: '#94a3b8' },
   { id: 'pt2', label: 'CONTENT DEVELOPMENT', color: '#3b82f6' },
-  { id: 'pt3', label: 'DESIGN DEVELOPMENT', color: '#22c55e' },
-  { id: 'pt4', label: 'IMPLEMENTATION', color: '#f97316' },
-  { id: 'pt5', label: 'DEINSTALL', color: '#ef4444', isPost: true },
+  { id: 'pt3', label: 'DESIGN DEVELOPMENT', color: '#a3cc39' },
+  { id: 'pt4', label: 'IMPLEMENTATION', color: '#fba84a' },
+  { id: 'pt5', label: 'DEINSTALL', color: '#fba84a', isPost: true },
 ];
 
 export const MILESTONE_COLORS = [
@@ -60,11 +60,11 @@ export const ALBERTA_HOLIDAYS = [
 
 export const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 export const FY_QUARTERS = ['Q4', 'Q1', 'Q2', 'Q3'];
-export const BASE_LANE_HEIGHT = 48; 
-export const TRACK_HEIGHT = 26; 
-export const HEADER_HEIGHT = 76; 
-export const STANDARD_BAR_HEIGHT = 20; 
-export const PHASE_BAR_HEIGHT = 10;
+export const BASE_LANE_HEIGHT = 120; 
+export const TRACK_HEIGHT = 56; 
+export const HEADER_HEIGHT = 100; 
+export const STANDARD_BAR_HEIGHT = 24; 
+export const PHASE_BAR_HEIGHT = 12;
 
 export const getStatusStyles = (status: string) => {
   switch(status) {

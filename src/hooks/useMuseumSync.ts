@@ -45,7 +45,11 @@ export const useMuseumSync = () => {
         setMuseumName(parsedCfg.museumName || 'NATIONAL HERITAGE TRUST');
         setGalleries(parsedCfg.galleries || DEFAULT_GALLERIES);
         
-        const existingPts = (parsedCfg.phaseTypes || []).filter((pt: PhaseType) => pt.label !== 'PRODUCTION / FAB');
+        const existingPts = (parsedCfg.phaseTypes || []).filter((pt: PhaseType) => pt.label !== 'PRODUCTION / FAB').map((pt: PhaseType) => {
+          if (pt.label === 'DEINSTALL' && pt.color === '#ef4444') return { ...pt, color: '#fba84a' };
+          if (pt.label === 'IMPLEMENTATION' && pt.color === '#f97316') return { ...pt, color: '#fba84a' };
+          return pt;
+        });
         const mergedOpts = [...existingPts];
         DEFAULT_PHASE_TYPES.forEach(dpt => {
           if (!mergedOpts.find(pt => pt.label === dpt.label)) mergedOpts.push(dpt);
@@ -146,7 +150,14 @@ export const useMuseumSync = () => {
             const data = docSnap.data();
             if (data.museumName) setMuseumName(data.museumName);
             if (data.galleries) setGalleries(data.galleries);
-            if (data.phaseTypes) setPhaseTypes(data.phaseTypes);
+            if (data.phaseTypes) {
+              const migratedPt = data.phaseTypes.map((pt: any) => {
+                if (pt.label === 'DEINSTALL' && pt.color === '#ef4444') return { ...pt, color: '#fba84a' };
+                if (pt.label === 'IMPLEMENTATION' && pt.color === '#f97316') return { ...pt, color: '#fba84a' };
+                return pt;
+              });
+              setPhaseTypes(migratedPt);
+            }
           }
         }, err => console.error("Profile sync error", err));
 

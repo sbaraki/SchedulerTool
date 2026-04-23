@@ -19,6 +19,7 @@ interface AppState {
   searchQuery: string;
   statusFilter: ExhibitionStatus | 'All';
   showHolidays: boolean;
+  showConflicts: boolean;
 
   // Actions
   setMuseumName: (name: string) => void;
@@ -33,6 +34,7 @@ interface AppState {
   setSearchQuery: (query: string) => void;
   setStatusFilter: (filter: ExhibitionStatus | 'All') => void;
   setShowHolidays: (show: boolean) => void;
+  setShowConflicts: (show: boolean) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -49,6 +51,7 @@ export const useStore = create<AppState>((set) => ({
   searchQuery: '',
   statusFilter: 'All',
   showHolidays: true,
+  showConflicts: true,
 
   setMuseumName: (name) => set({ museumName: name }),
   setExhibitions: (updater) => set((state) => ({ 
@@ -72,4 +75,5 @@ export const useStore = create<AppState>((set) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
   setStatusFilter: (filter) => set({ statusFilter: filter }),
   setShowHolidays: (show) => set({ showHolidays: show }),
+  setShowConflicts: (show) => set({ showConflicts: show }),
 }));

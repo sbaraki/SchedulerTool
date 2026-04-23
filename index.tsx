@@ -91,7 +91,8 @@ export default function MasterScheduler() {
     timelineEndDate, setTimelineEndDate,
     searchQuery, setSearchQuery,
     statusFilter, setStatusFilter,
-    showHolidays, setShowHolidays
+    showHolidays, setShowHolidays,
+    showConflicts, setShowConflicts
   } = useStore();
   const { handleUpdateExhibition, handleRemoveExhibition, handleUpdateGalleryName, handleAddGallery, handleRemoveGallery, handleDuplicateProject } = useMuseumActions(currentUser, setSyncStatus);
 
@@ -117,11 +118,8 @@ export default function MasterScheduler() {
   const applyPreset = (years: number) => {
     if (isNaN(years)) return;
     const d = new Date();
-    d.setMonth(d.getMonth() - 2);
-    setTimelineStartDate(toISODate(new Date(d.getFullYear(), d.getMonth(), 1)));
-    const e = new Date(d);
-    e.setFullYear(e.getFullYear() + years);
-    setTimelineEndDate(toISODate(new Date(e.getFullYear(), e.getMonth(), 0)));
+    setTimelineStartDate(`${d.getFullYear()}-01-01`);
+    setTimelineEndDate(`${d.getFullYear() + years - 1}-12-31`);
     
     // Auto-adjust zoom for 3Y print compatibility if 3 years selected
     if (years === 3) {
@@ -148,8 +146,8 @@ export default function MasterScheduler() {
     if (start > end) end = start;
 
     const months = [];
-    const current = new Date(start.getFullYear(), start.getMonth(), 1);
-    const endMarker = new Date(end.getFullYear(), end.getMonth(), 1);
+    const current = new Date(start.getFullYear(), 0, 1);
+    const endMarker = new Date(end.getFullYear(), 11, 1);
     
     while (current <= endMarker) {
       const y = current.getFullYear();
@@ -333,7 +331,7 @@ export default function MasterScheduler() {
 
         .gallery-lane-bg {
           background-image: repeating-linear-gradient(0deg, transparent, transparent ${TRACK_HEIGHT - 1}px, rgba(0,0,0,0.02) ${TRACK_HEIGHT - 1}px, rgba(0,0,0,0.02) ${TRACK_HEIGHT}px);
-          background-position: 0 24px;
+          background-position: 0 32px;
         }
       `}</style>
       
@@ -525,23 +523,6 @@ export default function MasterScheduler() {
                 </div>
 
                 <div className="flex items-center space-x-4 no-print shrink-0">
-                  {/* Cloud Sync Status Indicator */}
-                  <div className={`flex items-center space-x-1.5 px-2 py-1 rounded text-[8px] font-semibold uppercase tracking-tighter border transition-colors ${
-                    !currentUser ? 'bg-slate-100 text-slate-400 border-slate-200' :
-                    syncStatus === 'syncing' ? 'bg-orange-50 text-orange-600 border-orange-200 animate-pulse' :
-                    syncStatus === 'synced' ? 'bg-green-50 text-green-600 border-green-200' :
-                    syncStatus === 'error' ? 'bg-red-50 text-red-600 border-red-200 shadow-[2px_2px_0_rgba(220,38,38,0.1)]' :
-                    'bg-slate-50 text-slate-500 border-slate-200'
-                  }`}>
-                    {!currentUser ? <CloudOff size={10} /> : syncStatus === 'syncing' ? <RefreshCw size={10} className="animate-spin" /> : <Cloud size={10} />}
-                    <span>{
-                      !currentUser ? 'Local Mode' :
-                      syncStatus === 'syncing' ? 'Syncing...' :
-                      syncStatus === 'synced' ? 'Cloud Synced' :
-                      syncStatus === 'error' ? 'Sync Error' : 'Online'
-                    }</span>
-                  </div>
-
                   {/* Auth Buttons */}
                   <div className="flex items-center mr-2 border-r border-slate-200 pr-4">
                     {currentUser ? (
@@ -622,6 +603,15 @@ export default function MasterScheduler() {
                     className="p-1.5 border border-slate-300 rounded bg-white hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-black"
                   >
                     <Printer size={16} strokeWidth={2} />
+                  </button>
+
+                  <button 
+                    aria-label={showConflicts ? "Hide Conflicts" : "Show Conflicts"}
+                    onClick={() => setShowConflicts(!showConflicts)} 
+                    className={`p-1.5 border rounded transition-colors focus:ring-2 focus:ring-black ${showConflicts ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-slate-300 text-slate-400'}`}
+                    title={showConflicts ? "Hide Conflicts" : "Show Conflicts"}
+                  >
+                    <AlertTriangle size={16} strokeWidth={showConflicts ? 2.5 : 2} />
                   </button>
 
                   <button 
@@ -706,22 +696,22 @@ export default function MasterScheduler() {
                   )}
                   {galleries.map((gallery) => {
                     const tracksCount = galleryLayouts[gallery]?.maxTracks || 1;
-                    const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 28);
+                    const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
                     const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
                     return (
                       <div key={gallery} style={{ height: `${laneHeight}px` }} className="relative border-b-[3px] border-slate-800 bg-white">
-                        <div className="absolute top-0 left-0 w-full min-h-[24px] bg-slate-900 flex items-center px-4 py-1 z-20">
-                          <span className="font-semibold uppercase text-[9px] tracking-widest text-white leading-tight break-words">{gallery}</span>
+                        <div className="absolute top-0 left-0 w-full min-h-[32px] bg-slate-100 border-b border-slate-300 flex items-center px-4 py-1 z-20 print:bg-white">
+                          <span className="font-bold uppercase text-[10px] tracking-widest text-slate-800 leading-tight break-words">{gallery}</span>
                         </div>
                         {galleryProjects.map(ex => {
                           const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
                           if (trackIndex === undefined) return null;
-                          const topPos = 24 + (trackIndex * TRACK_HEIGHT);
+                          const topPos = 32 + (trackIndex * TRACK_HEIGHT);
                           return (
-                            <div key={`title-${ex.id}`} className="absolute left-4 w-[calc(100%-1rem)] pr-2" style={{ top: topPos + 3 }}>
-                              <div className="text-[9px] font-medium text-slate-800 leading-tight break-words underline decoration-slate-200 decoration-1 underline-offset-2" title={ex.title}>{ex.title}</div>
+                            <div key={`title-${ex.id}`} className="absolute left-4 w-[calc(100%-1rem)] pr-2" style={{ top: topPos + 8 }}>
+                              <div className="text-[10px] font-bold text-slate-800 leading-tight break-words underline-offset-2" title={ex.title}>{ex.title}</div>
                               {ex.exhibitionId && (
-                                <div className="text-[7px] font-medium text-slate-400 mt-0 uppercase tracking-tight">
+                                <div className="text-[8px] font-bold text-slate-500 mt-0 uppercase tracking-tight">
                                   {ex.exhibitionId}
                                 </div>
                               )}
@@ -732,7 +722,7 @@ export default function MasterScheduler() {
                           const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
                           if (trackIndex === undefined || trackIndex === 0) return null;
                           return (
-                            <div key={`side-div-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-200 left-0" style={{ top: 24 + trackIndex * TRACK_HEIGHT }} />
+                            <div key={`side-div-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-200 left-0" style={{ top: 32 + trackIndex * TRACK_HEIGHT }} />
                           );
                         })}
                       </div>
@@ -821,39 +811,20 @@ export default function MasterScheduler() {
                   </div>
 
                   {/* Header */}
-                  <div className="sticky top-0 z-[60] border-b border-slate-200 flex flex-col bg-white/95 backdrop-blur-sm overflow-hidden" style={{ height: `${HEADER_HEIGHT}px` }}>
-                    {/* Header Fiscal Year Lines */}
-                    <div className="absolute top-0 bottom-0 left-0 right-0 pointer-events-none z-0">
-                      {(() => {
-                        let currentOffset = 0;
-                        return fyBlocks.map((block, idx) => {
-                          const x = currentOffset;
-                          currentOffset += block.count * monthWidth;
-                          if (idx === 0 && x === 0) return null;
-                          return (
-                            <div 
-                              key={`fy-header-line-${idx}`} 
-                              style={{ left: `${x}px` }} 
-                              className="absolute top-0 bottom-0 w-[1px] border-l border-dashed border-orange-500/60 print:border-orange-600 print:border-opacity-100"
-                            />
-                          );
-                        });
-                      })()}
+                  <div className="sticky top-0 z-[60] border-b-2 border-black flex flex-col overflow-hidden shadow-md" style={{ height: `${HEADER_HEIGHT}px` }}>
+                    <div className="flex h-[30px] border-b border-[#333] bg-[#111] relative z-10 print:bg-white print:border-slate-400">
+                      {yearBlocks.map(block => <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center font-bold text-lg tracking-widest text-white border-r border-[#333] print:border-slate-400 print:text-black">{block.label}</div>)}
                     </div>
-
-                    <div className="flex h-[30px] border-b border-slate-300 bg-white/70 relative z-10 print:bg-white print:border-slate-400">
-                      {yearBlocks.map(block => <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center px-3 font-semibold text-sm tracking-tight uppercase text-black border-r border-slate-300 print:border-slate-400">{block.label}</div>)}
-                    </div>
-                    <div className="flex h-[26px] border-b border-orange-200 text-orange-900 bg-orange-100/90 relative z-10 print:bg-orange-100 print:border-orange-300">
+                    <div className="flex h-[24px] border-b border-slate-300 bg-slate-50 relative z-10 print:bg-orange-100 print:border-orange-300 print:text-orange-900">
                       {fyBlocks.map((block) => (
-                        <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center px-3 font-medium text-[9px] uppercase tracking-widest border-r border-orange-200 print:border-orange-300">{block.label}</div>
+                        <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center font-bold text-[10px] uppercase tracking-widest border-r border-slate-300 text-slate-800 print:border-orange-300 print:text-orange-900">{block.label}</div>
                       ))}
                     </div>
-                    <div className="flex h-[17px] border-b border-slate-200/20 bg-slate-100/70 relative z-10 print:bg-slate-100">
-                      {fyQuarterBlocks.map((block, i) => <div key={`${block.label}-${i}`} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-slate-200/20 text-[8px] font-semibold uppercase tracking-widest text-slate-500 print:text-slate-900">{block.label}</div>)}
+                    <div className="flex h-[24px] border-b border-slate-300 bg-slate-100 relative z-10 print:bg-slate-100 print:text-slate-900 text-slate-700">
+                      {fyQuarterBlocks.map((block, i) => <div key={`${block.label}-${i}`} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-slate-300 text-[9.5px] font-bold uppercase tracking-widest print:text-slate-900">{block.label}</div>)}
                     </div>
-                    <div className="flex h-[17px] bg-white border-b border-slate-200/30 relative z-10 print:bg-white">
-                      {viewMonths.map(m => <div key={`${m.year}-${m.month}`} style={{ width: `${monthWidth}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-slate-200/10 text-[8px] font-medium text-slate-600 print:text-slate-900">{m.label}</div>)}
+                    <div className="flex h-[22px] bg-[#2a2a2a] border-b border-[#444] relative z-10 print:bg-white text-gray-300">
+                      {viewMonths.map(m => <div key={`${m.year}-${m.month}`} style={{ width: `${monthWidth}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-[#444] text-[9px] font-bold uppercase print:text-slate-900">{m.label}</div>)}
                     </div>
                   </div>
 
@@ -867,7 +838,7 @@ export default function MasterScheduler() {
                         <div 
                           key={`month-divider-${idx}`} 
                           style={style} 
-                          className="absolute top-0 bottom-0 w-[1px] border-l border-slate-300/40 print:border-slate-400"
+                          className="absolute top-0 bottom-0 w-[1px] border-l border-slate-300/40 print:border-slate-600"
                         />
                       );
                     })}
@@ -884,7 +855,7 @@ export default function MasterScheduler() {
                           <div 
                             key={`fy-line-${idx}`} 
                             style={style} 
-                            className="absolute top-0 bottom-0 w-[1px] border-l border-dashed border-orange-600/70 z-10 print:border-orange-800 print:border-opacity-100 print:z-50"
+                            className="absolute top-0 bottom-0 w-[2px] bg-slate-800 z-10 print:bg-slate-900 print:z-50"
                           />
                         );
                       });
@@ -936,7 +907,7 @@ export default function MasterScheduler() {
                       )}
                       {galleries.map((g) => {
                          const tracksCount = galleryLayouts[g]?.maxTracks || 1;
-                         const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 28);
+                         const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
                          const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === g);
 
                          const footprints = galleryProjects.map(ex => {
@@ -990,11 +961,11 @@ export default function MasterScheduler() {
 
                          return (
                            <div key={g} style={{ height: `${laneHeight}px` }} className="border-b-[3px] border-slate-800 gallery-lane-bg relative">
-                             {mergedOverlaps.map((overlap, i) => (
+                             {showConflicts && mergedOverlaps.map((overlap, i) => (
                                <div 
                                  key={`overlap-${i}`}
                                  className="absolute bottom-0 z-[15] bg-red-500/5 border-l-2 border-r-2 border-dashed border-red-500/50 pointer-events-none"
-                                 style={{ left: overlap.startX, width: Math.max(2, overlap.endX - overlap.startX), top: '24px' }}
+                                 style={{ left: overlap.startX, width: Math.max(2, overlap.endX - overlap.startX), top: '32px' }}
                                >
                                  <div className="bg-white border-2 border-red-500/50 text-red-600 font-semibold uppercase text-[8px] tracking-widest flex items-center shadow-sm w-max ml-2 mt-2" style={{ padding: '2px 4px' }}>
                                    <AlertTriangle size={10} className="mr-1.5 shrink-0" strokeWidth={3} /> CONFLICT
@@ -1002,7 +973,7 @@ export default function MasterScheduler() {
                                </div>
                              ))}
                              <div 
-                               className="absolute top-0 left-0 w-full h-[24px] bg-slate-100/50 border-b border-slate-300/5 z-20 group relative cursor-crosshair overflow-visible"
+                               className="absolute top-0 left-0 w-full h-[32px] bg-slate-100/50 border-b border-slate-300/5 z-20 group relative cursor-crosshair overflow-visible"
                                onDoubleClick={async (e) => {
                                  const rect = e.currentTarget.getBoundingClientRect();
                                  const x = Math.max(0, e.clientX - rect.left + timelineRef.current!.scrollLeft);
@@ -1095,7 +1066,7 @@ export default function MasterScheduler() {
                                const trackIndex = galleryLayouts[g]!.tracks[ex.id];
                                if (trackIndex === undefined || trackIndex === 0) return null;
                                return (
-                                 <div key={`line-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-300 z-10 pointer-events-none" style={{ top: 24 + trackIndex * TRACK_HEIGHT }} />
+                                 <div key={`line-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-300 z-10 pointer-events-none" style={{ top: 32 + trackIndex * TRACK_HEIGHT }} />
                                );
                              })}
                            </div>
@@ -1115,7 +1086,7 @@ export default function MasterScheduler() {
                           const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
                           const layout = galleryLayouts[gallery];
                           const tracksCount = layout?.maxTracks || 1;
-                          const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 28);
+                          const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
                           const galleryYOffset = currentGalleryY;
                           currentGalleryY += laneHeight;
 
@@ -1129,12 +1100,14 @@ export default function MasterScheduler() {
                             const startPos = getPositionFromDate(effStartDate, monthWidth, viewMonths);
                             const endPos = getPositionFromDate(effEndDate, monthWidth, viewMonths);
                             const width = Math.max(endPos - startPos, 40);
-                            const trackTop = galleryYOffset + 24 + (trackIndex * TRACK_HEIGHT);
+                            const trackTop = galleryYOffset + 32 + (trackIndex * TRACK_HEIGHT);
 
                             const prePhasesRaw = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
                             const postPhasesRaw = (ex.phases || []).filter(p => phaseTypes.find(t => t.id === p.typeId)?.isPost);
                             
-                            const totalPreWidth = prePhasesRaw.reduce((acc, p) => acc + p.durationMonths * monthWidth, 0);
+                            const totalPrePhaseWidthOnly = prePhasesRaw.reduce((acc, p) => acc + p.durationMonths * monthWidth, 0);
+                            const totalPreGaps = prePhasesRaw.length * 6;
+                            const totalPreWidth = totalPrePhaseWidthOnly + totalPreGaps;
                             const phaseStartPos = startPos - totalPreWidth;
                             
                             let preOffset = 0;
@@ -1143,20 +1116,21 @@ export default function MasterScheduler() {
                               const pStart = phaseStartPos + preOffset;
                               const pEnd = pStart + pWidth;
                               const pY = trackTop + (i * TRACK_HEIGHT) + (TRACK_HEIGHT - PHASE_BAR_HEIGHT) / 2;
-                              preOffset += pWidth;
+                              preOffset += pWidth + 6;
                               return { ...p, startX: pStart, width: pWidth, endX: pEnd, y: pY, type: phaseTypes.find(t => t.id === p.typeId), i, isPost: false };
                             });
 
                             const mainBarY = trackTop + (prePhasesRaw.length * TRACK_HEIGHT) + (TRACK_HEIGHT - STANDARD_BAR_HEIGHT) / 2;
 
-                            let postOffset = 0;
+                            let postOffset = 6;
                             const renderedPost = postPhasesRaw.map((p, i) => {
                               const pWidth = p.durationMonths * monthWidth;
                               const pStart = endPos + postOffset;
                               const pEnd = pStart + pWidth;
-                              const pY = trackTop + ((prePhasesRaw.length + 1 + i) * TRACK_HEIGHT) + (TRACK_HEIGHT - PHASE_BAR_HEIGHT) / 2;
-                              postOffset += pWidth;
-                              return { ...p, startX: pStart, width: pWidth, endX: pEnd, y: pY, type: phaseTypes.find(t => t.id === p.typeId), i: prePhasesRaw.length + 1 + i, isPost: true };
+                              const targetYIndex = prePhasesRaw.length > 0 ? prePhasesRaw.length - 1 : 0;
+                              const pY = trackTop + (targetYIndex * TRACK_HEIGHT) + (TRACK_HEIGHT - PHASE_BAR_HEIGHT) / 2;
+                              postOffset += pWidth + 6;
+                              return { ...p, startX: pStart, width: pWidth, endX: pEnd, y: pY, type: phaseTypes.find(t => t.id === p.typeId), i: i, isPost: true };
                             });
 
                             const renderedPhases = [...renderedPre, ...renderedPost];
@@ -1192,22 +1166,29 @@ export default function MasterScheduler() {
                                     return (
                                       <React.Fragment key={phase.id}>
                                         <div 
-                                          className="absolute border border-slate-300 rounded flex items-center px-3 shadow-sm hover:shadow-md hover:border-slate-400 bg-white transition-all hover:-translate-y-0.5 pointer-events-auto" 
+                                          className="absolute flex items-center shadow-sm hover:shadow-md hover:opacity-90 bg-white transition-all pointer-events-auto rounded-sm" 
                                           style={{ left: `${phase.startX}px`, top: `${phase.y}px`, width: `${phase.width - 2}px`, height: `${PHASE_BAR_HEIGHT}px`, backgroundColor: phase.type?.color || '#eee' }}
                                           title={phase.label}
+                                        />
+                                        <div 
+                                          className="absolute text-[9px] font-bold text-slate-800 tracking-tight"
+                                          style={{ left: `${phase.startX}px`, top: `${phase.y + PHASE_BAR_HEIGHT + 2}px`, width: `${Math.max(phase.width, 100)}px` }}
                                         >
-                                          <span className={`text-[7px] font-semibold uppercase truncate leading-tight ${getContrastColor(phase.type?.color || '#eee')} drop-shadow-[0_1px_0_rgba(0,0,0,0.1)]`}>{phase.label}</span>
+                                          {phase.label}
                                         </div>
                                         {hasNext && (
                                           <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
                                             <path 
-                                              d={`M ${phase.endX} ${yCenter} L ${phase.endX} ${yCenter + 12} L ${phase.endX - 8} ${yCenter + 12} L ${phase.endX - 8} ${nextYCenter} L ${nextX - 2} ${nextYCenter}`} 
+                                              d={nextYCenter === yCenter 
+                                                ? `M ${phase.endX} ${yCenter} L ${nextX - 2} ${nextYCenter}` 
+                                                : `M ${phase.endX} ${yCenter} L ${phase.endX + 3} ${yCenter} L ${phase.endX + 3} ${nextYCenter} L ${nextX - 2} ${nextYCenter}`
+                                              } 
                                               fill="none" 
-                                              stroke="#94a3b8" 
-                                              strokeWidth="2" 
+                                              stroke="#475569" 
+                                              strokeWidth="1.5" 
                                             />
-                                            <circle cx={phase.endX} cy={yCenter} r="2.5" fill="#94a3b8" />
-                                            <polygon points={`${nextX},${nextYCenter} ${nextX-6},${nextYCenter-4} ${nextX-6},${nextYCenter+4}`} fill="#94a3b8" />
+                                            <circle cx={phase.endX} cy={yCenter} r="2" fill="#475569" />
+                                            <polygon points={`${nextX},${nextYCenter} ${nextX-5},${nextYCenter-3} ${nextX-5},${nextYCenter+3}`} fill="#475569" />
                                           </svg>
                                         )}
                                       </React.Fragment>
@@ -1221,13 +1202,16 @@ export default function MasterScheduler() {
                                     return (
                                       <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
                                         <path 
-                                          d={`M ${endPos} ${curYCenter} L ${endPos} ${curYCenter + 12} L ${endPos - 8} ${curYCenter + 12} L ${endPos - 8} ${nYCenter} L ${nX - 2} ${nYCenter}`} 
+                                          d={nYCenter === curYCenter 
+                                            ? `M ${endPos} ${curYCenter} L ${nX - 2} ${nYCenter}`
+                                            : `M ${endPos} ${curYCenter} L ${endPos + 3} ${curYCenter} L ${endPos + 3} ${nYCenter} L ${nX - 2} ${nYCenter}`
+                                          }
                                           fill="none" 
-                                          stroke="#94a3b8" 
-                                          strokeWidth="2" 
+                                          stroke="#475569" 
+                                          strokeWidth="1.5" 
                                         />
-                                        <circle cx={endPos} cy={curYCenter} r="2.5" fill="#94a3b8" />
-                                        <polygon points={`${nX},${nYCenter} ${nX-6},${nYCenter-4} ${nX-6},${nYCenter+4}`} fill="#94a3b8" />
+                                        <circle cx={endPos} cy={curYCenter} r="2" fill="#475569" />
+                                        <polygon points={`${nX},${nYCenter} ${nX-5},${nYCenter-3} ${nX-5},${nYCenter+3}`} fill="#475569" />
                                       </svg>
                                     );
                                   })()}
@@ -1240,33 +1224,28 @@ export default function MasterScheduler() {
                                   onMouseDown={(e) => onBarMouseDown(e, ex)}
                                   onClick={() => { if (!draggingBarId) setSelectedProjectId(ex.id); }}
                                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedProjectId(ex.id); }}
-                                  className={`absolute pointer-events-auto border rounded overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`} 
+                                  className={`absolute pointer-events-auto border-2 rounded-sm shadow-sm hover:shadow-md transition-all cursor-pointer flex justify-center items-center focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`} 
                                   style={{ 
                                     left: `${startPos}px`, 
                                     width: `${width}px`, 
                                     top: `${mainBarY}px`, 
                                     height: `${STANDARD_BAR_HEIGHT}px`,
-                                    backgroundColor: getStatusStyles(ex.status).bg,
+                                    backgroundColor: '#df4222',
                                     borderColor: getStatusStyles(ex.status).border
                                   }}
                                 >
-                                  <div className="w-1.5 h-full shrink-0" style={{ backgroundColor: getStatusStyles(ex.status).accent }} />
-                                  <div className="flex-1 flex flex-col justify-center px-2 min-w-0 overflow-hidden">
-                                    <div className="flex items-center justify-between min-w-0 mb-[1px]">
-                                      <h4 className="font-semibold truncate uppercase text-[9px] leading-tight tracking-tight text-slate-900">{ex.title}</h4>
-                                      <span 
-                                        className="text-[6.5px] font-semibold uppercase px-1 py-[1.5px] rounded border border-slate-300/5 ml-2 shrink-0 bg-white/50 hidden lg:block leading-none"
-                                        style={{ color: getStatusStyles(ex.status).text, transform: 'translateY(-1px)' }}
-                                      >
-                                        {getStatusStyles(ex.status).label}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center space-x-1.5 text-[7.5px] font-semibold uppercase text-slate-500/80 truncate leading-none">
-                                      <span>{formatBarDate(effStartDate)}</span>
-                                      <span className="opacity-40">/</span>
-                                      <span>{formatBarDate(effEndDate)}</span>
-                                    </div>
-                                  </div>
+                                  <span className="font-bold text-[11px] uppercase tracking-wider text-white px-2 truncate block leading-none pb-[1px]">{ex.title}</span>
+                                </div>
+                                <div 
+                                  className="absolute text-[10px] font-bold tracking-tight text-black pointer-events-none"
+                                  style={{ 
+                                    left: `${startPos}px`, 
+                                    width: `${width}px`, 
+                                    top: `${mainBarY + STANDARD_BAR_HEIGHT + 2}px`, 
+                                    textAlign: 'center'
+                                  }}
+                                >
+                                  {formatBarDate(effStartDate)} - {formatBarDate(effEndDate)}
                                 </div>
                               </React.Fragment>
                             );
