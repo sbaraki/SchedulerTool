@@ -49,27 +49,7 @@ import {
   History
 } from 'lucide-react';
 
-import { 
-  auth, 
-  db, 
-  signInWithGoogle, 
-  logout, 
-  serverTimestamp 
-} from './src/lib/firebase';
-import { 
-  onAuthStateChanged, 
-  User as FirebaseUser 
-} from 'firebase/auth';
-import { 
-  doc, 
-  setDoc, 
-  onSnapshot, 
-  collection, 
-  query, 
-  where,
-  writeBatch,
-  getDoc
-} from 'firebase/firestore';
+import { GithubAuthModal } from './src/components/GithubAuthModal';
 
 // --- Types & Constants ---
 
@@ -97,10 +77,11 @@ export default function MasterScheduler() {
     showHolidays, setShowHolidays,
     showConflicts, setShowConflicts
   } = useStore();
-  const { handleUpdateExhibition, handleRemoveExhibition, handleUpdateGalleryName, handleAddGallery, handleRemoveGallery, handleDuplicateProject } = useMuseumActions(currentUser, setSyncStatus);
+  const { handleUpdateExhibition, handleRemoveExhibition, handleUpdateGalleryName, handleAddGallery, handleRemoveGallery, handleDuplicateProject } = useMuseumActions();
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'portfolio' | 'settings'>('portfolio');
+  const [showGithubAuth, setShowGithubAuth] = useState(false);
   const [isDraggingScroll, setIsDraggingScroll] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeftState, setScrollLeftState] = useState(0);
@@ -320,6 +301,7 @@ export default function MasterScheduler() {
       className={`min-h-screen bg-[linear-gradient(180deg,#f7f4ec_0%,#f8fafc_28%,#eef2f7_100%)] text-black flex flex-col font-sans overflow-hidden select-none antialiased ${draggingBarId ? 'cursor-grabbing' : ''}`}
       style={{ ['--print-scale' as string]: `${printScale}` }}
     >
+      {showGithubAuth && <GithubAuthModal onClose={() => setShowGithubAuth(false)} />}
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; border-left: 1px solid #cbd5e1; }
@@ -440,8 +422,7 @@ export default function MasterScheduler() {
                     if (currentUser) {
                       try {
                         setSyncStatus('syncing');
-                        const { deleteDoc } = await import('firebase/firestore');
-                        await deleteDoc(doc(db, 'users', currentUser.uid, 'milestones', idToRemove));
+                        // Handled by useMuseumSync auto-save
                         setSyncStatus('synced');
                       } catch (err) {
                         setSyncStatus('error');
@@ -460,8 +441,7 @@ export default function MasterScheduler() {
                       if (currentUser) {
                         try {
                           setSyncStatus('syncing');
-                          const { deleteDoc } = await import('firebase/firestore');
-                          await deleteDoc(doc(db, 'users', currentUser.uid, 'milestones', idToRemove));
+                          // Handled by useMuseumSync auto-save
                           setSyncStatus('synced');
                         } catch (err) {
                           setSyncStatus('error');
@@ -472,11 +452,7 @@ export default function MasterScheduler() {
                       if (currentUser) {
                         try {
                           setSyncStatus('syncing');
-                          await setDoc(doc(db, 'users', currentUser.uid, 'milestones', editMilestoneDraft.id), {
-                            ...editMilestoneDraft,
-                            ownerId: currentUser.uid,
-                            updatedAt: serverTimestamp()
-                          });
+                          // No-op for now: handled by useMuseumSync auto-save
                           setSyncStatus('synced');
                         } catch (err) {
                           setSyncStatus('error');
@@ -574,7 +550,9 @@ export default function MasterScheduler() {
                         <button 
                           onClick={() => {
                             if (window.confirm('Sign out and switch to local mode?')) {
-                              logout().then(() => window.location.reload());
+                              localStorage.removeItem('github_pat');
+                              localStorage.removeItem('github_gist_id');
+                              window.location.reload();
                             }
                           }}
                           className="p-1.5 border border-slate-300 bg-white hover:bg-slate-50 text-slate-600 hover:text-red-600 transition-colors"
@@ -585,7 +563,7 @@ export default function MasterScheduler() {
                       </div>
                     ) : (
                       <button 
-                        onClick={signInWithGoogle}
+                        onClick={() => setShowGithubAuth(true)}
                         className="flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-300 font-semibold uppercase text-[9px] hover:bg-slate-800 hover:text-white transition-all shadow-sm active:scale-95"
                       >
                         <LogIn size={12} strokeWidth={3} />
@@ -693,11 +671,7 @@ export default function MasterScheduler() {
                       if (currentUser) {
                         try {
                           setSyncStatus('syncing');
-                          await setDoc(doc(db, 'users', currentUser.uid, 'exhibitions', id), {
-                            ...newEx,
-                            ownerId: currentUser.uid,
-                            updatedAt: serverTimestamp()
-                          });
+                          // Handled by auto-save
                           setSyncStatus('synced');
                         } catch (err) {
                           setSyncStatus('error');
