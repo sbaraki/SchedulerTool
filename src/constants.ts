@@ -15,7 +15,7 @@ export const DEFAULT_PHASE_TYPES: PhaseType[] = [
   { id: 'pt1', label: 'IDEA DEVELOPMENT', color: '#94a3b8' },
   { id: 'pt2', label: 'CONTENT DEVELOPMENT', color: '#3b82f6' },
   { id: 'pt3', label: 'DESIGN DEVELOPMENT', color: '#a3cc39' },
-  { id: 'pt4', label: 'IMPLEMENTATION', color: '#fba84a' },
+  { id: 'pt4', label: 'IMPLEMENTATION', color: '#fba84a', isActive: true },
   { id: 'pt5', label: 'DEINSTALL', color: '#fba84a', isPost: true },
 ];
 
@@ -29,39 +29,72 @@ export const MILESTONE_COLORS = [
   { value: '#64748b', label: 'SECONDARY / HOLIDAY' }
 ];
 
-export const ALBERTA_HOLIDAYS = [
-  { date: '2026-01-01', label: "New Year's Day", type: 'Statutory' },
-  { date: '2026-02-16', label: 'Family Day', type: 'Statutory' },
-  { date: '2026-04-03', label: 'Good Friday', type: 'Statutory' },
-  { date: '2026-04-06', label: 'Easter Monday', type: 'Optional' },
-  { date: '2026-05-18', label: 'Victoria Day', type: 'Statutory' },
-  { date: '2026-07-01', label: 'Canada Day', type: 'Statutory' },
-  { date: '2026-08-03', label: 'Heritage Day', type: 'Optional' },
-  { date: '2026-09-07', label: 'Labour Day', type: 'Statutory' },
-  { date: '2026-09-30', label: 'National Day for Truth and Reconciliation', type: 'Optional' },
-  { date: '2026-10-12', label: 'Thanksgiving Day', type: 'Statutory' },
-  { date: '2026-11-11', label: 'Remembrance Day', type: 'Statutory' },
-  { date: '2026-12-25', label: 'Christmas Day', type: 'Statutory' },
-  { date: '2026-12-26', label: 'Boxing Day', type: 'Optional' },
-  { date: '2027-01-01', label: "New Year's Day", type: 'Statutory' },
-  { date: '2027-02-15', label: 'Family Day', type: 'Statutory' },
-  { date: '2027-03-26', label: 'Good Friday', type: 'Statutory' },
-  { date: '2027-03-29', label: 'Easter Monday', type: 'Optional' },
-  { date: '2027-05-24', label: 'Victoria Day', type: 'Statutory' },
-  { date: '2027-07-01', label: 'Canada Day', type: 'Statutory' },
-  { date: '2027-08-02', label: 'Heritage Day', type: 'Optional' },
-  { date: '2027-09-06', label: 'Labour Day', type: 'Statutory' },
-  { date: '2027-09-30', label: 'National Day for Truth and Reconciliation', type: 'Optional' },
-  { date: '2027-10-11', label: 'Thanksgiving Day', type: 'Statutory' },
-  { date: '2027-11-11', label: 'Remembrance Day', type: 'Statutory' },
-  { date: '2027-12-25', label: 'Christmas Day', type: 'Statutory' },
-  { date: '2027-12-26', label: 'Boxing Day', type: 'Optional' }
-];
+const pad = (value: number) => String(value).padStart(2, '0');
+const toDateString = (year: number, month: number, day: number) => `${year}-${pad(month + 1)}-${pad(day)}`;
+const nthWeekdayOfMonth = (year: number, month: number, weekday: number, occurrence: number) => {
+  const date = new Date(year, month, 1);
+  const offset = (weekday - date.getDay() + 7) % 7;
+  return new Date(year, month, 1 + offset + ((occurrence - 1) * 7));
+};
+const lastWeekdayBeforeDate = (year: number, month: number, day: number, weekday: number) => {
+  const date = new Date(year, month, day);
+  while (date.getDay() !== weekday) {
+    date.setDate(date.getDate() - 1);
+  }
+  return date;
+};
+const calculateEaster = (year: number) => {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + (2 * e) + (2 * i) - h - k) % 7;
+  const m = Math.floor((a + (11 * h) + (22 * l)) / 451);
+  const month = Math.floor((h + l - (7 * m) + 114) / 31) - 1;
+  const day = ((h + l - (7 * m) + 114) % 31) + 1;
+  return new Date(year, month, day);
+};
+
+export const getAlbertaHolidays = (startYear: number, endYear: number) => {
+  const holidays: { date: string; label: string; type: string }[] = [];
+
+  for (let year = startYear; year <= endYear; year += 1) {
+    const easter = calculateEaster(year);
+    const goodFriday = new Date(easter);
+    goodFriday.setDate(easter.getDate() - 2);
+    const easterMonday = new Date(easter);
+    easterMonday.setDate(easter.getDate() + 1);
+
+    holidays.push(
+      { date: toDateString(year, 0, 1), label: "New Year's Day", type: 'Statutory' },
+      { date: toDateString(year, 1, nthWeekdayOfMonth(year, 1, 1, 3).getDate()), label: 'Family Day', type: 'Statutory' },
+      { date: toDateString(year, goodFriday.getMonth(), goodFriday.getDate()), label: 'Good Friday', type: 'Statutory' },
+      { date: toDateString(year, easterMonday.getMonth(), easterMonday.getDate()), label: 'Easter Monday', type: 'Optional' },
+      { date: toDateString(year, 4, lastWeekdayBeforeDate(year, 4, 24, 1).getDate()), label: 'Victoria Day', type: 'Statutory' },
+      { date: toDateString(year, 6, 1), label: 'Canada Day', type: 'Statutory' },
+      { date: toDateString(year, 7, nthWeekdayOfMonth(year, 7, 1, 1).getDate()), label: 'Heritage Day', type: 'Optional' },
+      { date: toDateString(year, 8, nthWeekdayOfMonth(year, 8, 1, 1).getDate()), label: 'Labour Day', type: 'Statutory' },
+      { date: toDateString(year, 8, 30), label: 'National Day for Truth and Reconciliation', type: 'Optional' },
+      { date: toDateString(year, 9, nthWeekdayOfMonth(year, 9, 1, 2).getDate()), label: 'Thanksgiving Day', type: 'Statutory' },
+      { date: toDateString(year, 10, 11), label: 'Remembrance Day', type: 'Statutory' },
+      { date: toDateString(year, 11, 25), label: 'Christmas Day', type: 'Statutory' },
+      { date: toDateString(year, 11, 26), label: 'Boxing Day', type: 'Optional' }
+    );
+  }
+
+  return holidays;
+};
 
 export const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 export const FY_QUARTERS = ['Q4', 'Q1', 'Q2', 'Q3'];
-export const BASE_LANE_HEIGHT = 120; 
-export const TRACK_HEIGHT = 56; 
+export const BASE_LANE_HEIGHT = 92; 
+export const TRACK_HEIGHT = 44; 
 export const HEADER_HEIGHT = 100; 
 export const STANDARD_BAR_HEIGHT = 24; 
 export const PHASE_BAR_HEIGHT = 12;

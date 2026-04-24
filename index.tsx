@@ -1,8 +1,8 @@
 import { useStore } from './src/store/useStore';
 import { useMuseumSync } from './src/hooks/useMuseumSync';
 import { useMuseumActions } from './src/hooks/useMuseumActions';
-import { getStatusStyles, getContrastColor, ALBERTA_HOLIDAYS, MONTHS, FY_QUARTERS, BASE_LANE_HEIGHT, TRACK_HEIGHT, HEADER_HEIGHT, STANDARD_BAR_HEIGHT, PHASE_BAR_HEIGHT, MILESTONE_COLORS } from './src/constants';
-import { toISODate, getPositionFromDate, getDateFromPosition, formatBarDate } from './src/lib/dateUtils';
+import { getStatusStyles, getContrastColor, getAlbertaHolidays, MONTHS, FY_QUARTERS, BASE_LANE_HEIGHT, TRACK_HEIGHT, HEADER_HEIGHT, STANDARD_BAR_HEIGHT, PHASE_BAR_HEIGHT, MILESTONE_COLORS } from './src/constants';
+import { toISODate, getPositionFromDate, getDateFromPosition, formatBarDate, getDateWithMonthDuration, getDurationDays } from './src/lib/dateUtils';
 import { calculateTracks } from './src/lib/layoutEngine';
 import { Exhibition, PhaseType, LocationMilestone, ProjectPhase, ExhibitionStatus } from './src/types';
 import { DetailPanel } from './src/components/DetailPanel';
@@ -79,6 +79,9 @@ import {
 // --- Main App ---
 
 export default function MasterScheduler() {
+  const SIDEBAR_WIDTH = 176;
+  const PRINT_SAFE_WIDTH = 1540;
+  const PRINT_SAFE_HEIGHT = 980;
   const { currentUser, syncStatus, setSyncStatus, isInitialLoad } = useMuseumSync();
   const { 
     museumName, setMuseumName,
@@ -120,13 +123,15 @@ export default function MasterScheduler() {
     const d = new Date();
     setTimelineStartDate(`${d.getFullYear()}-01-01`);
     setTimelineEndDate(`${d.getFullYear() + years - 1}-12-31`);
-    
-    // Auto-adjust zoom for 3Y print compatibility if 3 years selected
-    if (years === 3) {
-      setMonthWidth(45);
-    } else if (years === 1) {
-      setMonthWidth(120);
-    }
+
+    const presetWidths: Record<number, number> = {
+      1: 132,
+      2: 88,
+      3: 56,
+      4: 42,
+      5: 32
+    };
+    setMonthWidth(presetWidths[years] || 56);
   };
 
   const filteredExhibitions = useMemo(() => {
@@ -146,8 +151,8 @@ export default function MasterScheduler() {
     if (start > end) end = start;
 
     const months = [];
-    const current = new Date(start.getFullYear(), 0, 1);
-    const endMarker = new Date(end.getFullYear(), 11, 1);
+    const current = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endMarker = new Date(end.getFullYear(), end.getMonth(), 1);
     
     while (current <= endMarker) {
       const y = current.getFullYear();
@@ -164,12 +169,19 @@ export default function MasterScheduler() {
     return months;
   }, [timelineStartDate, timelineEndDate]);
 
+  const visibleHolidayDefinitions = useMemo(() => {
+    if (viewMonths.length === 0) return [];
+    const startYear = viewMonths[0].year;
+    const endYear = viewMonths[viewMonths.length - 1].year;
+    return getAlbertaHolidays(startYear, endYear);
+  }, [viewMonths]);
+
   const holidayMilestones = useMemo(() => {
-    return ALBERTA_HOLIDAYS.map(h => ({
+    return visibleHolidayDefinitions.map(h => ({
       ...h,
       xPos: getPositionFromDate(h.date, monthWidth, viewMonths)
     })).sort((a, b) => a.xPos - b.xPos);
-  }, [monthWidth, viewMonths]);
+  }, [monthWidth, viewMonths, visibleHolidayDefinitions]);
 
   const holidayLabelPositions = useMemo(() => {
     const positions = new Array(holidayMilestones.length).fill('top');
@@ -258,6 +270,26 @@ export default function MasterScheduler() {
     return layouts;
   }, [filteredExhibitions, galleries, monthWidth, viewMonths, phaseTypes]);
 
+  const galleryLaneHeights = useMemo(() => {
+    return galleries.reduce((acc, gallery) => {
+      const tracksCount = galleryLayouts[gallery]?.maxTracks || 1;
+      acc[gallery] = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
+      return acc;
+    }, {} as Record<string, number>);
+  }, [galleries, galleryLayouts]);
+
+  const totalTimelineWidth = viewMonths.length * monthWidth;
+  const totalTimelineHeight = useMemo(() => {
+    const galleryHeight = galleries.reduce((sum, gallery) => sum + (galleryLaneHeights[gallery] || BASE_LANE_HEIGHT), 0);
+    return HEADER_HEIGHT + (showHolidays ? 48 : 0) + galleryHeight + 72;
+  }, [galleries, galleryLaneHeights, showHolidays]);
+
+  const printScale = useMemo(() => {
+    const widthScale = PRINT_SAFE_WIDTH / (SIDEBAR_WIDTH + totalTimelineWidth);
+    const heightScale = PRINT_SAFE_HEIGHT / totalTimelineHeight;
+    return Math.min(1, widthScale, heightScale);
+  }, [SIDEBAR_WIDTH, totalTimelineHeight, totalTimelineWidth]);
+
   const todayPos = useMemo(() => {
     return getPositionFromDate(toISODate(new Date()), monthWidth, viewMonths);
   }, [monthWidth, viewMonths]);
@@ -265,9 +297,7 @@ export default function MasterScheduler() {
   const onBarMouseDown = (e: React.MouseEvent, project: Exhibition) => {
     if (e.button !== 0) return;
     const projectX = getPositionFromDate(project.startDate, monthWidth, viewMonths);
-    const start = new Date(project.startDate + 'T12:00:00');
-    const end = new Date(project.endDate + 'T12:00:00');
-    const durationDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+    const durationDays = getDurationDays(project.startDate, project.endDate);
     const mouseX = e.clientX;
 
     longPressTimerRef.current = window.setTimeout(() => {
@@ -286,7 +316,10 @@ export default function MasterScheduler() {
   };
 
   return (
-    <div className={`min-h-screen bg-slate-50 text-black flex flex-col font-sans overflow-hidden select-none antialiased ${draggingBarId ? 'cursor-grabbing' : ''}`}>
+    <div
+      className={`min-h-screen bg-[linear-gradient(180deg,#f7f4ec_0%,#f8fafc_28%,#eef2f7_100%)] text-black flex flex-col font-sans overflow-hidden select-none antialiased ${draggingBarId ? 'cursor-grabbing' : ''}`}
+      style={{ ['--print-scale' as string]: `${printScale}` }}
+    >
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; border-left: 1px solid #cbd5e1; }
@@ -337,7 +370,7 @@ export default function MasterScheduler() {
       
       {editMilestoneDraft && (
         <div className="fixed inset-0 bg-slate-900/40 z-[100] backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setEditMilestoneDraft(null)}>
-          <div className="bg-white border border-slate-300 rounded-xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white border border-slate-300 w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="bg-slate-900 text-white px-4 py-3 font-semibold tracking-widest flex justify-between items-center text-[10px]">
               <span>EDIT MILESTONE</span>
               <button aria-label="Close" onClick={() => setEditMilestoneDraft(null)} className="hover:text-red-400 transition-colors">
@@ -349,7 +382,7 @@ export default function MasterScheduler() {
                 <label className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Milestone Title</label>
                 <input 
                   type="text" 
-                  className="w-full border border-slate-300 rounded p-3 font-semibold uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
+                  className="w-full border border-slate-300 p-3 font-semibold uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
                   value={editMilestoneDraft.title} 
                   onChange={(e) => setEditMilestoneDraft({ ...editMilestoneDraft, title: e.target.value.toUpperCase() })} 
                   autoFocus 
@@ -360,7 +393,7 @@ export default function MasterScheduler() {
                 <label className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Date</label>
                 <input 
                   type="date" 
-                  className="w-full border border-slate-300 rounded p-3 font-medium uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
+                  className="w-full border border-slate-300 p-3 font-medium uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
                   value={editMilestoneDraft.date} 
                   onChange={(e) => setEditMilestoneDraft({ ...editMilestoneDraft, date: e.target.value })} 
                 />
@@ -391,7 +424,7 @@ export default function MasterScheduler() {
                       onClick={() => setEditMilestoneDraft({ ...editMilestoneDraft, color: c.value })}
                       className={`flex items-center space-x-2 px-3 py-1.5 border-2 hover:bg-slate-50 transition-colors ${editMilestoneDraft.color === c.value || (!editMilestoneDraft.color && c.value === '#dc2626') ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200'}`}
                     >
-                      <div className="w-3 h-3 rounded-full border border-slate-300" style={{ backgroundColor: c.value }} />
+                      <div className="w-3 h-3 border border-slate-300" style={{ backgroundColor: c.value }} />
                       <span className="text-[8px] font-medium tracking-widest uppercase">{c.label}</span>
                     </button>
                   ))}
@@ -452,7 +485,7 @@ export default function MasterScheduler() {
                     }
                     setEditMilestoneDraft(null);
                   }} 
-                  className="bg-slate-900 text-white px-6 py-2.5 border border-slate-300 rounded font-medium uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-colors shadow-sm active:scale-95"
+                  className="bg-slate-900 text-white px-6 py-2.5 border border-slate-300 font-medium uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-colors shadow-sm active:scale-95"
                 >
                   SAVE OVERRIDE
                 </button>
@@ -476,7 +509,13 @@ export default function MasterScheduler() {
             exhibition={exhibitions.find(p => p.id === selectedProjectId)!} 
             onClose={() => setSelectedProjectId(null)} 
             onUpdate={handleUpdateExhibition} 
-            onDelete={(id) => { setExhibitions(exhibitions.filter(x => x.id !== id)); setSelectedProjectId(null); }}
+            onDelete={async (id) => {
+              const beforeCount = useStore.getState().exhibitions.length;
+              await handleRemoveExhibition(id);
+              if (useStore.getState().exhibitions.length < beforeCount) {
+                setSelectedProjectId(null);
+              }
+            }}
             onDuplicate={handleDuplicateProject}
             galleries={galleries}
             phaseTypes={phaseTypes}
@@ -487,25 +526,26 @@ export default function MasterScheduler() {
       <main className="flex-1 flex flex-col min-w-0">
         {activeTab === 'portfolio' ? (
           <>
-            <header className="bg-white border-b border-slate-200 z-50 shrink-0">
-      <nav className="px-4 py-2 flex items-center justify-between gap-4 overflow-x-auto hide-scrollbar">
-                <div className="flex items-center shrink-0 space-x-6">
-                  <div className="flex flex-col">
-                    <h1 className="text-[11px] font-semibold tracking-tight uppercase leading-none">{museumName}</h1>
+            <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 shrink-0 shadow-[0_12px_30px_rgba(15,23,42,0.06)]">
+	      <nav className="px-4 py-3 flex items-center justify-between gap-4 overflow-x-auto hide-scrollbar">
+                <div className="flex items-center shrink-0 space-x-4">
+                  <div className="flex flex-col min-w-[210px]">
+                    <h1 className="text-[11px] font-semibold tracking-[0.18em] uppercase leading-none text-slate-900">{museumName}</h1>
+                    <span className="text-[9px] font-medium uppercase tracking-[0.24em] text-slate-400 mt-1">Portfolio Scheduler</span>
                   </div>
 
-                  <div className="flex items-center space-x-2 no-print border-l border-slate-200 pl-6">
+                  <div className="flex items-center space-x-2 no-print border border-slate-200 bg-slate-50/85 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
                     <div className="relative group">
                       <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-black transition-colors" />
                       <input 
-                        className="h-8 pl-9 pr-4 bg-slate-100 border border-slate-200 rounded text-[10px] font-medium uppercase outline-none focus:bg-white focus:ring-2 focus:ring-black/5 focus:border-slate-300 transition-all w-[180px]"
+                        className="h-8 pl-9 pr-4 bg-white border border-slate-200 text-[10px] font-medium uppercase outline-none focus:bg-white focus:ring-2 focus:ring-black/5 focus:border-slate-300 transition-all w-[200px]"
                         placeholder="Search Portfolio..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
                     
-                    <div className="flex items-center space-x-1 border border-slate-200 rounded h-8 px-1.5 bg-slate-50">
+                    <div className="flex items-center space-x-1 border border-slate-200 h-8 px-1.5 bg-slate-50">
                       <Filter size={12} className="text-slate-400 ml-1" />
                       <select 
                         className="bg-transparent border-none outline-none text-[9px] font-semibold uppercase cursor-pointer px-1 pr-6"
@@ -522,11 +562,11 @@ export default function MasterScheduler() {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-4 no-print shrink-0">
-                  {/* Auth Buttons */}
-                  <div className="flex items-center mr-2 border-r border-slate-200 pr-4">
-                    {currentUser ? (
-                      <div className="flex items-center space-x-3">
+	                <div className="flex items-center space-x-3 no-print shrink-0">
+	                  {/* Auth Buttons */}
+	                  <div className="flex items-center border border-slate-200 bg-white px-3 py-2 shadow-sm">
+	                    {currentUser ? (
+	                      <div className="flex items-center space-x-3">
                         <div className="flex flex-col items-end">
                           <span className="text-[9px] font-semibold uppercase leading-none text-slate-800">{currentUser.displayName || 'Me'}</span>
                           <span className="text-[7px] font-medium text-slate-400 leading-none mt-1">{currentUser.email}</span>
@@ -537,7 +577,7 @@ export default function MasterScheduler() {
                               logout().then(() => window.location.reload());
                             }
                           }}
-                          className="p-1.5 border border-slate-300 rounded bg-white hover:bg-slate-50 text-slate-600 hover:text-red-600 transition-colors"
+                          className="p-1.5 border border-slate-300 bg-white hover:bg-slate-50 text-slate-600 hover:text-red-600 transition-colors"
                           title="Sign Out"
                         >
                           <LogOut size={16} strokeWidth={2} />
@@ -546,19 +586,19 @@ export default function MasterScheduler() {
                     ) : (
                       <button 
                         onClick={signInWithGoogle}
-                        className="flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-300 rounded font-semibold uppercase text-[9px] hover:bg-slate-800 hover:text-white transition-all shadow-sm active:scale-95"
+                        className="flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-300 font-semibold uppercase text-[9px] hover:bg-slate-800 hover:text-white transition-all shadow-sm active:scale-95"
                       >
                         <LogIn size={12} strokeWidth={3} />
                         <span>Sign In to Sync</span>
                       </button>
-                    )}
-                  </div>
+	                    )}
+	                  </div>
 
-                  <div className="flex items-center space-x-2 border border-slate-300 rounded px-2 py-1 bg-slate-50">
-                    <input aria-label="Timeline start date" type="date" value={timelineStartDate} onChange={(e) => setTimelineStartDate(e.target.value)} className="bg-transparent text-[9px] font-semibold uppercase outline-none w-[100px]" />
-                    <span className="font-medium text-slate-300">-</span>
-                    <input aria-label="Timeline end date" type="date" value={timelineEndDate} onChange={(e) => setTimelineEndDate(e.target.value)} className="bg-transparent text-[9px] font-semibold uppercase outline-none w-[100px]" />
-                    <select aria-label="Select timeline view preset" onChange={(e) => applyPreset(parseInt(e.target.value))} className="bg-transparent text-[9px] font-semibold uppercase outline-none ml-1 border-l border-slate-200 pl-1 cursor-pointer">
+	                  <div className="flex items-center space-x-2 border border-slate-300 px-3 py-2 bg-slate-50 shadow-sm">
+	                    <input aria-label="Timeline start date" type="date" value={timelineStartDate} onChange={(e) => setTimelineStartDate(e.target.value)} className="bg-transparent text-[9px] font-semibold uppercase outline-none w-[100px]" />
+	                    <span className="font-medium text-slate-300">-</span>
+	                    <input aria-label="Timeline end date" type="date" value={timelineEndDate} onChange={(e) => setTimelineEndDate(e.target.value)} className="bg-transparent text-[9px] font-semibold uppercase outline-none w-[100px]" />
+	                    <select aria-label="Select timeline view preset" onChange={(e) => applyPreset(parseInt(e.target.value))} className="bg-transparent text-[9px] font-semibold uppercase outline-none ml-1 border-l border-slate-200 pl-1 cursor-pointer">
                       <option value="3">PRESETS</option>
                       <option value="1">1 YEAR</option>
                       <option value="2">2 YEARS</option>
@@ -568,10 +608,10 @@ export default function MasterScheduler() {
                     </select>
                   </div>
                   
-                  <div className="flex items-center space-x-3 border border-slate-300 rounded px-3 py-1 bg-slate-50">
-                    <button 
+	                  <div className="flex items-center space-x-3 border border-slate-300 px-3 py-2 bg-slate-50 shadow-sm">
+	                    <button 
                       aria-label="Zoom out"
-                      onClick={() => setMonthWidth(prev => Math.max(40, prev - 20))} 
+                      onClick={() => setMonthWidth(prev => Math.max(24, prev - 20))} 
                       className="p-1 hover:text-slate-500 transition-colors"
                     >
                       <ZoomOut size={14} />
@@ -581,7 +621,7 @@ export default function MasterScheduler() {
                       <input 
                         id="timeline-zoom"
                         type="range" 
-                        min="40" 
+                        min="24" 
                         max="300" 
                         value={monthWidth} 
                         onChange={(e) => setMonthWidth(parseInt(e.target.value))} 
@@ -597,28 +637,28 @@ export default function MasterScheduler() {
                     </button>
                   </div>
 
-                  <button 
-                    aria-label="Print Timeline"
-                    onClick={() => window.print()} 
-                    className="p-1.5 border border-slate-300 rounded bg-white hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-black"
-                  >
+	                  <button 
+	                    aria-label="Print Timeline"
+	                    onClick={() => window.print()} 
+	                    className="p-2 border border-slate-300 bg-white hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-black shadow-sm"
+	                  >
                     <Printer size={16} strokeWidth={2} />
                   </button>
 
-                  <button 
-                    aria-label={showConflicts ? "Hide Conflicts" : "Show Conflicts"}
-                    onClick={() => setShowConflicts(!showConflicts)} 
-                    className={`p-1.5 border rounded transition-colors focus:ring-2 focus:ring-black ${showConflicts ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-slate-300 text-slate-400'}`}
-                    title={showConflicts ? "Hide Conflicts" : "Show Conflicts"}
+	                  <button 
+	                    aria-label={showConflicts ? "Hide Conflicts" : "Show Conflicts"}
+	                    onClick={() => setShowConflicts(!showConflicts)} 
+	                    className={`p-2 border transition-colors focus:ring-2 focus:ring-black shadow-sm ${showConflicts ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-slate-300 text-slate-400'}`}
+	                    title={showConflicts ? "Hide Conflicts" : "Show Conflicts"}
                   >
                     <AlertTriangle size={16} strokeWidth={showConflicts ? 2.5 : 2} />
                   </button>
 
-                  <button 
-                    aria-label={showHolidays ? "Hide Provincial Holidays" : "Show Provincial Holidays"}
-                    onClick={() => setShowHolidays(!showHolidays)} 
-                    className={`p-1.5 border rounded transition-colors focus:ring-2 focus:ring-black ${showHolidays ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white border-slate-300 text-slate-400'}`}
-                    title={showHolidays ? "Hide Holidays" : "Show Holidays"}
+	                  <button 
+	                    aria-label={showHolidays ? "Hide Provincial Holidays" : "Show Provincial Holidays"}
+	                    onClick={() => setShowHolidays(!showHolidays)} 
+	                    className={`p-2 border transition-colors focus:ring-2 focus:ring-black shadow-sm ${showHolidays ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white border-slate-300 text-slate-400'}`}
+	                    title={showHolidays ? "Hide Holidays" : "Show Holidays"}
                   >
                     {showHolidays ? <Calendar size={16} strokeWidth={2.5} /> : <CalendarOff size={16} strokeWidth={2} />}
                   </button>
@@ -628,15 +668,15 @@ export default function MasterScheduler() {
                     onClick={async () => {
                       const id = Math.random().toString(36).substr(2,9);
                       const now = new Date();
-                      const exStart = new Date(now.getTime() + 12 * 30 * 24 * 60 * 60 * 1000); // 12 months ahead
-                      const exEnd = new Date(exStart.getTime() + 3 * 30 * 24 * 60 * 60 * 1000); // 3 months duration
+                      const exStart = getDateWithMonthDuration(toISODate(now), 12);
+                      const exEnd = getDateWithMonthDuration(exStart, 3);
                       const newEx: Exhibition = { 
                         id, 
                         exhibitionId: '',
                         title: 'NEW EXHIBITION', 
                         status: 'Proposed', 
-                        startDate: toISODate(exStart), 
-                        endDate: toISODate(exEnd), 
+                        startDate: exStart, 
+                        endDate: exEnd, 
                         gallery: galleries[0], 
                         milestones: [], 
                         phases: phaseTypes.map(pt => ({
@@ -664,45 +704,63 @@ export default function MasterScheduler() {
                         }
                       }
                     }} 
-                    className="px-4 py-1.5 bg-slate-900 text-white border border-slate-300 rounded font-semibold uppercase text-[9px] hover:bg-slate-800 transition-colors flex items-center"
-                  >
+	                    className="px-4 py-2 bg-slate-900 text-white border border-slate-300 font-semibold uppercase text-[9px] hover:bg-slate-800 transition-colors flex items-center shadow-sm"
+	                  >
                     <Plus size={12} className="mr-1.5" strokeWidth={3} /> NEW PROJECT
                   </button>
                   
-                  <button 
-                    aria-label="Open settings"
-                    onClick={() => setActiveTab('settings')} 
-                    className="p-1.5 border border-slate-300 rounded bg-white hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-black"
-                  >
+	                  <button 
+	                    aria-label="Open settings"
+	                    onClick={() => setActiveTab('settings')} 
+	                    className="p-2 border border-slate-300 bg-white hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-black shadow-sm"
+	                  >
                     <Settings size={16} strokeWidth={2} />
                   </button>
                 </div>
               </nav>
+              <div className="px-4 py-2.5 border-t border-slate-100 bg-[linear-gradient(90deg,#f8fafc_0%,#fff7ed_45%,#f8fafc_100%)] flex items-center justify-between gap-4 overflow-x-auto shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+                <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 shrink-0">
+                  <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 shadow-sm">Visible Range {timelineStartDate} to {timelineEndDate}</span>
+                  <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 shadow-sm">{viewMonths.length} Months</span>
+                  <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 shadow-sm">{filteredExhibitions.length} Projects</span>
+                  <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 shadow-sm">Print Scale {Math.round(printScale * 100)}%</span>
+                </div>
+                <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 shrink-0">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 shadow-sm">
+                    <span className="w-2 h-2 bg-emerald-500" />
+                    Open
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 shadow-sm">
+                    <span className="w-2 h-2 bg-amber-500" />
+                    In Development
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 shadow-sm">
+                    <span className="w-2 h-2 rotate-45 border border-slate-500 bg-white" />
+                    Milestone
+                  </span>
+                </div>
+              </div>
             </header>
 
-            <div className="flex-1 flex overflow-hidden timeline-root no-print-bg">
-              <aside className="w-40 bg-white flex flex-col shrink-0 z-40 border-r border-slate-200 shadow-sm">
-                <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-slate-50 border-b border-slate-200 flex flex-col justify-end p-4">
-                </div>
-                <div className="flex-1 overflow-hidden" ref={sidebarListRef}>
-                  {showHolidays && (
-                    <div style={{ height: '48px' }} className="relative border-b-[3px] border-slate-800 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
-                      <div className="absolute top-0 left-0 w-full h-full bg-slate-50 flex items-center px-4 py-2 z-20">
-                        <div className="flex flex-col">
-                          {/* Labels removed as redundant */}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {galleries.map((gallery) => {
-                    const tracksCount = galleryLayouts[gallery]?.maxTracks || 1;
-                    const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
-                    const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
-                    return (
-                      <div key={gallery} style={{ height: `${laneHeight}px` }} className="relative border-b-[3px] border-slate-800 bg-white">
-                        <div className="absolute top-0 left-0 w-full min-h-[32px] bg-slate-100 border-b border-slate-300 flex items-center px-4 py-1 z-20 print:bg-white">
-                          <span className="font-bold uppercase text-[10px] tracking-widest text-slate-800 leading-tight break-words">{gallery}</span>
-                        </div>
+            <div className="flex-1 flex overflow-hidden timeline-root no-print-bg px-3 pb-3 pt-2 gap-3">
+	              <aside className="bg-white/85 backdrop-blur-sm flex flex-col shrink-0 z-40 border-r border-slate-200 shadow-sm" style={{ width: `${SIDEBAR_WIDTH}px` }}>
+	                <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-[linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] border-b border-slate-200" />
+	                <div className="flex-1 overflow-hidden" ref={sidebarListRef}>
+	                  {showHolidays && (
+	                    <div style={{ height: '48px' }} className="relative border-b-[3px] border-slate-800 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
+	                      <div className="absolute top-0 left-0 w-full h-full bg-slate-50 flex items-center px-4 py-2 z-20">
+	                        <div className="flex flex-col" />
+	                      </div>
+	                    </div>
+	                  )}
+	                  {galleries.map((gallery) => {
+	                    const laneHeight = galleryLaneHeights[gallery] || BASE_LANE_HEIGHT;
+	                    const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
+	                    return (
+		                      <div key={gallery} style={{ height: `${laneHeight}px` }} className="relative border-b-[3px] border-slate-800 bg-white/80">
+		                        <div className="absolute top-0 left-0 w-full min-h-[32px] bg-[linear-gradient(90deg,#e2e8f0_0%,#f8fafc_100%)] border-b border-slate-300 flex items-center px-4 py-1 z-20 print:bg-white">
+		                          <span className="font-bold uppercase text-[10px] tracking-[0.18em] text-slate-800 leading-tight break-words">{gallery}</span>
+		                        </div>
                         {galleryProjects.map(ex => {
                           const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
                           if (trackIndex === undefined) return null;
@@ -731,12 +789,18 @@ export default function MasterScheduler() {
                 </div>
               </aside>
               
-              <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
-                {/* Print Only Branding Header */}
-                <div className="hidden print:flex justify-between items-end mb-2 pb-2 border-b-2 border-slate-300">
-                  <h1 className="text-xl font-bold uppercase tracking-tight">{museumName}</h1>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Master Exhibition Timeline • {timelineStartDate} to {timelineEndDate}</p>
-                </div>
+		              <main className="flex-1 flex flex-col relative overflow-hidden bg-white/75 backdrop-blur-sm border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+	                {/* Print Only Branding Header */}
+	                <div className="hidden print:flex justify-between items-end mb-3 pb-3 border-b-2 border-slate-300">
+	                  <div>
+	                    <h1 className="text-xl font-bold uppercase tracking-[0.16em]">{museumName}</h1>
+	                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 mt-1">Portfolio Review Timeline</p>
+	                  </div>
+	                  <div className="text-right">
+	                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">Visible Range {timelineStartDate} to {timelineEndDate}</p>
+	                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 mt-1">{filteredExhibitions.length} Projects • {viewMonths.length} Months</p>
+	                  </div>
+	                </div>
 
                 <div 
                   tabIndex={0}
@@ -787,12 +851,14 @@ export default function MasterScheduler() {
                 onMouseMove={(e) => {
                   clearLongPress();
                   
-                  if (draggingBarId) {
-                    const deltaX = e.clientX - dragStartMouseX;
-                    const newProjectX = dragStartProjectX + deltaX;
-                    const newStartDate = getDateFromPosition(newProjectX, monthWidth, viewMonths);
-                    const start = new Date(newStartDate + 'T12:00:00');
-                    const newEndDate = toISODate(new Date(start.getTime() + dragDurationDays * 24 * 60 * 60 * 1000));
+	                  if (draggingBarId) {
+	                    const deltaX = e.clientX - dragStartMouseX;
+	                    const newProjectX = dragStartProjectX + deltaX;
+	                    const newStartDate = getDateFromPosition(newProjectX, monthWidth, viewMonths);
+	                    const start = new Date(newStartDate + 'T12:00:00');
+	                    const draggedEnd = new Date(start);
+	                    draggedEnd.setDate(draggedEnd.getDate() + dragDurationDays);
+	                    const newEndDate = toISODate(draggedEnd);
                     
                     setDragTempStartDate(newStartDate);
                     setDragTempEndDate(newEndDate);
@@ -802,12 +868,12 @@ export default function MasterScheduler() {
                   if (!isDraggingScroll || !timelineRef.current) return;
                   const x = e.pageX - timelineRef.current.offsetLeft;
                   timelineRef.current.scrollLeft = scrollLeftState - (x - startX) * 1.5;
-                }}
-              >
-                <div className="inline-flex flex-col relative min-h-full">
-                  {/* Now Indicator */}
+	                }}
+	              >
+	                <div className="inline-flex flex-col relative min-h-full">
+	                  {/* Now Indicator */}
                   <div className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-[70] pointer-events-none" style={{ left: `${todayPos}px` }}>
-                    <div className="sticky top-[6px] bg-red-600 text-white font-semibold text-[8px] px-1.5 py-0.5 uppercase transform -translate-x-1/2 shadow-sm w-max whitespace-nowrap rounded-sm">TODAY</div>
+                    <div className="sticky top-[6px] bg-red-600 text-white font-semibold text-[8px] px-1.5 py-0.5 uppercase transform -translate-x-1/2 shadow-sm w-max whitespace-nowrap">TODAY</div>
                   </div>
 
                   {/* Header */}
@@ -863,15 +929,21 @@ export default function MasterScheduler() {
                   </div>
 
                   {/* Grid / Lanes */}
-                  <div className="relative flex-1">
-                    <div className="flex flex-col">
-                      {filteredExhibitions.length === 0 && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-20 pointer-events-none opacity-20 z-0">
-                          <Search size={48} className="mb-4" />
-                          <p className="text-xl font-semibold uppercase tracking-widest text-center">No Projects Found</p>
-                          <p className="text-[10px] font-medium uppercase mt-2 text-center">Try adjusting your search or filters</p>
-                        </div>
-                      )}
+	                  <div className="relative flex-1 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.95),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92)_100%)]">
+	                    <div className="flex flex-col">
+	                      {filteredExhibitions.length === 0 && (
+	                        <div className="absolute inset-0 flex items-center justify-center p-20 pointer-events-none z-0">
+                            <div className="max-w-md bg-white/90 border border-slate-200 px-8 py-10 shadow-[0_18px_40px_rgba(15,23,42,0.08)] text-center">
+	                            <Search size={40} className="mx-auto mb-4 text-slate-300" />
+	                            <p className="text-xl font-semibold uppercase tracking-[0.18em] text-slate-700">No Projects Found</p>
+	                            <p className="text-[10px] font-medium uppercase mt-3 text-slate-400 tracking-[0.2em]">Adjust filters or create a project to begin portfolio planning</p>
+                              <div className="mt-5 inline-flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500 border border-slate-200 bg-slate-50 px-3 py-1.5">
+                                <Plus size={12} />
+                                New Project
+                              </div>
+                            </div>
+	                        </div>
+	                      )}
                       {/* Provincial Holidays Lane */}
                       {showHolidays && (
                         <div style={{ height: '48px' }} className="border-b-[3px] border-slate-800 bg-white/40 relative overflow-visible z-10 no-print-lane">
@@ -891,44 +963,43 @@ export default function MasterScheduler() {
                                 >
                                   <div className={`w-2 h-2 rotate-45 border-[1.5px] border-slate-900 shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-transform group-hover/holiday:scale-125 ${holiday.type === 'Statutory' ? 'bg-slate-800' : 'bg-white'}`} />
                                   
-                                  <div className={`absolute left-1/2 -translate-x-1/2 text-[7px] font-semibold uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white rounded shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
+                                  <div className={`absolute left-1/2 -translate-x-1/2 text-[7px] font-semibold uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
                                     {holiday.label}
                                     <span className="text-[5px] text-slate-400 font-medium opacity-60">
                                       {holiday.date.split('-')[1]}/{holiday.date.split('-')[2]}
                                     </span>
                                   </div>
 
-                                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-400/0 group-hover/holiday:bg-slate-400/10 transition-colors pointer-events-none" />
+                                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-slate-400/0 group-hover/holiday:bg-slate-400/10 transition-colors pointer-events-none" />
                                 </div>
                               </div>
                             );
                           })}
                         </div>
                       )}
-                      {galleries.map((g) => {
-                         const tracksCount = galleryLayouts[g]?.maxTracks || 1;
-                         const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
-                         const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === g);
+	                      {galleries.map((g) => {
+	                         const laneHeight = galleryLaneHeights[g] || BASE_LANE_HEIGHT;
+	                         const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === g);
 
-                         const footprints = galleryProjects.map(ex => {
-                           const startPos = getPositionFromDate(ex.startDate, monthWidth, viewMonths);
-                           const endPos = getPositionFromDate(ex.endDate, monthWidth, viewMonths);
-                           const prePhases = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
-                           const totalPreWidth = prePhases.reduce((acc, p) => acc + p.durationMonths * monthWidth, 0);
-                           const phaseStartPos = startPos - totalPreWidth;
-                           let implStartPos = startPos;
-                           let currentOffset = 0;
-                           for (const p of prePhases) {
-                             const pWidth = p.durationMonths * monthWidth;
-                             const pType = phaseTypes.find(t => t.id === p.typeId);
-                             if (pType && pType.label.toUpperCase().includes('IMPLEMENT')) {
-                               implStartPos = phaseStartPos + currentOffset;
-                               break;
-                             }
-                             currentOffset += pWidth;
-                           }
-                           return { activeStart: implStartPos, activeEnd: endPos };
-                         });
+	                         const footprints = galleryProjects.map(ex => {
+	                           const startPos = getPositionFromDate(ex.startDate, monthWidth, viewMonths);
+	                           const endPos = getPositionFromDate(ex.endDate, monthWidth, viewMonths);
+	                           const prePhases = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
+	                           const totalPreWidth = prePhases.reduce((acc, p) => acc + p.durationMonths * monthWidth, 0) + (prePhases.length * 6);
+	                           const phaseStartPos = startPos - totalPreWidth;
+	                           const activePhase = prePhases.find(p => phaseTypes.find(t => t.id === p.typeId)?.isActive);
+	                           let activeStartPos = startPos;
+	                           let currentOffset = 0;
+	                           for (const p of prePhases) {
+	                             const pWidth = p.durationMonths * monthWidth;
+	                             if (activePhase && p.id === activePhase.id) {
+	                               activeStartPos = phaseStartPos + currentOffset;
+	                               break;
+	                             }
+	                             currentOffset += pWidth + 6;
+	                           }
+	                           return { activeStart: activeStartPos, activeEnd: endPos };
+	                         });
 
                          const overlapRegions: { startX: number, endX: number }[] = [];
                          for (let i = 0; i < footprints.length; i++) {
@@ -960,7 +1031,7 @@ export default function MasterScheduler() {
                          });
 
                          return (
-                           <div key={g} style={{ height: `${laneHeight}px` }} className="border-b-[3px] border-slate-800 gallery-lane-bg relative">
+	                           <div key={g} style={{ height: `${laneHeight}px` }} className="border-b-[3px] border-slate-800 gallery-lane-bg relative bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(248,250,252,0.9)_100%)]">
                              {showConflicts && mergedOverlaps.map((overlap, i) => (
                                <div 
                                  key={`overlap-${i}`}
@@ -1050,11 +1121,11 @@ export default function MasterScheduler() {
                                             </div>
                                           ) : (
                                             <div className="w-3.5 h-3.5 bg-white border-[1.5px] border-slate-300 rotate-45 shadow-[1px_1px_0_0_rgba(0,0,0,1)] flex items-center justify-center pointer-events-none">
-                                              <div className="w-[4px] h-[4px] rounded-full" style={{ backgroundColor: m.color || '#dc2626' }} />
+                                              <div className="w-[4px] h-[4px]" style={{ backgroundColor: m.color || '#dc2626' }} />
                                             </div>
                                           )}
                                         </div>
-                                        <div className={`absolute left-1/2 -translate-x-1/2 text-[9px] font-medium uppercase text-slate-600 bg-white px-1.5 py-[1px] leading-tight border border-slate-200 rounded shadow-md opacity-90 transition-all hover:bg-slate-50 hover:opacity-100 whitespace-nowrap z-30 pointer-events-none ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
+                                        <div className={`absolute left-1/2 -translate-x-1/2 text-[9px] font-medium uppercase text-slate-600 bg-white px-1.5 py-[1px] leading-tight border border-slate-200 shadow-md opacity-90 transition-all hover:bg-slate-50 hover:opacity-100 whitespace-nowrap z-30 pointer-events-none ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
                                           {m.title}
                                         </div>
                                       </div>
@@ -1082,25 +1153,26 @@ export default function MasterScheduler() {
                     <div className="absolute inset-0 pointer-events-none z-20">
                       {(() => {
                         let currentGalleryY = showHolidays ? 48 : 0;
-                        return galleries.flatMap((gallery) => {
-                          const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
-                          const layout = galleryLayouts[gallery];
-                          const tracksCount = layout?.maxTracks || 1;
-                          const laneHeight = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
-                          const galleryYOffset = currentGalleryY;
-                          currentGalleryY += laneHeight;
+	                        return galleries.flatMap((gallery) => {
+	                          const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
+	                          const layout = galleryLayouts[gallery];
+	                          const laneHeight = galleryLaneHeights[gallery] || BASE_LANE_HEIGHT;
+	                          const galleryYOffset = currentGalleryY;
+	                          currentGalleryY += laneHeight;
 
-                          return galleryProjects.map(ex => {
-                            const trackIndex = layout?.tracks[ex.id] || 0;
-                            const isDraggingThis = draggingBarId === ex.id;
-                            
-                            const effStartDate = isDraggingThis && dragTempStartDate ? dragTempStartDate : ex.startDate;
-                            const effEndDate = isDraggingThis && dragTempEndDate ? dragTempEndDate : ex.endDate;
+		                          return galleryProjects.map(ex => {
+		                            const trackIndex = layout?.tracks[ex.id] || 0;
+		                            const isDraggingThis = draggingBarId === ex.id;
+		                            const statusStyle = getStatusStyles(ex.status);
+	                            
+	                            const effStartDate = isDraggingThis && dragTempStartDate ? dragTempStartDate : ex.startDate;
+	                            const effEndDate = isDraggingThis && dragTempEndDate ? dragTempEndDate : ex.endDate;
 
-                            const startPos = getPositionFromDate(effStartDate, monthWidth, viewMonths);
-                            const endPos = getPositionFromDate(effEndDate, monthWidth, viewMonths);
-                            const width = Math.max(endPos - startPos, 40);
-                            const trackTop = galleryYOffset + 32 + (trackIndex * TRACK_HEIGHT);
+		                            const startPos = getPositionFromDate(effStartDate, monthWidth, viewMonths);
+		                            const endPos = getPositionFromDate(effEndDate, monthWidth, viewMonths);
+		                            const width = Math.max(endPos - startPos, 40);
+		                            const trackTop = galleryYOffset + 32 + (trackIndex * TRACK_HEIGHT);
+                                const laneBottom = galleryYOffset + laneHeight;
 
                             const prePhasesRaw = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
                             const postPhasesRaw = (ex.phases || []).filter(p => phaseTypes.find(t => t.id === p.typeId)?.isPost);
@@ -1120,7 +1192,13 @@ export default function MasterScheduler() {
                               return { ...p, startX: pStart, width: pWidth, endX: pEnd, y: pY, type: phaseTypes.find(t => t.id === p.typeId), i, isPost: false };
                             });
 
-                            const mainBarY = trackTop + (prePhasesRaw.length * TRACK_HEIGHT) + (TRACK_HEIGHT - STANDARD_BAR_HEIGHT) / 2;
+		                            const mainBarY = trackTop + (prePhasesRaw.length * TRACK_HEIGHT) + (TRACK_HEIGHT - STANDARD_BAR_HEIGHT) / 2;
+                                const projectLabelHeight = 44;
+                                const defaultProjectLabelTop = mainBarY + STANDARD_BAR_HEIGHT + 4;
+                                const fallbackProjectLabelTop = mainBarY - projectLabelHeight - 8;
+                                const projectLabelTop = defaultProjectLabelTop + projectLabelHeight <= laneBottom - 6
+                                  ? defaultProjectLabelTop
+                                  : Math.max(trackTop, fallbackProjectLabelTop);
 
                             let postOffset = 6;
                             const renderedPost = postPhasesRaw.map((p, i) => {
@@ -1165,11 +1243,11 @@ export default function MasterScheduler() {
 
                                     return (
                                       <React.Fragment key={phase.id}>
-                                        <div 
-                                          className="absolute flex items-center shadow-sm hover:shadow-md hover:opacity-90 bg-white transition-all pointer-events-auto rounded-sm" 
-                                          style={{ left: `${phase.startX}px`, top: `${phase.y}px`, width: `${phase.width - 2}px`, height: `${PHASE_BAR_HEIGHT}px`, backgroundColor: phase.type?.color || '#eee' }}
-                                          title={phase.label}
-                                        />
+	                                        <div 
+	                                          className="absolute flex items-center shadow-sm hover:shadow-md hover:opacity-90 bg-white/90 transition-all pointer-events-auto border border-white/60" 
+	                                          style={{ left: `${phase.startX}px`, top: `${phase.y}px`, width: `${phase.width - 2}px`, height: `${PHASE_BAR_HEIGHT}px`, backgroundColor: phase.type?.color || '#eee' }}
+	                                          title={phase.label}
+	                                        />
                                         <div 
                                           className="absolute text-[9px] font-bold text-slate-800 tracking-tight"
                                           style={{ left: `${phase.startX}px`, top: `${phase.y + PHASE_BAR_HEIGHT + 2}px`, width: `${Math.max(phase.width, 100)}px` }}
@@ -1217,36 +1295,46 @@ export default function MasterScheduler() {
                                   })()}
                                 </div>
 
-                                <div 
-                                  aria-label={`Project: ${ex.title}. Click to view details, long-press to drag.`}
+		                                <div 
+		                                  aria-label={`Project: ${ex.title}. Click to view details, long-press to drag.`}
                                   role="button"
                                   tabIndex={0}
                                   onMouseDown={(e) => onBarMouseDown(e, ex)}
                                   onClick={() => { if (!draggingBarId) setSelectedProjectId(ex.id); }}
                                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedProjectId(ex.id); }}
-                                  className={`absolute pointer-events-auto border-2 rounded-sm shadow-sm hover:shadow-md transition-all cursor-pointer flex justify-center items-center focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`} 
-                                  style={{ 
-                                    left: `${startPos}px`, 
-                                    width: `${width}px`, 
-                                    top: `${mainBarY}px`, 
-                                    height: `${STANDARD_BAR_HEIGHT}px`,
-                                    backgroundColor: '#df4222',
-                                    borderColor: getStatusStyles(ex.status).border
-                                  }}
-                                >
-                                  <span className="font-bold text-[11px] uppercase tracking-wider text-white px-2 truncate block leading-none pb-[1px]">{ex.title}</span>
-                                </div>
-                                <div 
-                                  className="absolute text-[10px] font-bold tracking-tight text-black pointer-events-none"
-                                  style={{ 
-                                    left: `${startPos}px`, 
-                                    width: `${width}px`, 
-                                    top: `${mainBarY + STANDARD_BAR_HEIGHT + 2}px`, 
-                                    textAlign: 'center'
-                                  }}
-                                >
-                                  {formatBarDate(effStartDate)} - {formatBarDate(effEndDate)}
-                                </div>
+	                                  className={`absolute pointer-events-auto border-2 shadow-[0_8px_16px_rgba(15,23,42,0.16)] hover:shadow-[0_10px_24px_rgba(15,23,42,0.22)] transition-all cursor-pointer flex justify-center items-center focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`} 
+		                                  style={{ 
+		                                    left: `${startPos}px`, 
+		                                    width: `${width}px`, 
+		                                    top: `${mainBarY}px`, 
+		                                    height: `${STANDARD_BAR_HEIGHT}px`,
+		                                    background: 'linear-gradient(90deg, #c63d2f 0%, #d84f36 100%)',
+		                                    borderColor: statusStyle.border
+		                                  }}
+		                                >
+	                                  {width >= 148 ? (
+                                        <span className="font-bold text-[11px] uppercase tracking-[0.14em] text-white px-2 truncate block leading-none pb-[1px]">{ex.title}</span>
+                                      ) : (
+                                        <span className="font-bold text-[10px] uppercase tracking-[0.18em] text-white/90 px-2 leading-none pb-[1px]">
+                                          {ex.exhibitionId || 'PROJECT'}
+                                        </span>
+                                      )}
+	                                </div>
+		                                <div
+		                                  className="absolute pointer-events-none"
+		                                  style={{
+		                                    left: `${startPos}px`,
+		                                    top: `${projectLabelTop}px`,
+		                                    width: `${Math.max(width, 136)}px`
+		                                  }}
+		                                >
+                                      <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-700 leading-tight break-words">
+                                        {ex.title}
+                                      </div>
+	                                  <div className="text-[9px] font-bold tracking-tight text-slate-500 mt-1 leading-tight">
+	                                    {formatBarDate(effStartDate)} - {formatBarDate(effEndDate)}
+	                                  </div>
+                                  </div>
                               </React.Fragment>
                             );
                           });
@@ -1259,43 +1347,46 @@ export default function MasterScheduler() {
             </main>
           </div>
         </>
-        ) : (
-          <div className="p-8 py-6 max-w-3xl mx-auto space-y-8 overflow-y-auto h-full bg-white no-print custom-scrollbar flex flex-col">
-            <header className="space-y-3">
-              <button 
-                onClick={() => setActiveTab('portfolio')} 
-                className="inline-flex items-center font-medium uppercase text-[9px] border border-slate-300 rounded px-3 py-1.5 hover:bg-slate-50 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus:ring-2 focus:ring-blue-500/50"
-              >
-                <ArrowLeft size={12} className="mr-2" /> DASHBOARD
-              </button>
-              <h2 className="text-3xl font-semibold uppercase tracking-tight">SYSTEM SETTINGS</h2>
-            </header>
-            
-            <div className="space-y-8 border-t-4 border-slate-300 pt-8">
-              <section className="space-y-6">
-                <div className="flex items-center text-sm font-semibold uppercase tracking-widest space-x-3 text-slate-900"><Building2 size={18} /><span>ORG STANDARDS</span></div>
-                <div className="border border-slate-300 rounded p-6 bg-slate-50 shadow-sm hover:shadow-md transition-all">
+	        ) : (
+	          <div className="p-8 py-6 max-w-4xl mx-auto space-y-8 overflow-y-auto h-full bg-[linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] no-print custom-scrollbar flex flex-col">
+	            <header className="space-y-3">
+	              <button 
+	                onClick={() => setActiveTab('portfolio')} 
+	                className="inline-flex items-center font-medium uppercase text-[9px] border border-slate-300 px-3 py-1.5 hover:bg-slate-50 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus:ring-2 focus:ring-blue-500/50 bg-white"
+	              >
+	                <ArrowLeft size={12} className="mr-2" /> DASHBOARD
+	              </button>
+	              <div className="border border-slate-200 bg-white/80 backdrop-blur-sm shadow-[0_20px_40px_rgba(15,23,42,0.06)] px-6 py-6">
+                  <h2 className="text-3xl font-semibold uppercase tracking-tight">SYSTEM SETTINGS</h2>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400 mt-3">Maintain portfolio standards, phase language, and location structure for long-range museum planning.</p>
+                </div>
+	            </header>
+	            
+	            <div className="space-y-8">
+	              <section className="space-y-6">
+	                <div className="flex items-center text-sm font-semibold uppercase tracking-widest space-x-3 text-slate-900"><Building2 size={18} /><span>ORG STANDARDS</span></div>
+	                <div className="border border-slate-300 p-6 bg-white shadow-sm hover:shadow-md transition-all">
                   <label htmlFor="museum-name-input" className="text-[9px] font-semibold uppercase mb-2 block text-slate-400">ORGANIZATION NAME</label>
                   <input 
                     id="museum-name-input"
-                    className="w-full text-lg font-semibold bg-white border border-slate-300 rounded p-3 outline-none uppercase shadow-inner focus:border-slate-300 transition-colors" 
+                    className="w-full text-lg font-semibold bg-white border border-slate-300 p-3 outline-none uppercase shadow-inner focus:border-slate-300 transition-colors" 
                     value={museumName} 
                     onChange={(e) => setMuseumName(e.target.value.toUpperCase())} 
                   />
                 </div>
               </section>
 
-              <section className="space-y-6">
-                <div className="flex items-center text-sm font-semibold uppercase tracking-widest space-x-3 text-slate-900"><Palette size={18} /><span>PHASE TYPES</span></div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {phaseTypes.map((type, idx) => (
-                    <div key={type.id} className="flex items-center space-x-3 p-3 border border-slate-300 rounded bg-white shadow-sm hover:shadow-md hover:border-slate-400 transition-all">
+	              <section className="space-y-6">
+	                <div className="flex items-center text-sm font-semibold uppercase tracking-widest space-x-3 text-slate-900"><Palette size={18} /><span>PHASE TYPES</span></div>
+	                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+	                  {phaseTypes.map((type, idx) => (
+	                    <div key={type.id} className="flex items-center space-x-3 p-4 border border-slate-300 bg-white shadow-sm hover:shadow-md hover:border-slate-400 transition-all">
                       <div className="flex flex-col">
                         <label htmlFor={`phase-color-${idx}`} className="sr-only">Phase Color {idx + 1}</label>
                         <input 
                           id={`phase-color-${idx}`}
                           type="color" 
-                          className="w-8 h-8 border border-slate-300 rounded bg-transparent cursor-pointer outline-none" 
+                          className="w-8 h-8 border border-slate-300 bg-transparent cursor-pointer outline-none" 
                           value={type.color} 
                           onChange={(e) => {
                             const next = [...phaseTypes];
@@ -1304,38 +1395,43 @@ export default function MasterScheduler() {
                           }} 
                         />
                       </div>
-                      <div className="flex-1 flex flex-col">
-                        <label htmlFor={`phase-label-${idx}`} className="sr-only">Phase Label {idx + 1}</label>
-                        <input 
-                          id={`phase-label-${idx}`}
-                          className="w-full font-medium uppercase text-[10px] outline-none border-b border-transparent focus:border-slate-300 bg-transparent" 
-                          value={type.label} 
-                          onChange={(e) => {
-                            const next = [...phaseTypes];
-                            next[idx].label = e.target.value.toUpperCase();
-                            setPhaseTypes(next);
-                          }} 
-                        />
-                      </div>
-                    </div>
-                  ))}
+	                      <div className="flex-1 flex flex-col">
+	                        <label htmlFor={`phase-label-${idx}`} className="sr-only">Phase Label {idx + 1}</label>
+	                        <input 
+	                          id={`phase-label-${idx}`}
+	                          className="w-full font-medium uppercase text-[10px] outline-none border-b border-transparent focus:border-slate-300 bg-transparent" 
+	                          value={type.label} 
+	                          onChange={(e) => {
+	                            const next = [...phaseTypes];
+	                            next[idx].label = e.target.value.toUpperCase();
+	                            setPhaseTypes(next);
+	                          }} 
+	                        />
+                          <div className="flex items-center gap-1 mt-2">
+                            {type.isActive && <span className="px-2 py-0.5 border border-amber-200 bg-amber-100 text-amber-800 text-[8px] font-semibold uppercase tracking-[0.14em]">Active Window</span>}
+                            {type.isPost && <span className="px-2 py-0.5 border border-slate-300 bg-slate-200 text-slate-700 text-[8px] font-semibold uppercase tracking-[0.14em]">Post Phase</span>}
+                            {!type.isActive && !type.isPost && <span className="px-2 py-0.5 border border-slate-200 bg-slate-100 text-slate-500 text-[8px] font-semibold uppercase tracking-[0.14em]">Preparation</span>}
+                          </div>
+	                      </div>
+	                    </div>
+	                  ))}
                 </div>
               </section>
 
-              <section className="space-y-6 pb-20">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-sm font-semibold uppercase tracking-widest space-x-3 text-slate-900"><MapPin size={18} /><span>LOCATIONS & GALLERIES</span></div>
-                  <button 
-                    onClick={handleAddGallery}
-                    className="text-[9px] font-semibold uppercase bg-slate-900 text-white px-3 py-1.5 rounded hover:bg-slate-800 transition-colors shadow-sm"
-                  >
-                    + ADD LOCATION
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {galleries.map((gallery, idx) => (
-                    <div key={`${gallery}-${idx}`} className="flex items-center space-x-3 p-3 border border-slate-300 rounded bg-white shadow-sm hover:shadow-md transition-all">
-                      <div className="w-8 h-8 bg-slate-100 rounded flex items-center justify-center font-semibold text-slate-400 text-xs">{idx + 1}</div>
+	              <section className="space-y-6 pb-20">
+	                <div className="flex items-center justify-between">
+	                  <div className="flex items-center text-sm font-semibold uppercase tracking-widest space-x-3 text-slate-900"><MapPin size={18} /><span>LOCATIONS & GALLERIES</span></div>
+	                  <button 
+	                    onClick={handleAddGallery}
+	                    className="text-[9px] font-semibold uppercase bg-slate-900 text-white px-3 py-1.5 hover:bg-slate-800 transition-colors shadow-sm"
+	                  >
+	                    + ADD LOCATION
+	                  </button>
+	                </div>
+	                <div className="space-y-3">
+	                  {galleries.map((gallery, idx) => (
+	                    <div key={`${gallery}-${idx}`} className="flex items-center space-x-3 p-4 border border-slate-300 bg-white shadow-sm hover:shadow-md transition-all">
+                      <div className="w-8 h-8 bg-slate-100 flex items-center justify-center font-semibold text-slate-400 text-xs">{idx + 1}</div>
                       <input 
                         aria-label={`Location name ${idx + 1}`}
                         className="flex-1 font-semibold uppercase text-sm border-b-2 border-transparent focus:border-slate-300 bg-transparent outline-none py-1" 
