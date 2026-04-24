@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Check, Edit2, X, Trash2, ChevronUp, ChevronDown, Copy } from 'lucide-react';
 import { Exhibition, ProjectPhase, PhaseType } from '../types';
-import { toISODate } from '../lib/dateUtils';
+import { getDateWithMonthDuration, getDurationMonths } from '../lib/dateUtils';
 import { getStatusStyles } from '../constants';
 
 export const DetailPanel = ({ 
@@ -80,21 +80,11 @@ export const DetailPanel = ({
   };
 
   const totalProjectDuration = useMemo(() => {
-    const start = new Date(editedEx.startDate + 'T12:00:00');
-    const end = new Date(editedEx.endDate + 'T12:00:00');
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
-    const diffTime = end.getTime() - start.getTime();
-    const diffDays = diffTime / (1000 * 60 * 60 * 24);
-    const preciseMonths = diffDays / 30;
-    return Math.max(0, Math.round(preciseMonths * 10) / 10);
+    return getDurationMonths(editedEx.startDate, editedEx.endDate);
   }, [editedEx.startDate, editedEx.endDate]);
 
   const handleDurationChange = (months: number) => {
-    const start = new Date(editedEx.startDate + 'T12:00:00');
-    if (isNaN(start.getTime())) return;
-    const newEnd = new Date(start);
-    newEnd.setTime(start.getTime() + (months * 30 * 24 * 60 * 60 * 1000));
-    handleFieldChange('endDate', toISODate(newEnd));
+    handleFieldChange('endDate', getDateWithMonthDuration(editedEx.startDate, months));
   };
 
   return (
@@ -103,22 +93,38 @@ export const DetailPanel = ({
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="fixed inset-y-0 right-0 w-full sm:w-[500px] bg-white border-l border-slate-200 z-[100] flex flex-col no-print shadow-[-20px_0_50px_rgba(0,0,0,0.1)] focus-within:ring-2 focus-within:ring-blue-500/20"
+      className="fixed inset-y-0 right-0 w-full sm:w-[520px] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] border-l border-slate-200 z-[100] flex flex-col no-print shadow-[-20px_0_50px_rgba(0,0,0,0.1)] focus-within:ring-2 focus-within:ring-blue-500/20"
     >
-      <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white">
+      <div className="p-5 border-b border-slate-200 flex justify-between items-center bg-white/90 backdrop-blur-sm">
         <div className="flex-1 mr-4">
           {isEditing ? (
             <div className="flex flex-col">
               <label htmlFor="ex-title" className="text-[10px] font-semibold uppercase text-slate-400 tracking-tight">Project Title</label>
               <input 
                 id="ex-title"
-                className="text-lg font-medium text-slate-900 w-full bg-slate-50 border border-slate-300 rounded-md p-2 outline-none focus:bg-white focus:ring-2 focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm transition-all duration-200" 
+                className="text-lg font-medium text-slate-900 w-full bg-slate-50 border border-slate-300 p-2 outline-none focus:bg-white focus:ring-2 focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm transition-all duration-200" 
                 value={editedEx.title} 
                 onChange={(e) => handleFieldChange('title', e.target.value.toUpperCase())} 
               />
             </div>
           ) : (
-            <h2 className="text-lg font-semibold text-slate-900 leading-none uppercase tracking-tight">{exhibition.title}</h2>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 leading-none uppercase tracking-tight">{exhibition.title}</h2>
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                <span
+                  className="font-semibold text-[10px] uppercase tracking-tight px-3 py-1 border inline-flex items-center shadow-sm"
+                  style={{
+                    backgroundColor: getStatusStyles(exhibition.status).bg,
+                    borderColor: getStatusStyles(exhibition.status).border,
+                    color: getStatusStyles(exhibition.status).text
+                  }}
+                >
+                  {getStatusStyles(exhibition.status).label}
+                </span>
+                <span className="px-3 py-1 border border-slate-200 bg-white text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">{exhibition.gallery}</span>
+                <span className="px-3 py-1 border border-slate-200 bg-white text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">{totalProjectDuration} Months</span>
+              </div>
+            </div>
           )}
         </div>
         <div className="flex items-center space-x-2">
@@ -126,7 +132,7 @@ export const DetailPanel = ({
             <button 
               aria-label="Save all changes"
               onClick={handleSaveAll} 
-              className="w-10 h-10 bg-slate-900 text-white border border-slate-300 rounded flex items-center justify-center hover:bg-white hover:text-slate-900 transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500/50"
+              className="w-10 h-10 bg-slate-900 text-white border border-slate-300 flex items-center justify-center hover:bg-white hover:text-slate-900 transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500/50"
             >
               <Check size={20} />
             </button>
@@ -134,7 +140,7 @@ export const DetailPanel = ({
             <button 
               aria-label="Edit project"
               onClick={() => setIsEditing(true)} 
-              className="w-10 h-10 bg-white border border-slate-300 rounded text-slate-900 flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500/50"
+              className="w-10 h-10 bg-white border border-slate-300 text-slate-900 flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500/50"
             >
               <Edit2 size={18} />
             </button>
@@ -142,21 +148,21 @@ export const DetailPanel = ({
           <button 
             aria-label="Close panel"
             onClick={onClose} 
-            className="w-10 h-10 bg-white border border-slate-300 rounded text-slate-900 flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500/50"
+            className="w-10 h-10 bg-white border border-slate-300 text-slate-900 flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500/50"
           >
             <X size={22} />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
         <div className="grid grid-cols-1 gap-4">
-          <div className="space-y-1">
-            <span id="label-status" className="text-[10px] font-semibold uppercase text-slate-400 tracking-tight">PROJECT STATUS</span>
+          <div className="space-y-1 border border-slate-200 bg-white px-4 py-4 shadow-sm">
+            <span id="label-status" className="text-[10px] font-semibold uppercase text-slate-400 tracking-[0.18em]">PROJECT STATUS</span>
             {isEditing ? (
               <select 
                 id="ex-status"
-                className="w-full font-medium border border-slate-300 rounded p-2 outline-none text-sm bg-white text-slate-900 focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm" 
+                className="w-full font-medium border border-slate-300 p-2 outline-none text-sm bg-white text-slate-900 focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm" 
                 value={editedEx.status} 
                 onChange={(e) => handleFieldChange('status', e.target.value)}
               >
@@ -165,7 +171,7 @@ export const DetailPanel = ({
             ) : (
               <div>
                 <p 
-                  className="font-semibold text-[10px] uppercase tracking-tight px-3 py-1 border rounded inline-flex items-center shadow-sm" 
+                  className="font-semibold text-[10px] uppercase tracking-tight px-3 py-1 border inline-flex items-center shadow-sm" 
                   style={{ 
                     backgroundColor: getStatusStyles(exhibition.status).bg,
                     borderColor: getStatusStyles(exhibition.status).border,
@@ -179,13 +185,19 @@ export const DetailPanel = ({
           </div>
         </div>
 
-        <div className="p-4 border border-slate-300 rounded space-y-4 bg-slate-50/50">
+        <div className="p-5 border border-slate-300 space-y-4 bg-white shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-700">Scheduling Core</h3>
+              <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400 mt-1">Primary identifiers, lane assignment, and active dates.</p>
+            </div>
+          </div>
           <div className="space-y-1">
             <label htmlFor="ex-id" className="text-[10px] font-semibold uppercase text-slate-400 tracking-tight">EXHIBITION ID</label>
             {isEditing ? (
               <input 
                 id="ex-id"
-                className="w-full font-medium border border-slate-300 rounded p-2 text-sm bg-white text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/50 focus:shadow-sm" 
+                className="w-full font-medium border border-slate-300 p-2 text-sm bg-white text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/50 focus:shadow-sm" 
                 value={editedEx.exhibitionId || ''} 
                 placeholder="EX-0000-000"
                 onChange={(e) => handleFieldChange('exhibitionId', e.target.value.toUpperCase())} 
@@ -199,7 +211,7 @@ export const DetailPanel = ({
             {isEditing ? (
               <select 
                 id="ex-gallery"
-                className="w-full font-medium border border-slate-300 rounded p-2 outline-none text-sm bg-white text-slate-900 focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm" 
+                className="w-full font-medium border border-slate-300 p-2 outline-none text-sm bg-white text-slate-900 focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm" 
                 value={editedEx.gallery} 
                 onChange={(e) => handleFieldChange('gallery', e.target.value)}
               >
@@ -216,7 +228,7 @@ export const DetailPanel = ({
                 <input 
                   id="ex-start-date"
                   type="date" 
-                  className="w-full border border-slate-300 rounded p-2 text-xs font-medium tracking-tight bg-white text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm" 
+                  className="w-full border border-slate-300 p-2 text-xs font-medium tracking-tight bg-white text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm" 
                   value={editedEx.startDate} 
                   onChange={(e) => handleFieldChange('startDate', e.target.value)} 
                 />
@@ -230,7 +242,7 @@ export const DetailPanel = ({
                 <input 
                   id="ex-end-date"
                   type="date" 
-                  className="w-full border border-slate-300 rounded p-2 text-xs font-medium tracking-tight bg-white text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm" 
+                  className="w-full border border-slate-300 p-2 text-xs font-medium tracking-tight bg-white text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm" 
                   value={editedEx.endDate} 
                   onChange={(e) => handleFieldChange('endDate', e.target.value)} 
                 />
@@ -248,7 +260,7 @@ export const DetailPanel = ({
                   type="number"
                   min="0.1"
                   step="0.1"
-                  className="w-24 border border-slate-300 rounded bg-white text-slate-900 font-semibold p-2 outline-none focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm"
+                  className="w-24 border border-slate-300 bg-white text-slate-900 font-semibold p-2 outline-none focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm"
                   value={totalProjectDuration}
                   onChange={(e) => {
                     const val = parseFloat(e.target.value);
@@ -264,13 +276,13 @@ export const DetailPanel = ({
         </div>
 
         {isEditing && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+          <div className="space-y-4 border border-slate-300 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <h3 className="text-xs font-semibold uppercase tracking-tight">INTERNAL PHASING</h3>
               <button 
                 aria-label="Add new phase"
                 onClick={handleAddPhase} 
-                className="bg-slate-900 text-white px-3 py-1.5 text-[10px] font-medium uppercase tracking-tight rounded hover:bg-slate-700 focus:ring-2 focus:ring-blue-500/50"
+                className="bg-slate-900 text-white px-3 py-1.5 text-[10px] font-medium uppercase tracking-tight hover:bg-slate-700 focus:ring-2 focus:ring-blue-500/50"
               >
                 + ADD PHASE
               </button>
@@ -280,9 +292,9 @@ export const DetailPanel = ({
                 const isPhaseEditing = editingPhaseId === phase.id;
                 
                 return (
-                  <div key={phase.id} className={`border border-slate-300 rounded p-3 flex items-start justify-between bg-white shadow-sm hover:shadow-md transition-all duration-200 ${isPhaseEditing ? 'bg-yellow-50/30' : ''}`}>
+                  <div key={phase.id} className={`border border-slate-300 p-3 flex items-start justify-between bg-white shadow-sm hover:shadow-md transition-all duration-200 ${isPhaseEditing ? 'bg-yellow-50/30' : ''}`}>
                     <div className="flex items-start space-x-3 w-full">
-                      <div className="w-6 h-6 bg-slate-900 text-white flex items-center justify-center text-[10px] font-medium shrink-0 mt-1 rounded-sm">{idx + 1}</div>
+                      <div className="w-6 h-6 bg-slate-900 text-white flex items-center justify-center text-[10px] font-medium shrink-0 mt-1">{idx + 1}</div>
                       <div className="flex flex-col flex-1 min-w-0">
                         {isPhaseEditing ? (
                           <div className="flex flex-col space-y-3">
@@ -291,7 +303,7 @@ export const DetailPanel = ({
                               <input 
                                 autoFocus
                                 aria-label={`Phase ${idx + 1} Label`}
-                                className="font-medium text-xs uppercase border border-slate-300 rounded outline-none bg-white text-slate-900 focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm w-full p-2"
+                                className="font-medium text-xs uppercase border border-slate-300 outline-none bg-white text-slate-900 focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm w-full p-2"
                                 value={localPhaseDraft?.label || ''}
                                 onChange={(e) => setLocalPhaseDraft(prev => prev ? { ...prev, label: e.target.value.toUpperCase() } : null)}
                               />
@@ -304,7 +316,7 @@ export const DetailPanel = ({
                                   min="0"
                                   step="0.1"
                                   aria-label={`Phase ${idx + 1} Duration`}
-                                  className="font-semibold text-xs uppercase border border-slate-300 rounded bg-white text-slate-900 outline-none w-20 p-2 text-center focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm"
+                                  className="font-semibold text-xs uppercase border border-slate-300 bg-white text-slate-900 outline-none w-20 p-2 text-center focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm"
                                   value={localPhaseDraft?.durationMonths || 0}
                                   onChange={(e) => {
                                     const val = parseFloat(e.target.value);
@@ -315,7 +327,7 @@ export const DetailPanel = ({
                               <div className="space-y-1">
                                 <label className="text-[9px] font-semibold text-slate-400 uppercase tracking-tight">TYPE</label>
                                 <select 
-                                  className="font-semibold text-[10px] uppercase border border-slate-300 rounded bg-white text-slate-900 outline-none p-1.5 focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm"
+                                  className="font-semibold text-[10px] uppercase border border-slate-300 bg-white text-slate-900 outline-none p-1.5 focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm"
                                   value={localPhaseDraft?.typeId || ''}
                                   onChange={(e) => setLocalPhaseDraft(prev => prev ? { ...prev, typeId: e.target.value } : null)}
                                 >
@@ -326,13 +338,13 @@ export const DetailPanel = ({
                             <div className="flex items-center space-x-2 pt-1">
                                <button 
                                 onClick={handleSavePhaseLocal}
-                                className="bg-slate-900 text-white px-3 py-1.5 text-[10px] font-medium uppercase tracking-tight rounded flex items-center hover:bg-slate-700 transition-all duration-200 shadow-sm active:scale-95"
+                                className="bg-slate-900 text-white px-3 py-1.5 text-[10px] font-medium uppercase tracking-tight flex items-center hover:bg-slate-700 transition-all duration-200 shadow-sm active:scale-95"
                               >
                                 <Check size={14} className="mr-1.5" /> CONFIRM
                               </button>
                               <button 
                                 onClick={handleCancelPhaseLocal}
-                                className="bg-white border border-slate-300 rounded text-slate-900 px-3 py-1.5 text-[10px] font-medium uppercase tracking-tight flex items-center hover:bg-slate-50 transition-all duration-200 shadow-sm active:scale-95"
+                                className="bg-white border border-slate-300 text-slate-900 px-3 py-1.5 text-[10px] font-medium uppercase tracking-tight flex items-center hover:bg-slate-50 transition-all duration-200 shadow-sm active:scale-95"
                               >
                                 <X size={14} className="mr-1.5" /> CANCEL
                               </button>
@@ -342,7 +354,7 @@ export const DetailPanel = ({
                           <>
                             <div className="flex items-center space-x-2">
                                <span className="font-medium text-xs uppercase tracking-tight truncate text-slate-900">{phase.label}</span>
-                               <div className="w-2 h-2 rounded-full border border-slate-200" style={{ backgroundColor: phaseTypes.find(t => t.id === phase.typeId)?.color }} />
+                               <div className="w-2 h-2 border border-slate-200" style={{ backgroundColor: phaseTypes.find(t => t.id === phase.typeId)?.color }} />
                             </div>
                             <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-tight">{phase.durationMonths} MO</span>
                           </>
@@ -356,7 +368,7 @@ export const DetailPanel = ({
                             aria-label={`Move phase ${idx + 1} up`}
                             disabled={idx === 0}
                             onClick={() => handleMovePhase(idx, 'up')}
-                            className={`p-0.5 hover:bg-slate-900 hover:text-white transition-all duration-200 border border-transparent hover:border-slate-300 rounded-sm ${idx === 0 ? 'opacity-20 cursor-not-allowed' : ''}`}
+                            className={`p-0.5 hover:bg-slate-900 hover:text-white transition-all duration-200 border border-transparent hover:border-slate-300 ${idx === 0 ? 'opacity-20 cursor-not-allowed' : ''}`}
                           >
                             <ChevronUp size={14} />
                           </button>
@@ -364,7 +376,7 @@ export const DetailPanel = ({
                             aria-label={`Move phase ${idx + 1} down`}
                             disabled={idx === editedEx.phases.length - 1}
                             onClick={() => handleMovePhase(idx, 'down')}
-                            className={`p-0.5 hover:bg-slate-900 hover:text-white transition-all duration-200 border border-transparent hover:border-slate-300 rounded-sm ${idx === editedEx.phases.length - 1 ? 'opacity-20 cursor-not-allowed' : ''}`}
+                            className={`p-0.5 hover:bg-slate-900 hover:text-white transition-all duration-200 border border-transparent hover:border-slate-300 ${idx === editedEx.phases.length - 1 ? 'opacity-20 cursor-not-allowed' : ''}`}
                           >
                             <ChevronDown size={14} />
                           </button>
@@ -372,14 +384,14 @@ export const DetailPanel = ({
                         <button 
                           aria-label={`Edit phase ${idx + 1}`}
                           onClick={() => handleStartEditPhase(phase)} 
-                          className="p-1 text-slate-900 hover:text-blue-600 transition-all duration-200 border border-transparent hover:border-slate-300 rounded-sm"
+                          className="p-1 text-slate-900 hover:text-blue-600 transition-all duration-200 border border-transparent hover:border-slate-300"
                         >
                           <Edit2 size={16}/>
                         </button>
                         <button 
                           aria-label={`Remove phase ${idx + 1}`}
                           onClick={() => handleRemovePhase(phase.id)} 
-                          className="p-1 text-slate-900 hover:text-red-600 transition-all duration-200 border border-transparent hover:border-slate-300 rounded-sm"
+                          className="p-1 text-slate-900 hover:text-red-600 transition-all duration-200 border border-transparent hover:border-slate-300"
                         >
                           <Trash2 size={16}/>
                         </button>
@@ -392,9 +404,9 @@ export const DetailPanel = ({
           </div>
         )}
 
-        <div className="space-y-2">
-          <label htmlFor="ex-description" className="text-xs font-semibold uppercase tracking-tight border-b border-slate-200 pb-1 block">NARRATIVE</label>
-          <div className="p-4 border border-slate-300 rounded bg-white min-h-[120px] shadow-sm">
+        <div className="space-y-2 border border-slate-300 bg-white p-5 shadow-sm">
+          <label htmlFor="ex-description" className="text-xs font-semibold uppercase tracking-[0.16em] border-b border-slate-200 pb-2 block text-slate-700">NARRATIVE</label>
+          <div className="p-4 border border-slate-300 bg-slate-50/35 min-h-[120px] shadow-sm">
             {isEditing ? (
               <textarea 
                 id="ex-description"
@@ -411,25 +423,25 @@ export const DetailPanel = ({
         </div>
       </div>
 
-          <div className="p-4 border-t border-slate-200 flex gap-3 bg-white shrink-0">
+          <div className="p-5 border-t border-slate-200 flex gap-3 bg-white/90 backdrop-blur-sm shrink-0">
         {isEditing ? (
           <>
-            <button onClick={() => setIsEditing(false)} className="flex-1 py-2 bg-white border border-slate-300 rounded font-semibold uppercase tracking-tight text-xs hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/50">DISCARD</button>
-            <button onClick={handleSaveAll} className="flex-1 py-2 bg-slate-900 text-white border border-slate-300 rounded font-semibold uppercase tracking-tight text-xs hover:bg-slate-700 focus:ring-2 focus:ring-blue-500/50">SAVE ALL</button>
+            <button onClick={() => setIsEditing(false)} className="flex-1 py-2.5 bg-white border border-slate-300 font-semibold uppercase tracking-tight text-xs hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/50">DISCARD</button>
+            <button onClick={handleSaveAll} className="flex-1 py-2.5 bg-slate-900 text-white border border-slate-300 font-semibold uppercase tracking-tight text-xs hover:bg-slate-700 focus:ring-2 focus:ring-blue-500/50 shadow-sm">SAVE ALL</button>
           </>
         ) : (
           <>
             <button 
               aria-label="Duplicate this project"
               onClick={() => onDuplicate(exhibition.id)} 
-              className="flex-1 py-2 bg-white border border-slate-300 rounded font-semibold uppercase tracking-tight text-[10px] flex items-center justify-center hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+              className="flex-1 py-2.5 bg-white border border-slate-300 font-semibold uppercase tracking-tight text-[10px] flex items-center justify-center hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
             >
               <Copy size={13} className="mr-2" /> DUPLICATE
             </button>
             <button 
               aria-label="Delete this project"
               onClick={() => onDelete(exhibition.id)} 
-              className="flex-1 py-2 bg-white border border-slate-300 rounded font-semibold uppercase tracking-tight text-[10px] flex items-center justify-center hover:bg-red-500 hover:text-white focus:ring-2 focus:ring-red-500 transition-all duration-200"
+              className="flex-1 py-2.5 bg-white border border-slate-300 font-semibold uppercase tracking-tight text-[10px] flex items-center justify-center hover:bg-red-500 hover:text-white focus:ring-2 focus:ring-red-500 transition-all duration-200"
             >
               <Trash2 size={13} className="mr-2" /> REMOVE
             </button>

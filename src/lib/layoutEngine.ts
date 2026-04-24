@@ -11,28 +11,53 @@ export const calculateTracks = (
   vMonths: any[], 
   phaseTypes: PhaseType[]
 ) => {
-  // Sort projects by their absolute visual start date (including prep phases)
-  const sorted = [...projects].sort((a, b) => {
-    const prePhasesA = (a.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
-    const prePhasesB = (b.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
-    
-    const startA = getPositionFromDate(a.startDate, monthWidth, vMonths) - prePhasesA.reduce((acc, p) => acc + (p.durationMonths * monthWidth), 0);
-    const startB = getPositionFromDate(b.startDate, monthWidth, vMonths) - prePhasesB.reduce((acc, p) => acc + (p.durationMonths * monthWidth), 0);
-    
-    return startA - startB;
-  });
+  const sorted = [...projects]
+    .map((project) => {
+      const prePhases = (project.phases || []).filter(phase => !phaseTypes.find(type => type.id === phase.typeId)?.isPost);
+      const postPhases = (project.phases || []).filter(phase => phaseTypes.find(type => type.id === phase.typeId)?.isPost);
+      const prePhaseWidth = prePhases.reduce((sum, phase) => sum + (phase.durationMonths * monthWidth), 0);
+      const postPhaseWidth = postPhases.reduce((sum, phase) => sum + (phase.durationMonths * monthWidth), 0);
+      const preGapWidth = Math.max(0, prePhases.length * 6);
+      const postGapWidth = Math.max(0, postPhases.length * 6);
+      const projectStart = getPositionFromDate(project.startDate, monthWidth, vMonths);
+      const projectEnd = getPositionFromDate(project.endDate, monthWidth, vMonths);
+
+      return {
+        project,
+        visualStart: projectStart - prePhaseWidth - preGapWidth,
+        visualEnd: projectEnd + postPhaseWidth + postGapWidth,
+        requiredTracks: prePhases.length + 1
+      };
+    })
+    .sort((a, b) => a.visualStart - b.visualStart || a.visualEnd - b.visualEnd);
 
   const tracks: { [id: string]: number } = {};
-  let overallMaxTrack = 0;
+  const trackAvailability: number[] = [];
 
-  // Simple sequential stacking. 
-  // In a truly advanced version, this would check active boundaries to recycle tracks. 
-  // For now, retaining the legacy logic guaranteeing visual cascade safety.
-  sorted.forEach(project => {
-    const numSubTracks = (project.phases?.length || 0) + 1;
-    tracks[project.id] = overallMaxTrack;
-    overallMaxTrack += numSubTracks;
+  sorted.forEach(({ project, visualStart, visualEnd, requiredTracks }) => {
+    let startTrack = 0;
+
+    while (true) {
+      let canFit = true;
+
+      for (let index = 0; index < requiredTracks; index += 1) {
+        const availability = trackAvailability[startTrack + index] ?? Number.NEGATIVE_INFINITY;
+        if (availability > visualStart) {
+          canFit = false;
+          startTrack += 1;
+          break;
+        }
+      }
+
+      if (canFit) {
+        tracks[project.id] = startTrack;
+        for (let index = 0; index < requiredTracks; index += 1) {
+          trackAvailability[startTrack + index] = visualEnd;
+        }
+        return;
+      }
+    }
   });
 
-  return { tracks, maxTracks: overallMaxTrack || 1 };
+  return { tracks, maxTracks: trackAvailability.length || 1 };
 };

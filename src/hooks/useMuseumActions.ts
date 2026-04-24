@@ -14,6 +14,8 @@ export const useMuseumActions = (
     locationMilestones, setLocationMilestones 
   } = useStore();
 
+  const createId = () => Math.random().toString(36).slice(2, 11);
+
   const handleUpdateExhibition = async (updatedEx: Exhibition) => {
     setExhibitions(prev => prev.map(ex => (ex.id === updatedEx.id ? updatedEx : ex)));
     if (currentUser) {
@@ -95,9 +97,44 @@ export const useMuseumActions = (
   const handleRemoveGallery = (name: string) => {
     if (galleries.length <= 1) return;
     const remaining = galleries.filter(g => g !== name);
+    const fallbackGallery = remaining[0];
     setGalleries(remaining);
-    setExhibitions(prev => prev.map(ex => ex.gallery === name ? { ...ex, gallery: remaining[0] } : ex));
-    setLocationMilestones(prev => prev.filter(m => m.gallery !== name));
+    setExhibitions(prev => prev.map(ex => ex.gallery === name ? { ...ex, gallery: fallbackGallery } : ex));
+    setLocationMilestones(prev => prev.map(m => m.gallery === name ? { ...m, gallery: fallbackGallery } : m));
+
+    if (currentUser) {
+      void (async () => {
+        try {
+          setSyncStatus('syncing');
+          const batch = writeBatch(db);
+
+          batch.update(doc(db, 'users', currentUser.uid), {
+            galleries: remaining,
+            updatedAt: serverTimestamp()
+          });
+
+          exhibitions.filter(ex => ex.gallery === name).forEach(ex => {
+            batch.update(doc(db, 'users', currentUser.uid, 'exhibitions', ex.id), {
+              gallery: fallbackGallery,
+              updatedAt: serverTimestamp()
+            });
+          });
+
+          locationMilestones.filter(m => m.gallery === name).forEach(m => {
+            batch.update(doc(db, 'users', currentUser.uid, 'milestones', m.id), {
+              gallery: fallbackGallery,
+              updatedAt: serverTimestamp()
+            });
+          });
+
+          await batch.commit();
+          setSyncStatus('synced');
+        } catch (err) {
+          console.error("Remove gallery sync error:", err);
+          setSyncStatus('error');
+        }
+      })();
+    }
   };
 
   const handleDuplicateProject = (id: string) => {
@@ -105,11 +142,28 @@ export const useMuseumActions = (
     if (!source) return;
     const copy = { 
       ...source, 
-      id: Math.random().toString(36).substr(2, 9), 
+      id: createId(), 
       title: `${source.title} (COPY)`, 
-      phases: [...source.phases.map(p => ({ ...p, id: Math.random().toString(36).substr(2, 9) }))] 
+      phases: [...source.phases.map(p => ({ ...p, id: createId() }))] 
     };
     setExhibitions([...exhibitions, copy]);
+
+    if (currentUser) {
+      void (async () => {
+        try {
+          setSyncStatus('syncing');
+          await setDoc(doc(db, 'users', currentUser.uid, 'exhibitions', copy.id), {
+            ...copy,
+            ownerId: currentUser.uid,
+            updatedAt: serverTimestamp()
+          });
+          setSyncStatus('synced');
+        } catch (err) {
+          console.error("Duplicate project sync error:", err);
+          setSyncStatus('error');
+        }
+      })();
+    }
   };
 
   return {

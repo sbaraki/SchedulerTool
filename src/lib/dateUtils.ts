@@ -1,4 +1,4 @@
-import { format, getDaysInMonth, isValid, parseISO } from 'date-fns';
+import { addDays, addMonths, differenceInCalendarDays, format, getDaysInMonth, isValid } from 'date-fns';
 
 /**
  * Returns a strictly formatted YYYY-MM-DD string.
@@ -45,6 +45,36 @@ export const getDateFromPosition = (x: number, monthWidth: number, vMonths: any[
   
   const day = Math.max(1, Math.min(daysInMonth, Math.round(dayFrac * daysInMonth) + 1));
   return toISODate(new Date(targetYear, targetMonth, day));
+};
+
+export const getDateWithMonthDuration = (startDateStr: string, months: number): string => {
+  const start = new Date(startDateStr + 'T12:00:00');
+  if (!isValid(start)) return startDateStr;
+
+  const wholeMonths = Math.trunc(months);
+  const fractionalMonths = months - wholeMonths;
+  const afterWholeMonths = addMonths(start, wholeMonths);
+  const daysInTargetMonth = getDaysInMonth(afterWholeMonths);
+  const fractionalDays = Math.round(fractionalMonths * daysInTargetMonth);
+
+  return toISODate(addDays(afterWholeMonths, fractionalDays));
+};
+
+export const getDurationDays = (startDateStr: string, endDateStr: string): number => {
+  const start = new Date(startDateStr + 'T12:00:00');
+  const end = new Date(endDateStr + 'T12:00:00');
+  if (!isValid(start) || !isValid(end)) return 0;
+  return differenceInCalendarDays(end, start);
+};
+
+export const getDurationMonths = (startDateStr: string, endDateStr: string): number => {
+  const start = new Date(startDateStr + 'T12:00:00');
+  const end = new Date(endDateStr + 'T12:00:00');
+  if (!isValid(start) || !isValid(end)) return 0;
+
+  const days = Math.max(0, differenceInCalendarDays(end, start));
+  const averageMonthLength = 365.25 / 12;
+  return Math.round((days / averageMonthLength) * 10) / 10;
 };
 
 /**

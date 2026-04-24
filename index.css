@@ -23,15 +23,17 @@
 
   /* Remove scrollbars and fix height for print */
   .timeline-root {
-    display: block !important;
+    display: flex !important;
     overflow: visible !important;
     height: auto !important;
+    zoom: var(--print-scale, 1);
+    transform-origin: top left !important;
   }
 
   .timeline-container {
     overflow: visible !important;
     height: auto !important;
-    width: max-content !important;
+    width: auto !important;
   }
 
   .sticky {
@@ -76,6 +78,14 @@
     position: relative !important;
     top: 0 !important;
     transform: none !important;
+  }
+
+  .timeline-root,
+  .timeline-container,
+  aside,
+  main {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .bg-red-500 {

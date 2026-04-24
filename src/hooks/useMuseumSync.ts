@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   onAuthStateChanged, 
   User as FirebaseUser 
@@ -15,12 +15,43 @@ import {
 import { auth, db, serverTimestamp } from '../lib/firebase';
 import { useStore } from '../store/useStore';
 import { CONFIG_STORAGE_KEY, MILESTONES_STORAGE_KEY, STORAGE_KEY, DEFAULT_PHASE_TYPES, DEFAULT_GALLERIES } from '../constants';
-import { Exhibition, PhaseType } from '../types';
+import { Exhibition, LocationMilestone, PhaseType } from '../types';
+
+const normalizePhaseTypes = (phaseTypes: PhaseType[] = []): PhaseType[] => {
+  const normalizedDefaults = DEFAULT_PHASE_TYPES.map((defaultType) => {
+    const matched = phaseTypes.find((phaseType) => (
+      phaseType.id === defaultType.id || phaseType.label === defaultType.label
+    ));
+
+    if (!matched) return defaultType;
+
+    return {
+      ...defaultType,
+      ...matched,
+      id: defaultType.id,
+      isPost: defaultType.isPost,
+      isActive: defaultType.isActive
+    };
+  });
+
+  const customTypes = phaseTypes
+    .filter((phaseType) => !DEFAULT_PHASE_TYPES.find((defaultType) => (
+      defaultType.id === phaseType.id || defaultType.label === phaseType.label
+    )))
+    .map((phaseType) => ({
+      ...phaseType,
+      isPost: phaseType.isPost ?? false,
+      isActive: phaseType.isActive ?? false
+    }));
+
+  return [...normalizedDefaults, ...customTypes];
+};
 
 export const useMuseumSync = () => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const lastSyncedProfileRef = useRef<string | null>(null);
 
   const { 
     exhibitions, setExhibitions,
@@ -44,40 +75,43 @@ export const useMuseumSync = () => {
         const parsedCfg = JSON.parse(savedCfg);
         setMuseumName(parsedCfg.museumName || 'NATIONAL HERITAGE TRUST');
         setGalleries(parsedCfg.galleries || DEFAULT_GALLERIES);
-        
-        const existingPts = (parsedCfg.phaseTypes || []).filter((pt: PhaseType) => pt.label !== 'PRODUCTION / FAB').map((pt: PhaseType) => {
-          if (pt.label === 'DEINSTALL' && pt.color === '#ef4444') return { ...pt, color: '#fba84a' };
-          if (pt.label === 'IMPLEMENTATION' && pt.color === '#f97316') return { ...pt, color: '#fba84a' };
-          return pt;
-        });
-        const mergedOpts = [...existingPts];
-        DEFAULT_PHASE_TYPES.forEach(dpt => {
-          if (!mergedOpts.find(pt => pt.label === dpt.label)) mergedOpts.push(dpt);
-        });
-        setPhaseTypes(mergedOpts);
+
+        const parsedPhaseTypes = (parsedCfg.phaseTypes || []).filter((phaseType: PhaseType) => phaseType.label !== 'PRODUCTION / FAB');
+        setPhaseTypes(normalizePhaseTypes(parsedPhaseTypes));
       }
     } catch (e) {
       console.error("Local load error", e);
+    } finally {
+      setIsInitialLoad(false);
     }
   }, []);
 
+  // Save projects to LocalStorage
+  useEffect(() => {
+    if (isInitialLoad) return;
+    const timeout = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(exhibitions));
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [exhibitions, isInitialLoad]);
+
   // Save Config to LocalStorage (debounced)
   useEffect(() => {
-    if (isInitialLoad && !currentUser) return; // Prevent overwriting on mount
+    if (isInitialLoad) return;
     const timeout = setTimeout(() => {
       localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify({ museumName, galleries, phaseTypes }));
     }, 300);
     return () => clearTimeout(timeout);
-  }, [museumName, galleries, phaseTypes]);
+  }, [museumName, galleries, phaseTypes, isInitialLoad]);
 
   // Save Milestones to LocalStorage
   useEffect(() => {
-    if (isInitialLoad && !currentUser) return;
+    if (isInitialLoad) return;
     const timeout = setTimeout(() => {
       localStorage.setItem(MILESTONES_STORAGE_KEY, JSON.stringify(locationMilestones));
     }, 300);
     return () => clearTimeout(timeout);
-  }, [locationMilestones]);
+  }, [locationMilestones, isInitialLoad]);
 
   // Auth Listener
   useEffect(() => {
@@ -95,7 +129,6 @@ export const useMuseumSync = () => {
   // Real-time Firebase Sync
   useEffect(() => {
     if (!currentUser) {
-      if (!isInitialLoad) setIsInitialLoad(false);
       return;
     }
 
@@ -151,13 +184,14 @@ export const useMuseumSync = () => {
             if (data.museumName) setMuseumName(data.museumName);
             if (data.galleries) setGalleries(data.galleries);
             if (data.phaseTypes) {
-              const migratedPt = data.phaseTypes.map((pt: any) => {
-                if (pt.label === 'DEINSTALL' && pt.color === '#ef4444') return { ...pt, color: '#fba84a' };
-                if (pt.label === 'IMPLEMENTATION' && pt.color === '#f97316') return { ...pt, color: '#fba84a' };
-                return pt;
-              });
-              setPhaseTypes(migratedPt);
+              setPhaseTypes(normalizePhaseTypes(data.phaseTypes));
             }
+
+            lastSyncedProfileRef.current = JSON.stringify({
+              museumName: data.museumName || 'NATIONAL HERITAGE TRUST',
+              galleries: data.galleries || DEFAULT_GALLERIES,
+              phaseTypes: normalizePhaseTypes(data.phaseTypes || [])
+            });
           }
         }, err => console.error("Profile sync error", err));
 
@@ -165,7 +199,6 @@ export const useMuseumSync = () => {
           const freshExs: Exhibition[] = [];
           snapshot.forEach(d => freshExs.push(d.data() as Exhibition));
           setExhibitions(freshExs);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(freshExs));
           setSyncStatus('synced');
         }, err => {
              console.error("Exhibits sync error", err);
@@ -176,7 +209,6 @@ export const useMuseumSync = () => {
            const freshMs: LocationMilestone[] = [];
            snapshot.forEach(d => freshMs.push(d.data() as LocationMilestone));
            setLocationMilestones(freshMs);
-           localStorage.setItem(MILESTONES_STORAGE_KEY, JSON.stringify(freshMs));
         }, err => console.error("Milestone sync error", err));
 
       } catch (err) {
@@ -196,6 +228,36 @@ export const useMuseumSync = () => {
     };
   }, [currentUser]); 
   // Deliberately minimizing dependency array so we don't spam getDoc on every local change
+
+  useEffect(() => {
+    if (!currentUser || isInitialLoad) return;
+
+    const nextProfile = {
+      museumName,
+      galleries,
+      phaseTypes
+    };
+    const serializedProfile = JSON.stringify(nextProfile);
+    if (lastSyncedProfileRef.current === serializedProfile) return;
+
+    const timeout = setTimeout(async () => {
+      try {
+        setSyncStatus('syncing');
+        await setDoc(doc(db, 'users', currentUser.uid), {
+          ...nextProfile,
+          email: currentUser.email,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        lastSyncedProfileRef.current = serializedProfile;
+        setSyncStatus('synced');
+      } catch (err) {
+        console.error("Profile save error", err);
+        setSyncStatus('error');
+      }
+    }, 400);
+
+    return () => clearTimeout(timeout);
+  }, [currentUser, galleries, isInitialLoad, museumName, phaseTypes]);
 
   return {
     currentUser,

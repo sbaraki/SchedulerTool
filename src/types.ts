@@ -5,6 +5,7 @@ export interface PhaseType {
   label: string;
   color: string;
   isPost?: boolean;
+  isActive?: boolean;
 }
 
 export interface ProjectPhase {
