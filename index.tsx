@@ -692,28 +692,6 @@ export default function MasterScheduler() {
                   </button>
                 </div>
               </nav>
-              <div className="px-4 py-2.5 border-t border-slate-100 bg-[linear-gradient(90deg,#f8fafc_0%,#fff7ed_45%,#f8fafc_100%)] flex items-center justify-between gap-4 overflow-x-auto shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700 shrink-0">
-                  <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 shadow-sm">Visible Range {timelineStartDate} to {timelineEndDate}</span>
-                  <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 shadow-sm">{viewMonths.length} Months</span>
-                  <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 shadow-sm">{filteredExhibitions.length} Projects</span>
-                  <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 shadow-sm">Print Scale {Math.round(printScale * 100)}%</span>
-                </div>
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700 shrink-0">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 shadow-sm">
-                    <span className="w-2 h-2 bg-emerald-500" />
-                    Open
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 shadow-sm">
-                    <span className="w-2 h-2 bg-amber-500" />
-                    In Development
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 shadow-sm">
-                    <span className="w-2 h-2 rotate-45 border border-slate-500 bg-white" />
-                    Milestone
-                  </span>
-                </div>
-              </div>
             </header>
 
             <div className="flex-1 flex overflow-hidden timeline-root no-print-bg px-3 pb-3 pt-2 gap-3">
@@ -1319,6 +1297,25 @@ export default function MasterScheduler() {
                 </div>
               </div>
             </main>
+            
+            <footer className="bg-white border-t border-slate-200 px-4 py-2 flex items-center justify-center gap-6 no-print shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-2.5 bg-[#f9fafb] border-2 border-[#d1d5db]" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Proposed</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-2.5 bg-[#fffbeb] border-2 border-[#f59e0b]" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">In Development</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-2.5 bg-[#ecfdf5] border-2 border-[#10b981]" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Open to Public</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-2.5 bg-[#f3f4f6] border-2 border-[#1f2937]" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Closed</span>
+              </div>
+            </footer>
           </div>
         </>
 	        ) : (
