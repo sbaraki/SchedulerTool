@@ -260,9 +260,9 @@ export default function MasterScheduler() {
   }, [galleries, galleryLayouts]);
 
   const totalTimelineWidth = viewMonths.length * monthWidth;
-  const totalTimelineHeight = useMemo(() => {
-    const galleryHeight = galleries.reduce((sum, gallery) => sum + (galleryLaneHeights[gallery] || BASE_LANE_HEIGHT), 0);
-    return HEADER_HEIGHT + (showHolidays ? 48 : 0) + galleryHeight + 72;
+  const getTimelineHeight = useMemo(() => {
+    const galleryHeight = galleries.reduce((acc, g) => acc + (galleryLaneHeights[g] || BASE_LANE_HEIGHT), 0);
+    return HEADER_HEIGHT + (showHolidays ? 64 : 0) + galleryHeight + 72;
   }, [galleries, galleryLaneHeights, showHolidays]);
 
   const printScale = useMemo(() => {
@@ -666,9 +666,11 @@ export default function MasterScheduler() {
 	                <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-[linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] border-b border-slate-200" />
 	                <div className="flex-1 overflow-hidden" ref={sidebarListRef}>
 	                  {showHolidays && (
-	                    <div style={{ height: '48px' }} className="relative border-b-[3px] border-slate-800 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
+	                    <div style={{ height: '64px' }} className="relative border-b-[3px] border-slate-800 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
 	                      <div className="absolute top-0 left-0 w-full h-full bg-slate-50 flex items-center px-4 py-2 z-20">
-	                        <div className="flex flex-col" />
+	                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Holidays</span>
+                          </div>
 	                      </div>
 	                    </div>
 	                  )}
@@ -865,23 +867,23 @@ export default function MasterScheduler() {
 	                      )}
                       {/* Provincial Holidays Lane */}
                       {showHolidays && (
-                        <div style={{ height: '48px' }} className="border-b-[3px] border-slate-800 bg-white/40 relative overflow-visible z-10 no-print-lane">
+                        <div style={{ height: '64px' }} className="border-b-[3px] border-slate-800 bg-white/40 relative overflow-visible z-10 no-print-lane">
                           <div className={`absolute inset-0 bg-slate-50/50 -z-10`} />
                           {holidayMilestones.map((holiday, i) => {
                             if (holiday.xPos < 0 || holiday.xPos > viewMonths.length * monthWidth) return null;
                             const labelPos = holidayLabelPositions[i];
                             return (
-                              <div 
+                              <div
                                 key={`holiday-${i}`}
                                 className="absolute top-1/2 flex items-center justify-center pointer-events-auto"
                                 style={{ left: `${holiday.xPos}px`, transform: 'translate(-50%, -50%)' }}
                               >
-                                <div 
+                                <div
                                   className="group/holiday relative flex items-center justify-center cursor-help"
                                   title={`${holiday.label} (${holiday.type} Holiday)`}
                                 >
                                   <div className={`w-2 h-2 rotate-45 border-[1.5px] border-slate-900 shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-transform group-hover/holiday:scale-125 ${holiday.type === 'Statutory' ? 'bg-slate-800' : 'bg-white'}`} />
-                                  
+
                                   <div className={`absolute left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
                                     {holiday.label}
                                     <span className="text-[9px] text-slate-600 font-medium">
@@ -896,164 +898,161 @@ export default function MasterScheduler() {
                           })}
                         </div>
                       )}
-	                      {galleries.map((g) => {
-	                         const laneHeight = galleryLaneHeights[g] || BASE_LANE_HEIGHT;
-	                         const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === g);
+                      {galleries.map((g) => {
+                      const laneHeight = galleryLaneHeights[g] || BASE_LANE_HEIGHT;
+                      const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === g);
 
-	                         const footprints = galleryProjects.map(ex => {
-	                           const startPos = getPositionFromDate(ex.startDate, monthWidth, viewMonths);
-	                           const endPos = getPositionFromDate(ex.endDate, monthWidth, viewMonths);
-	                           const prePhases = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
-	                           const totalPreWidth = prePhases.reduce((acc, p) => acc + p.durationMonths * monthWidth, 0) + (prePhases.length * 6);
-	                           const phaseStartPos = startPos - totalPreWidth;
-	                           const activePhase = prePhases.find(p => phaseTypes.find(t => t.id === p.typeId)?.isActive);
-	                           let activeStartPos = startPos;
-	                           let currentOffset = 0;
-	                           for (const p of prePhases) {
-	                             const pWidth = p.durationMonths * monthWidth;
-	                             if (activePhase && p.id === activePhase.id) {
-	                               activeStartPos = phaseStartPos + currentOffset;
-	                               break;
-	                             }
-	                             currentOffset += pWidth + 6;
-	                           }
-	                           return { activeStart: activeStartPos, activeEnd: endPos };
-	                         });
+                      const footprints = galleryProjects.map(ex => {
+                      const startPos = getPositionFromDate(ex.startDate, monthWidth, viewMonths);
+                      const endPos = getPositionFromDate(ex.endDate, monthWidth, viewMonths);
+                      const prePhases = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
+                      const totalPreWidth = prePhases.reduce((acc, p) => acc + p.durationMonths * monthWidth, 0) + (prePhases.length * 6);
+                      const phaseStartPos = startPos - totalPreWidth;
+                      const activePhase = prePhases.find(p => phaseTypes.find(t => t.id === p.typeId)?.isActive);
+                      let activeStartPos = startPos;
+                      let currentOffset = 0;
+                      for (const p of prePhases) {
+                      const pWidth = p.durationMonths * monthWidth;
+                      if (activePhase && p.id === activePhase.id) {
+                      activeStartPos = phaseStartPos + currentOffset;
+                      break;
+                      }
+                      currentOffset += pWidth + 6;
+                      }
+                      return { activeStart: activeStartPos, activeEnd: endPos };
+                      });
 
-                         const overlapRegions: { startX: number, endX: number }[] = [];
-                         for (let i = 0; i < footprints.length; i++) {
-                           for (let j = i + 1; j < footprints.length; j++) {
-                             const a = footprints[i];
-                             const b = footprints[j];
-                             if (Math.max(a.activeStart, b.activeStart) < Math.min(a.activeEnd, b.activeEnd)) {
-                               overlapRegions.push({
-                                 startX: Math.max(a.activeStart, b.activeStart),
-                                 endX: Math.min(a.activeEnd, b.activeEnd)
-                               });
-                             }
-                           }
-                         }
+                        const overlapRegions: { startX: number, endX: number }[] = [];
+                        for (let i = 0; i < footprints.length; i++) {
+                          for (let j = i + 1; j < footprints.length; j++) {
+                            const a = footprints[i];
+                            const b = footprints[j];
+                            if (Math.max(a.activeStart, b.activeStart) < Math.min(a.activeEnd, b.activeEnd)) {
+                              overlapRegions.push({
+                                startX: Math.max(a.activeStart, b.activeStart),
+                                endX: Math.min(a.activeEnd, b.activeEnd)
+                              });
+                            }
+                          }
+                        }
 
-                         const mergedOverlaps: { startX: number, endX: number }[] = [];
-                         const sortedRegions = overlapRegions.sort((a,b) => a.startX - b.startX);
-                         sortedRegions.forEach(region => {
-                           if (mergedOverlaps.length === 0) {
-                             mergedOverlaps.push({...region});
-                           } else {
-                             const last = mergedOverlaps[mergedOverlaps.length - 1];
-                             if (region.startX <= last.endX) {
-                               last.endX = Math.max(last.endX, region.endX);
-                             } else {
-                               mergedOverlaps.push({...region});
-                             }
-                           }
-                         });
+                        const mergedOverlaps: { startX: number, endX: number }[] = [];
+                        const sortedRegions = overlapRegions.sort((a,b) => a.startX - b.startX);
+                        sortedRegions.forEach(region => {
+                          if (mergedOverlaps.length === 0) {
+                            mergedOverlaps.push({...region});
+                          } else {
+                            const last = mergedOverlaps[mergedOverlaps.length - 1];
+                            if (region.startX <= last.endX) {
+                              last.endX = Math.max(last.endX, region.endX);
+                            } else {
+                              mergedOverlaps.push({...region});
+                            }
+                          }
+                        });
 
-                         return (
-	                           <div key={g} style={{ height: `${laneHeight}px` }} className="border-b-[3px] border-slate-800 gallery-lane-bg relative bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(248,250,252,0.9)_100%)]">
-                             {showConflicts && mergedOverlaps.map((overlap, i) => (
-                               <div 
-                                 key={`overlap-${i}`}
-                                 className="absolute bottom-0 z-[15] bg-red-500/5 border-l-2 border-r-2 border-dashed border-red-500/50 pointer-events-none"
-                                 style={{ left: overlap.startX, width: Math.max(2, overlap.endX - overlap.startX), top: '32px' }}
-                               >
-                                 <div className="bg-white border-2 border-red-500/50 text-red-600 font-semibold uppercase text-[8px] tracking-widest flex items-center shadow-sm w-max ml-2 mt-2" style={{ padding: '2px 4px' }}>
-                                   <AlertTriangle size={10} className="mr-1.5 shrink-0" strokeWidth={3} /> CONFLICT
-                                 </div>
+                        return (
+                      <div key={g} style={{ height: `${laneHeight}px` }} className="border-b-[3px] border-slate-800 gallery-lane-bg relative bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(248,250,252,0.9)_100%)]">
+                            {showConflicts && mergedOverlaps.map((overlap, i) => (
+                              <div 
+                                key={`overlap-${i}`}
+                                className="absolute bottom-0 z-[15] bg-red-500/5 border-l-2 border-r-2 border-dashed border-red-500/50 pointer-events-none"
+                                style={{ left: overlap.startX, width: Math.max(2, overlap.endX - overlap.startX), top: '32px' }}
+                              >
+                                <div className="bg-white border-2 border-red-500/50 text-red-600 font-semibold uppercase text-[8px] tracking-widest flex items-center shadow-sm w-max ml-2 mt-2" style={{ padding: '2px 4px' }}>
+                                  <AlertTriangle size={10} className="mr-1.5 shrink-0" strokeWidth={3} /> CONFLICT
+                                </div>
+                              </div>
+                            ))}
+                            <div 
+                              className="absolute top-0 left-0 w-full h-[32px] bg-slate-100/50 border-b border-slate-300/5 z-[60] group relative cursor-crosshair overflow-visible"
+                              onDoubleClick={async (e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const x = Math.max(0, e.clientX - rect.left + timelineRef.current!.scrollLeft);
+                                const date = getDateFromPosition(x, monthWidth, viewMonths);
+                                const id = Math.random().toString(36).substr(2,9);
+                                const newMilestone: LocationMilestone = { 
+                                  id, 
+                                  gallery: g, 
+                                  title: 'MILESTONE', 
+                                  date 
+                                };
+                                setLocationMilestones([...locationMilestones, newMilestone]);
+                                setEditMilestoneDraft(newMilestone);
+
+                                if (currentUser) {
+                                  try {
+                                    setSyncStatus('syncing');
+                                    // Handled by auto-save
+                                    setSyncStatus('synced');
+                                  } catch (err) {
+                                    setSyncStatus('error');
+                                  }
+                                }
+                              }}
+                            >
+                               <div className="hidden group-hover:flex absolute left-4 h-full items-center text-[11px] text-slate-600 font-medium uppercase pointer-events-none tracking-widest gap-2">
+                                 <Plus size={10} strokeWidth={3} /> DBL-CLICK TO ADD MILESTONE
                                </div>
-                             ))}
-                             <div 
-                               className="absolute top-0 left-0 w-full h-[32px] bg-slate-100/50 border-b border-slate-300/5 z-20 group relative cursor-crosshair overflow-visible"
-                               onDoubleClick={async (e) => {
-                                 const rect = e.currentTarget.getBoundingClientRect();
-                                 const x = Math.max(0, e.clientX - rect.left + timelineRef.current!.scrollLeft);
-                                 const date = getDateFromPosition(x, monthWidth, viewMonths);
-                                 const id = Math.random().toString(36).substr(2,9);
-                                 const newMilestone: LocationMilestone = { 
-                                   id, 
-                                   gallery: g, 
-                                   title: 'MILESTONE', 
-                                   date 
-                                 };
-                                 setLocationMilestones([...locationMilestones, newMilestone]);
-                                 setEditMilestoneDraft(newMilestone);
+                               {(() => {
+                                 const gMilestones = locationMilestones.filter(m => m.gallery === g)
+                                   .map(m => ({ ...m, xPos: getPositionFromDate(m.date, monthWidth, viewMonths) }))
+                                   .filter(m => m.xPos >= 0 && m.xPos <= totalTimelineWidth)
+                                   .sort((a, b) => a.xPos - b.xPos);
 
-                                 if (currentUser) {
-                                   try {
-                                     setSyncStatus('syncing');
-                                     await setDoc(doc(db, 'users', currentUser.uid, 'milestones', id), {
-                                       ...newMilestone,
-                                       ownerId: currentUser.uid,
-                                       updatedAt: serverTimestamp()
-                                     });
-                                     setSyncStatus('synced');
-                                   } catch (err) {
-                                     setSyncStatus('error');
+                                 const labelPositions = new Array(gMilestones.length).fill('top');
+                                 let lastTopX = -9999;
+                                 let lastBottomX = -9999;
+
+                                 for (let i = 0; i < gMilestones.length; i++) {
+                                   const curr = gMilestones[i];
+                                   if (curr.xPos - lastTopX >= 80) {
+                                     labelPositions[i] = 'top';
+                                     lastTopX = curr.xPos;
+                                   } else if (curr.xPos - lastBottomX >= 80) {
+                                     labelPositions[i] = 'bottom';
+                                     lastBottomX = curr.xPos;
+                                   } else {
+                                     labelPositions[i] = 'top';
                                    }
                                  }
-                               }}
-                             >
-                                <div className="hidden group-hover:flex absolute left-4 h-full items-center text-[11px] text-slate-600 font-medium uppercase pointer-events-none tracking-widest gap-2">
-                                  <Plus size={10} strokeWidth={3} /> DBL-CLICK TO ADD MILESTONE
-                                </div>
-                                {(() => {
-                                  const gMilestones = locationMilestones.filter(m => m.gallery === g)
-                                    .map(m => ({ ...m, xPos: getPositionFromDate(m.date, monthWidth, viewMonths) }))
-                                    .sort((a, b) => a.xPos - b.xPos);
 
-                                  const labelPositions = new Array(gMilestones.length).fill('top');
-                                  let lastTopX = -9999;
-                                  let lastBottomX = -9999;
-                                  
-                                  for (let i = 0; i < gMilestones.length; i++) {
-                                    const curr = gMilestones[i];
-                                    if (curr.xPos - lastTopX >= 65) {
-                                      labelPositions[i] = 'top';
-                                      lastTopX = curr.xPos;
-                                    } else if (curr.xPos - lastBottomX >= 65) {
-                                      labelPositions[i] = 'bottom';
-                                      lastBottomX = curr.xPos;
-                                    } else {
-                                      labelPositions[i] = 'top';
-                                    }
-                                  }
+                                 return gMilestones.map((m, idx) => {
+                                   const labelPos = labelPositions[idx];
+                                   return (
+                                     <div 
+                                       key={m.id} 
+                                       className="absolute top-1/2 flex items-center justify-center pointer-events-auto z-[70]"
+                                       style={{ left: `${m.xPos}px`, transform: 'translate(-50%, -50%)' }}
+                                     >                                       <div 
+                                         className="transform hover:scale-125 transition-transform cursor-pointer flex items-center justify-center relative z-20"
+                                         title={m.date}
+                                         onDoubleClick={(e) => e.stopPropagation()}
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           setEditMilestoneDraft(m);
+                                         }}
+                                       >
+                                         {m.icon === 'flag' ? (
+                                           <div className="relative flex items-center justify-center pointer-events-none mt-1">
+                                             <Flag size={18} fill={m.color || '#dc2626'} stroke="black" strokeWidth={2.5} className="drop-shadow-[1.5px_1.5px_0_rgba(0,0,0,1)]" />
+                                           </div>
+                                         ) : (
+                                           <div className="w-4 h-4 bg-white border-[2px] border-slate-400 rotate-45 shadow-[1.5px_1.5px_0_0_rgba(0,0,0,1)] flex items-center justify-center pointer-events-none">
+                                             <div className="w-[5px] h-[5px]" style={{ backgroundColor: m.color || '#dc2626' }} />
+                                           </div>
+                                         )}
+                                       </div>
+                                       <div className={`absolute left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase text-slate-700 bg-white px-2 py-0.5 leading-tight border border-slate-300 shadow-lg transition-all hover:bg-slate-50 hover:opacity-100 whitespace-nowrap z-30 pointer-events-none ${labelPos === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2'}`}>
+                                         {m.title}
+                                       </div>
+                                       </div>
+                                       );
+                                       });
+                                       })()}
+                                       </div>
 
-                                  return gMilestones.map((m, idx) => {
-                                    const labelPos = labelPositions[idx];
-                                    return (
-                                      <div 
-                                        key={m.id} 
-                                        className="absolute top-1/2 flex items-center justify-center pointer-events-auto"
-                                        style={{ left: `${m.xPos}px`, transform: 'translate(-50%, -50%)' }}
-                                      >
-                                        <div 
-                                          className="transform hover:scale-125 transition-transform cursor-pointer flex items-center justify-center relative z-20"
-                                          title={m.date}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setEditMilestoneDraft(m);
-                                          }}
-                                        >
-                                          {m.icon === 'flag' ? (
-                                            <div className="relative flex items-center justify-center pointer-events-none mt-1">
-                                              <Flag size={16} fill={m.color || '#dc2626'} stroke="black" strokeWidth={2} className="drop-shadow-[1px_1px_0_rgba(0,0,0,1)]" />
-                                            </div>
-                                          ) : (
-                                            <div className="w-3.5 h-3.5 bg-white border-[1.5px] border-slate-300 rotate-45 shadow-[1px_1px_0_0_rgba(0,0,0,1)] flex items-center justify-center pointer-events-none">
-                                              <div className="w-[4px] h-[4px]" style={{ backgroundColor: m.color || '#dc2626' }} />
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className={`absolute left-1/2 -translate-x-1/2 text-[9px] font-medium uppercase text-slate-600 bg-white px-1.5 py-[1px] leading-tight border border-slate-200 shadow-md opacity-90 transition-all hover:bg-slate-50 hover:opacity-100 whitespace-nowrap z-30 pointer-events-none ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
-                                          {m.title}
-                                        </div>
-                                      </div>
-                                  );
-                                });
-                              })()}
-                             </div>
-                             {galleryProjects.map(ex => {
-                               const trackIndex = galleryLayouts[g]!.tracks[ex.id];
+                                       {galleryProjects.map(ex => {                               const trackIndex = galleryLayouts[g]!.tracks[ex.id];
                                if (trackIndex === undefined || trackIndex === 0) return null;
                                return (
                                  <div key={`line-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-300 z-10 pointer-events-none" style={{ top: 32 + trackIndex * TRACK_HEIGHT }} />
@@ -1071,7 +1070,7 @@ export default function MasterScheduler() {
                     {/* Project Bars */}
                     <div className="absolute inset-0 pointer-events-none z-20">
                       {(() => {
-                        let currentGalleryY = showHolidays ? 48 : 0;
+                        let currentGalleryY = showHolidays ? 64 : 0;
 	                        return galleries.flatMap((gallery) => {
 	                          const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
 	                          const layout = galleryLayouts[gallery];
