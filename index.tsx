@@ -1264,7 +1264,11 @@ export default function MasterScheduler() {
 		                                    borderColor: statusStyle.border
 		                                  }}
 		                                >
-	                                  {width >= 148 ? (
+	                                  {width >= 200 ? (
+                                        <span className="font-bold text-[11px] uppercase tracking-[0.14em] text-white px-2 truncate block leading-none pb-[1px]">
+                                          {ex.title} • {formatBarDate(effStartDate)} - {formatBarDate(effEndDate)}
+                                        </span>
+                                      ) : width >= 148 ? (
                                         <span className="font-bold text-[11px] uppercase tracking-[0.14em] text-white px-2 truncate block leading-none pb-[1px]">{ex.title}</span>
                                       ) : (
                                         <span className="font-bold text-[10px] uppercase tracking-[0.18em] text-white/90 px-2 leading-none pb-[1px]">
@@ -1272,21 +1276,6 @@ export default function MasterScheduler() {
                                         </span>
                                       )}
 	                                </div>
-		                                <div
-		                                  className="absolute pointer-events-none"
-		                                  style={{
-		                                    left: `${startPos}px`,
-		                                    top: `${projectLabelTop}px`,
-		                                    width: `${Math.max(width, 136)}px`
-		                                  }}
-		                                >
-                                      <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-700 leading-tight break-words">
-                                        {ex.title}
-                                      </div>
-	                                  <div className="text-[9px] font-bold tracking-tight text-slate-500 mt-1 leading-tight">
-	                                    {formatBarDate(effStartDate)} - {formatBarDate(effEndDate)}
-	                                  </div>
-                                  </div>
                               </React.Fragment>
                             );
                           });
@@ -1295,27 +1284,27 @@ export default function MasterScheduler() {
                     </div>
                   </div>
                 </div>
+
+                <footer className="bg-white/80 backdrop-blur-sm border-t border-slate-200 px-4 py-1.5 flex items-center justify-center gap-4 no-print shrink-0 mt-auto">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-2 bg-[#f9fafb] border border-[#d1d5db]" />
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">Proposed</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-2 bg-[#fffbeb] border border-[#f59e0b]" />
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">In Dev</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-2 bg-[#ecfdf5] border border-[#10b981]" />
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">Open</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-2 bg-[#f3f4f6] border border-[#1f2937]" />
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">Closed</span>
+                  </div>
+                </footer>
               </div>
             </main>
-            
-            <footer className="bg-white border-t border-slate-200 px-4 py-2 flex items-center justify-center gap-6 no-print shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-2.5 bg-[#f9fafb] border-2 border-[#d1d5db]" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Proposed</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-2.5 bg-[#fffbeb] border-2 border-[#f59e0b]" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">In Development</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-2.5 bg-[#ecfdf5] border-2 border-[#10b981]" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Open to Public</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-2.5 bg-[#f3f4f6] border-2 border-[#1f2937]" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Closed</span>
-              </div>
-            </footer>
           </div>
         </>
 	        ) : (
