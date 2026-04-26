@@ -53,7 +53,7 @@ export function GithubAuthModal({ onClose }: Props) {
   return (
     <div className="fixed inset-0 bg-slate-900/40 z-[100] backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white border border-slate-300 w-full max-w-md shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="bg-slate-900 text-white px-4 py-3 font-semibold tracking-widest flex justify-between items-center text-[10px]">
+        <div className="bg-slate-900 text-white px-4 py-3 font-semibold tracking-widest flex justify-between items-center text-[12px]">
           <span>GITHUB GIST SYNC</span>
           <button aria-label="Close" onClick={onClose} className="hover:text-red-400 transition-colors">
             <X size={14} strokeWidth={3} />
@@ -61,7 +61,7 @@ export function GithubAuthModal({ onClose }: Props) {
         </div>
         <div className="p-6 space-y-6">
           <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 p-3 flex gap-3 text-blue-800 text-xs">
+            <div className="bg-blue-50 border border-blue-200 p-3 flex gap-3 text-blue-800 text-[12px]">
               <Info size={16} className="shrink-0 mt-0.5" />
               <p>
                 To sync your data for free across devices, create a GitHub Personal Access Token (PAT) with the <strong>gist</strong> scope. 
@@ -70,7 +70,7 @@ export function GithubAuthModal({ onClose }: Props) {
             </div>
             
             <div className="space-y-2">
-              <label className="text-[9px] font-semibold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-700 flex items-center gap-2">
                 <Key size={12} /> Personal Access Token
               </label>
               <input 
@@ -83,7 +83,7 @@ export function GithubAuthModal({ onClose }: Props) {
             </div>
             
             <div className="space-y-2">
-              <label className="text-[9px] font-semibold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-700 flex items-center gap-2">
                 <Database size={12} /> Gist ID (Optional)
               </label>
               <input 
@@ -96,7 +96,7 @@ export function GithubAuthModal({ onClose }: Props) {
             </div>
 
             {error && (
-              <div className="text-red-600 text-xs font-semibold p-2 bg-red-50 border border-red-200">
+              <div className="text-red-600 text-[11px] font-semibold p-2 bg-red-50 border border-red-200">
                 {error}
               </div>
             )}
@@ -106,7 +106,7 @@ export function GithubAuthModal({ onClose }: Props) {
             <button 
               onClick={handleSave}
               disabled={loading}
-              className="bg-slate-900 text-white px-6 py-2.5 border border-slate-300 font-medium uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-colors shadow-sm active:scale-95 disabled:opacity-50"
+              className="bg-slate-900 text-white px-6 py-2.5 border border-slate-300 font-medium uppercase text-[12px] tracking-widest hover:bg-slate-800 transition-colors shadow-sm active:scale-95 disabled:opacity-50"
             >
               {loading ? 'CONNECTING...' : 'SAVE & CONNECT'}
             </button>

@@ -99,7 +99,7 @@ export const DetailPanel = ({
         <div className="flex-1 mr-4">
           {isEditing ? (
             <div className="flex flex-col">
-              <label htmlFor="ex-title" className="text-[10px] font-semibold uppercase text-slate-400 tracking-tight">Project Title</label>
+              <label htmlFor="ex-title" className="text-[11px] font-semibold uppercase text-slate-600 tracking-tight">Project Title</label>
               <input 
                 id="ex-title"
                 className="text-lg font-medium text-slate-900 w-full bg-slate-50 border border-slate-300 p-2 outline-none focus:bg-white focus:ring-2 focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm transition-all duration-200" 
@@ -112,7 +112,7 @@ export const DetailPanel = ({
               <h2 className="text-lg font-semibold text-slate-900 leading-none uppercase tracking-tight">{exhibition.title}</h2>
               <div className="flex flex-wrap items-center gap-2 mt-3">
                 <span
-                  className="font-semibold text-[10px] uppercase tracking-tight px-3 py-1 border inline-flex items-center shadow-sm"
+                  className="font-semibold text-[12px] uppercase tracking-tight px-3 py-1 border inline-flex items-center shadow-sm"
                   style={{
                     backgroundColor: getStatusStyles(exhibition.status).bg,
                     borderColor: getStatusStyles(exhibition.status).border,
@@ -121,8 +121,8 @@ export const DetailPanel = ({
                 >
                   {getStatusStyles(exhibition.status).label}
                 </span>
-                <span className="px-3 py-1 border border-slate-200 bg-white text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">{exhibition.gallery}</span>
-                <span className="px-3 py-1 border border-slate-200 bg-white text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">{totalProjectDuration} Months</span>
+                <span className="px-3 py-1 border border-slate-200 bg-white text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-700">{exhibition.gallery}</span>
+                <span className="px-3 py-1 border border-slate-200 bg-white text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-700">{totalProjectDuration} Months</span>
               </div>
             </div>
           )}
@@ -158,7 +158,7 @@ export const DetailPanel = ({
       <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
         <div className="grid grid-cols-1 gap-4">
           <div className="space-y-1 border border-slate-200 bg-white px-4 py-4 shadow-sm">
-            <span id="label-status" className="text-[10px] font-semibold uppercase text-slate-400 tracking-[0.18em]">PROJECT STATUS</span>
+            <span id="label-status" className="text-[11px] font-semibold uppercase text-slate-600 tracking-[0.18em]">PROJECT STATUS</span>
             {isEditing ? (
               <select 
                 id="ex-status"
@@ -171,7 +171,7 @@ export const DetailPanel = ({
             ) : (
               <div>
                 <p 
-                  className="font-semibold text-[10px] uppercase tracking-tight px-3 py-1 border inline-flex items-center shadow-sm" 
+                  className="font-semibold text-[12px] uppercase tracking-tight px-3 py-1 border inline-flex items-center shadow-sm" 
                   style={{ 
                     backgroundColor: getStatusStyles(exhibition.status).bg,
                     borderColor: getStatusStyles(exhibition.status).border,
@@ -188,12 +188,12 @@ export const DetailPanel = ({
         <div className="p-5 border border-slate-300 space-y-4 bg-white shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-700">Scheduling Core</h3>
-              <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400 mt-1">Primary identifiers, lane assignment, and active dates.</p>
+              <h3 className="text-[14px] font-semibold uppercase tracking-[0.16em] text-slate-700">Scheduling Core</h3>
+              <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-slate-600 mt-1">Primary identifiers, lane assignment, and active dates.</p>
             </div>
           </div>
           <div className="space-y-1">
-            <label htmlFor="ex-id" className="text-[10px] font-semibold uppercase text-slate-400 tracking-tight">EXHIBITION ID</label>
+            <label htmlFor="ex-id" className="text-[11px] font-semibold uppercase text-slate-600 tracking-tight">EXHIBITION ID</label>
             {isEditing ? (
               <input 
                 id="ex-id"
@@ -207,7 +207,7 @@ export const DetailPanel = ({
             )}
           </div>
           <div className="space-y-1">
-            <label htmlFor="ex-gallery" className="text-[10px] font-semibold uppercase text-slate-400 tracking-tight">GALLERY LANE</label>
+            <label htmlFor="ex-gallery" className="text-[11px] font-semibold uppercase text-slate-600 tracking-tight">GALLERY LANE</label>
             {isEditing ? (
               <select 
                 id="ex-gallery"
@@ -223,7 +223,7 @@ export const DetailPanel = ({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label htmlFor="ex-start-date" className="text-[10px] font-semibold uppercase text-slate-400 tracking-tight">START DATE</label>
+              <label htmlFor="ex-start-date" className="text-[11px] font-semibold uppercase text-slate-600 tracking-tight">START DATE</label>
               {isEditing ? (
                 <input 
                   id="ex-start-date"
@@ -237,7 +237,7 @@ export const DetailPanel = ({
               )}
             </div>
             <div className="space-y-1">
-              <label htmlFor="ex-end-date" className="text-[10px] font-semibold uppercase text-slate-400 tracking-tight">END DATE</label>
+              <label htmlFor="ex-end-date" className="text-[11px] font-semibold uppercase text-slate-600 tracking-tight">END DATE</label>
               {isEditing ? (
                 <input 
                   id="ex-end-date"
@@ -252,7 +252,7 @@ export const DetailPanel = ({
             </div>
           </div>
           <div className="pt-2 border-t border-slate-200">
-            <label htmlFor="ex-duration" className="text-[10px] font-semibold uppercase text-slate-400 block tracking-tight">TOTAL PROJECT DURATION</label>
+            <label htmlFor="ex-duration" className="text-[11px] font-semibold uppercase text-slate-600 block tracking-tight">TOTAL PROJECT DURATION</label>
             {isEditing ? (
               <div className="flex items-center space-x-2 mt-1">
                 <input 
@@ -278,11 +278,11 @@ export const DetailPanel = ({
         {isEditing && (
           <div className="space-y-4 border border-slate-300 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <h3 className="text-xs font-semibold uppercase tracking-tight">INTERNAL PHASING</h3>
+              <h3 className="text-[12px] font-semibold uppercase tracking-tight">INTERNAL PHASING</h3>
               <button 
                 aria-label="Add new phase"
                 onClick={handleAddPhase} 
-                className="bg-slate-900 text-white px-3 py-1.5 text-[10px] font-medium uppercase tracking-tight hover:bg-slate-700 focus:ring-2 focus:ring-blue-500/50"
+                className="bg-slate-900 text-white px-3 py-1.5 text-[12px] font-medium uppercase tracking-tight hover:bg-slate-700 focus:ring-2 focus:ring-blue-500/50"
               >
                 + ADD PHASE
               </button>
@@ -299,7 +299,7 @@ export const DetailPanel = ({
                         {isPhaseEditing ? (
                           <div className="flex flex-col space-y-3">
                             <div className="space-y-1">
-                              <label className="text-[9px] font-semibold text-slate-400 uppercase tracking-tight">LABEL</label>
+                              <label className="text-[11px] font-semibold text-slate-600 uppercase tracking-tight">LABEL</label>
                               <input 
                                 autoFocus
                                 aria-label={`Phase ${idx + 1} Label`}
@@ -310,7 +310,7 @@ export const DetailPanel = ({
                             </div>
                             <div className="flex items-center space-x-4">
                               <div className="space-y-1">
-                                <label className="text-[9px] font-semibold text-slate-400 uppercase tracking-tight">DURATION (MO)</label>
+                                <label className="text-[11px] font-semibold text-slate-600 uppercase tracking-tight">DURATION (MO)</label>
                                 <input 
                                   type="number"
                                   min="0"
@@ -325,9 +325,9 @@ export const DetailPanel = ({
                                 />
                               </div>
                               <div className="space-y-1">
-                                <label className="text-[9px] font-semibold text-slate-400 uppercase tracking-tight">TYPE</label>
+                                <label className="text-[11px] font-semibold text-slate-600 uppercase tracking-tight">TYPE</label>
                                 <select 
-                                  className="font-semibold text-[10px] uppercase border border-slate-300 bg-white text-slate-900 outline-none p-1.5 focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm"
+                                  className="font-semibold text-[11px] uppercase border border-slate-300 bg-white text-slate-900 outline-none p-1.5 focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm"
                                   value={localPhaseDraft?.typeId || ''}
                                   onChange={(e) => setLocalPhaseDraft(prev => prev ? { ...prev, typeId: e.target.value } : null)}
                                 >
@@ -338,13 +338,13 @@ export const DetailPanel = ({
                             <div className="flex items-center space-x-2 pt-1">
                                <button 
                                 onClick={handleSavePhaseLocal}
-                                className="bg-slate-900 text-white px-3 py-1.5 text-[10px] font-medium uppercase tracking-tight flex items-center hover:bg-slate-700 transition-all duration-200 shadow-sm active:scale-95"
+                                className="bg-slate-900 text-white px-3 py-1.5 text-[12px] font-medium uppercase tracking-tight flex items-center hover:bg-slate-700 transition-all duration-200 shadow-sm active:scale-95"
                               >
                                 <Check size={14} className="mr-1.5" /> CONFIRM
                               </button>
                               <button 
                                 onClick={handleCancelPhaseLocal}
-                                className="bg-white border border-slate-300 text-slate-900 px-3 py-1.5 text-[10px] font-medium uppercase tracking-tight flex items-center hover:bg-slate-50 transition-all duration-200 shadow-sm active:scale-95"
+                                className="bg-white border border-slate-300 text-slate-900 px-3 py-1.5 text-[12px] font-medium uppercase tracking-tight flex items-center hover:bg-slate-50 transition-all duration-200 shadow-sm active:scale-95"
                               >
                                 <X size={14} className="mr-1.5" /> CANCEL
                               </button>
@@ -356,7 +356,7 @@ export const DetailPanel = ({
                                <span className="font-medium text-xs uppercase tracking-tight truncate text-slate-900">{phase.label}</span>
                                <div className="w-2 h-2 border border-slate-200" style={{ backgroundColor: phaseTypes.find(t => t.id === phase.typeId)?.color }} />
                             </div>
-                            <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-tight">{phase.durationMonths} MO</span>
+                            <span className="text-[11px] font-semibold text-slate-700 uppercase tracking-tight">{phase.durationMonths} MO</span>
                           </>
                         )}
                       </div>
@@ -405,17 +405,17 @@ export const DetailPanel = ({
         )}
 
         <div className="space-y-2 border border-slate-300 bg-white p-5 shadow-sm">
-          <label htmlFor="ex-description" className="text-xs font-semibold uppercase tracking-[0.16em] border-b border-slate-200 pb-2 block text-slate-700">NARRATIVE</label>
+          <label htmlFor="ex-description" className="text-[12px] font-semibold uppercase tracking-[0.16em] border-b border-slate-200 pb-2 block text-slate-700">NARRATIVE</label>
           <div className="p-4 border border-slate-300 bg-slate-50/35 min-h-[120px] shadow-sm">
             {isEditing ? (
               <textarea 
                 id="ex-description"
-                className="w-full text-xs font-medium bg-transparent text-slate-900 border-none outline-none h-28 uppercase resize-none focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm" 
+                className="w-full text-[13px] font-medium bg-transparent text-slate-900 border-none outline-none h-28 uppercase resize-none focus:bg-white focus:border-blue-500 focus:ring-blue-500/50 focus:shadow-sm" 
                 value={editedEx.description} 
                 onChange={(e) => handleFieldChange('description', e.target.value.toUpperCase())} 
               />
             ) : (
-              <p className="text-xs font-medium uppercase leading-relaxed text-slate-700">
+              <p className="text-[13px] font-medium uppercase leading-relaxed text-slate-700">
                 {exhibition.description || "NO PROJECT DESCRIPTION PROVIDED."}
               </p>
             )}
@@ -426,22 +426,22 @@ export const DetailPanel = ({
           <div className="p-5 border-t border-slate-200 flex gap-3 bg-white/90 backdrop-blur-sm shrink-0">
         {isEditing ? (
           <>
-            <button onClick={() => setIsEditing(false)} className="flex-1 py-2.5 bg-white border border-slate-300 font-semibold uppercase tracking-tight text-xs hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/50">DISCARD</button>
-            <button onClick={handleSaveAll} className="flex-1 py-2.5 bg-slate-900 text-white border border-slate-300 font-semibold uppercase tracking-tight text-xs hover:bg-slate-700 focus:ring-2 focus:ring-blue-500/50 shadow-sm">SAVE ALL</button>
+            <button onClick={() => setIsEditing(false)} className="flex-1 py-2.5 bg-white border border-slate-300 font-semibold uppercase tracking-tight text-[12px] hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/50">DISCARD</button>
+            <button onClick={handleSaveAll} className="flex-1 py-2.5 bg-slate-900 text-white border border-slate-300 font-semibold uppercase tracking-tight text-[12px] hover:bg-slate-700 focus:ring-2 focus:ring-blue-500/50 shadow-sm">SAVE ALL</button>
           </>
         ) : (
           <>
             <button 
               aria-label="Duplicate this project"
               onClick={() => onDuplicate(exhibition.id)} 
-              className="flex-1 py-2.5 bg-white border border-slate-300 font-semibold uppercase tracking-tight text-[10px] flex items-center justify-center hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+              className="flex-1 py-2.5 bg-white border border-slate-300 font-semibold uppercase tracking-tight text-[12px] flex items-center justify-center hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
             >
               <Copy size={13} className="mr-2" /> DUPLICATE
             </button>
             <button 
               aria-label="Delete this project"
               onClick={() => onDelete(exhibition.id)} 
-              className="flex-1 py-2.5 bg-white border border-slate-300 font-semibold uppercase tracking-tight text-[10px] flex items-center justify-center hover:bg-red-500 hover:text-white focus:ring-2 focus:ring-red-500 transition-all duration-200"
+              className="flex-1 py-2.5 bg-white border border-slate-300 font-semibold uppercase tracking-tight text-[12px] flex items-center justify-center hover:bg-red-500 hover:text-white focus:ring-2 focus:ring-red-500 transition-all duration-200"
             >
               <Trash2 size={13} className="mr-2" /> REMOVE
             </button>

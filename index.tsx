@@ -353,7 +353,7 @@ export default function MasterScheduler() {
       {editMilestoneDraft && (
         <div className="fixed inset-0 bg-slate-900/40 z-[100] backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setEditMilestoneDraft(null)}>
           <div className="bg-white border border-slate-300 w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="bg-slate-900 text-white px-4 py-3 font-semibold tracking-widest flex justify-between items-center text-[10px]">
+            <div className="bg-slate-900 text-white px-4 py-3 font-semibold tracking-widest flex justify-between items-center text-[12px]">
               <span>EDIT MILESTONE</span>
               <button aria-label="Close" onClick={() => setEditMilestoneDraft(null)} className="hover:text-red-400 transition-colors">
                 <X size={14} strokeWidth={3} />
@@ -361,7 +361,7 @@ export default function MasterScheduler() {
             </div>
             <div className="p-6 space-y-6">
               <div className="space-y-2">
-                <label className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Milestone Title</label>
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-700">Milestone Title</label>
                 <input 
                   type="text" 
                   className="w-full border border-slate-300 p-3 font-semibold uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
@@ -372,7 +372,7 @@ export default function MasterScheduler() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Date</label>
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-700">Date</label>
                 <input 
                   type="date" 
                   className="w-full border border-slate-300 p-3 font-medium uppercase text-sm outline-none focus:bg-slate-50 transition-colors" 
@@ -382,21 +382,21 @@ export default function MasterScheduler() {
               </div>
               
               <div className="space-y-4">
-                <label className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Milestone Icon & Color</label>
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-700">Milestone Icon & Color</label>
                 <div className="flex gap-4 mb-4">
                   <button 
                     onClick={() => setEditMilestoneDraft({ ...editMilestoneDraft, icon: 'diamond' })}
                     className={`flex items-center space-x-2 px-4 py-2 border-2 transition-colors ${editMilestoneDraft.icon !== 'flag' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200 hover:bg-slate-50'}`}
                   >
                     <div className="w-3 h-3 bg-white border border-slate-300 rotate-45" />
-                    <span className="text-[10px] font-medium uppercase">Diamond</span>
+                    <span className="text-[12px] font-medium uppercase">Diamond</span>
                   </button>
                   <button 
                     onClick={() => setEditMilestoneDraft({ ...editMilestoneDraft, icon: 'flag' })}
                     className={`flex items-center space-x-2 px-4 py-2 border-2 transition-colors ${editMilestoneDraft.icon === 'flag' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200 hover:bg-slate-50'}`}
                   >
                     <Flag size={14} fill="white" stroke="black" strokeWidth={2} />
-                    <span className="text-[10px] font-medium uppercase">Flag</span>
+                    <span className="text-[12px] font-medium uppercase">Flag</span>
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -407,7 +407,7 @@ export default function MasterScheduler() {
                       className={`flex items-center space-x-2 px-3 py-1.5 border-2 hover:bg-slate-50 transition-colors ${editMilestoneDraft.color === c.value || (!editMilestoneDraft.color && c.value === '#dc2626') ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200'}`}
                     >
                       <div className="w-3 h-3 border border-slate-300" style={{ backgroundColor: c.value }} />
-                      <span className="text-[8px] font-medium tracking-widest uppercase">{c.label}</span>
+                      <span className="text-[10px] font-medium tracking-widest uppercase">{c.label}</span>
                     </button>
                   ))}
                 </div>
@@ -429,7 +429,7 @@ export default function MasterScheduler() {
                       }
                     }
                   }} 
-                  className="text-red-600 font-semibold text-[10px] uppercase tracking-widest hover:underline flex items-center"
+                  className="text-red-600 font-semibold text-[12px] uppercase tracking-widest hover:underline flex items-center"
                 >
                   <Trash2 size={12} className="mr-1.5" strokeWidth={3} /> DELETE
                 </button>
@@ -461,7 +461,7 @@ export default function MasterScheduler() {
                     }
                     setEditMilestoneDraft(null);
                   }} 
-                  className="bg-slate-900 text-white px-6 py-2.5 border border-slate-300 font-medium uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-colors shadow-sm active:scale-95"
+                  className="bg-slate-900 text-white px-6 py-2.5 border border-slate-300 font-medium uppercase text-[12px] tracking-widest hover:bg-slate-800 transition-colors shadow-sm active:scale-95"
                 >
                   SAVE OVERRIDE
                 </button>
@@ -507,14 +507,14 @@ export default function MasterScheduler() {
                 <div className="flex items-center shrink-0 space-x-4">
                   <div className="flex flex-col min-w-[210px]">
                     <h1 className="text-[11px] font-semibold tracking-[0.18em] uppercase leading-none text-slate-900">{museumName}</h1>
-                    <span className="text-[9px] font-medium uppercase tracking-[0.24em] text-slate-400 mt-1">Portfolio Scheduler</span>
+                    <span className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-600 mt-1">Portfolio Scheduler</span>
                   </div>
 
                   <div className="flex items-center space-x-2 no-print border border-slate-200 bg-slate-50/85 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
                     <div className="relative group">
                       <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-black transition-colors" />
                       <input 
-                        className="h-8 pl-9 pr-4 bg-white border border-slate-200 text-[10px] font-medium uppercase outline-none focus:bg-white focus:ring-2 focus:ring-black/5 focus:border-slate-300 transition-all w-[200px]"
+                        className="h-8 pl-9 pr-4 bg-white border border-slate-200 text-[12px] font-medium uppercase outline-none focus:bg-white focus:ring-2 focus:ring-black/5 focus:border-slate-300 transition-all w-[200px]"
                         placeholder="Search Portfolio..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -524,7 +524,7 @@ export default function MasterScheduler() {
                     <div className="flex items-center space-x-1 border border-slate-200 h-8 px-1.5 bg-slate-50">
                       <Filter size={12} className="text-slate-400 ml-1" />
                       <select 
-                        className="bg-transparent border-none outline-none text-[9px] font-semibold uppercase cursor-pointer px-1 pr-6"
+                        className="bg-transparent border-none outline-none text-[11px] font-semibold uppercase cursor-pointer px-1 pr-6"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value as any)}
                       >
@@ -544,8 +544,8 @@ export default function MasterScheduler() {
 	                    {currentUser ? (
 	                      <div className="flex items-center space-x-3">
                         <div className="flex flex-col items-end">
-                          <span className="text-[9px] font-semibold uppercase leading-none text-slate-800">{currentUser.displayName || 'Me'}</span>
-                          <span className="text-[7px] font-medium text-slate-400 leading-none mt-1">{currentUser.email}</span>
+                          <span className="text-[11px] font-semibold uppercase leading-none text-slate-800">{currentUser.displayName || 'Me'}</span>
+                          <span className="text-[10px] font-medium text-slate-600 leading-none mt-1">{currentUser.email}</span>
                         </div>
                         <button 
                           onClick={() => {
@@ -573,10 +573,10 @@ export default function MasterScheduler() {
 	                  </div>
 
 	                  <div className="flex items-center space-x-2 border border-slate-300 px-3 py-2 bg-slate-50 shadow-sm">
-	                    <input aria-label="Timeline start date" type="date" value={timelineStartDate} onChange={(e) => setTimelineStartDate(e.target.value)} className="bg-transparent text-[9px] font-semibold uppercase outline-none w-[100px]" />
+	                    <input aria-label="Timeline start date" type="date" value={timelineStartDate} onChange={(e) => setTimelineStartDate(e.target.value)} className="bg-transparent text-[11px] font-semibold uppercase outline-none w-[110px]" />
 	                    <span className="font-medium text-slate-300">-</span>
-	                    <input aria-label="Timeline end date" type="date" value={timelineEndDate} onChange={(e) => setTimelineEndDate(e.target.value)} className="bg-transparent text-[9px] font-semibold uppercase outline-none w-[100px]" />
-	                    <select aria-label="Select timeline view preset" onChange={(e) => applyPreset(parseInt(e.target.value))} className="bg-transparent text-[9px] font-semibold uppercase outline-none ml-1 border-l border-slate-200 pl-1 cursor-pointer">
+	                    <input aria-label="Timeline end date" type="date" value={timelineEndDate} onChange={(e) => setTimelineEndDate(e.target.value)} className="bg-transparent text-[11px] font-semibold uppercase outline-none w-[110px]" />
+	                    <select aria-label="Select timeline view preset" onChange={(e) => applyPreset(parseInt(e.target.value))} className="bg-transparent text-[11px] font-semibold uppercase outline-none ml-1 border-l border-slate-200 pl-1 cursor-pointer">
                       <option value="3">PRESETS</option>
                       <option value="1">1 YEAR</option>
                       <option value="2">2 YEARS</option>
@@ -626,7 +626,7 @@ export default function MasterScheduler() {
 	                  <button 
 	                    aria-label={showConflicts ? "Hide Conflicts" : "Show Conflicts"}
 	                    onClick={() => setShowConflicts(!showConflicts)} 
-	                    className={`p-2 border transition-colors focus:ring-2 focus:ring-black shadow-sm ${showConflicts ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-slate-300 text-slate-400'}`}
+	                    className={`p-2 border transition-colors focus:ring-2 focus:ring-black shadow-sm ${showConflicts ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-slate-300 text-slate-600'}`}
 	                    title={showConflicts ? "Hide Conflicts" : "Show Conflicts"}
                   >
                     <AlertTriangle size={16} strokeWidth={showConflicts ? 2.5 : 2} />
@@ -635,7 +635,7 @@ export default function MasterScheduler() {
 	                  <button 
 	                    aria-label={showHolidays ? "Hide Provincial Holidays" : "Show Provincial Holidays"}
 	                    onClick={() => setShowHolidays(!showHolidays)} 
-	                    className={`p-2 border transition-colors focus:ring-2 focus:ring-black shadow-sm ${showHolidays ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white border-slate-300 text-slate-400'}`}
+	                    className={`p-2 border transition-colors focus:ring-2 focus:ring-black shadow-sm ${showHolidays ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white border-slate-300 text-slate-600'}`}
 	                    title={showHolidays ? "Hide Holidays" : "Show Holidays"}
                   >
                     {showHolidays ? <Calendar size={16} strokeWidth={2.5} /> : <CalendarOff size={16} strokeWidth={2} />}
@@ -678,7 +678,7 @@ export default function MasterScheduler() {
                         }
                       }
                     }} 
-	                    className="px-4 py-2 bg-slate-900 text-white border border-slate-300 font-semibold uppercase text-[9px] hover:bg-slate-800 transition-colors flex items-center shadow-sm"
+	                    className="px-4 py-2 bg-slate-900 text-white border border-slate-300 font-semibold uppercase text-[11px] hover:bg-slate-800 transition-colors flex items-center shadow-sm"
 	                  >
                     <Plus size={12} className="mr-1.5" strokeWidth={3} /> NEW PROJECT
                   </button>
@@ -693,13 +693,13 @@ export default function MasterScheduler() {
                 </div>
               </nav>
               <div className="px-4 py-2.5 border-t border-slate-100 bg-[linear-gradient(90deg,#f8fafc_0%,#fff7ed_45%,#f8fafc_100%)] flex items-center justify-between gap-4 overflow-x-auto shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
-                <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 shrink-0">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700 shrink-0">
                   <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 shadow-sm">Visible Range {timelineStartDate} to {timelineEndDate}</span>
                   <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 shadow-sm">{viewMonths.length} Months</span>
                   <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 shadow-sm">{filteredExhibitions.length} Projects</span>
                   <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 shadow-sm">Print Scale {Math.round(printScale * 100)}%</span>
                 </div>
-                <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 shrink-0">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700 shrink-0">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 shadow-sm">
                     <span className="w-2 h-2 bg-emerald-500" />
                     Open
@@ -733,7 +733,7 @@ export default function MasterScheduler() {
 	                    return (
 		                      <div key={gallery} style={{ height: `${laneHeight}px` }} className="relative border-b-[3px] border-slate-800 bg-white/80">
 		                        <div className="absolute top-0 left-0 w-full min-h-[32px] bg-[linear-gradient(90deg,#e2e8f0_0%,#f8fafc_100%)] border-b border-slate-300 flex items-center px-4 py-1 z-20 print:bg-white">
-		                          <span className="font-bold uppercase text-[10px] tracking-[0.18em] text-slate-800 leading-tight break-words">{gallery}</span>
+		                          <span className="font-bold uppercase text-[12px] tracking-[0.18em] text-slate-800 leading-tight break-words">{gallery}</span>
 		                        </div>
                         {galleryProjects.map(ex => {
                           const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
@@ -741,9 +741,9 @@ export default function MasterScheduler() {
                           const topPos = 32 + (trackIndex * TRACK_HEIGHT);
                           return (
                             <div key={`title-${ex.id}`} className="absolute left-4 w-[calc(100%-1rem)] pr-2" style={{ top: topPos + 8 }}>
-                              <div className="text-[10px] font-bold text-slate-800 leading-tight break-words underline-offset-2" title={ex.title}>{ex.title}</div>
+                              <div className="text-[11px] font-bold text-slate-800 leading-tight break-words underline-offset-2" title={ex.title}>{ex.title}</div>
                               {ex.exhibitionId && (
-                                <div className="text-[8px] font-bold text-slate-500 mt-0 uppercase tracking-tight">
+                                <div className="text-[10px] font-bold text-slate-700 mt-0 uppercase tracking-tight">
                                   {ex.exhibitionId}
                                 </div>
                               )}
@@ -768,11 +768,11 @@ export default function MasterScheduler() {
 	                <div className="hidden print:flex justify-between items-end mb-3 pb-3 border-b-2 border-slate-300">
 	                  <div>
 	                    <h1 className="text-xl font-bold uppercase tracking-[0.16em]">{museumName}</h1>
-	                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 mt-1">Portfolio Review Timeline</p>
+	                    <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-600 mt-1">Portfolio Review Timeline</p>
 	                  </div>
 	                  <div className="text-right">
-	                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">Visible Range {timelineStartDate} to {timelineEndDate}</p>
-	                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 mt-1">{filteredExhibitions.length} Projects • {viewMonths.length} Months</p>
+	                    <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-700">Visible Range {timelineStartDate} to {timelineEndDate}</p>
+	                    <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-600 mt-1">{filteredExhibitions.length} Projects • {viewMonths.length} Months</p>
 	                  </div>
 	                </div>
 
@@ -847,7 +847,7 @@ export default function MasterScheduler() {
 	                <div className="inline-flex flex-col relative min-h-full">
 	                  {/* Now Indicator */}
                   <div className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-[70] pointer-events-none" style={{ left: `${todayPos}px` }}>
-                    <div className="sticky top-[6px] bg-red-600 text-white font-semibold text-[8px] px-1.5 py-0.5 uppercase transform -translate-x-1/2 shadow-sm w-max whitespace-nowrap">TODAY</div>
+                    <div className="sticky top-[6px] bg-red-600 text-white font-semibold text-[10px] px-1.5 py-0.5 uppercase transform -translate-x-1/2 shadow-sm w-max whitespace-nowrap">TODAY</div>
                   </div>
 
                   {/* Header */}
@@ -910,8 +910,8 @@ export default function MasterScheduler() {
                             <div className="max-w-md bg-white/90 border border-slate-200 px-8 py-10 shadow-[0_18px_40px_rgba(15,23,42,0.08)] text-center">
 	                            <Search size={40} className="mx-auto mb-4 text-slate-300" />
 	                            <p className="text-xl font-semibold uppercase tracking-[0.18em] text-slate-700">No Projects Found</p>
-	                            <p className="text-[10px] font-medium uppercase mt-3 text-slate-400 tracking-[0.2em]">Adjust filters or create a project to begin portfolio planning</p>
-                              <div className="mt-5 inline-flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500 border border-slate-200 bg-slate-50 px-3 py-1.5">
+	                            <p className="text-[12px] font-medium uppercase mt-3 text-slate-600 tracking-[0.2em]">Adjust filters or create a project to begin portfolio planning</p>
+                              <div className="mt-5 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700 border border-slate-200 bg-slate-50 px-3 py-1.5">
                                 <Plus size={12} />
                                 New Project
                               </div>
@@ -937,9 +937,9 @@ export default function MasterScheduler() {
                                 >
                                   <div className={`w-2 h-2 rotate-45 border-[1.5px] border-slate-900 shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-transform group-hover/holiday:scale-125 ${holiday.type === 'Statutory' ? 'bg-slate-800' : 'bg-white'}`} />
                                   
-                                  <div className={`absolute left-1/2 -translate-x-1/2 text-[7px] font-semibold uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
+                                  <div className={`absolute left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
                                     {holiday.label}
-                                    <span className="text-[5px] text-slate-400 font-medium opacity-60">
+                                    <span className="text-[9px] text-slate-600 font-medium">
                                       {holiday.date.split('-')[1]}/{holiday.date.split('-')[2]}
                                     </span>
                                   </div>
@@ -1048,7 +1048,7 @@ export default function MasterScheduler() {
                                  }
                                }}
                              >
-                                <div className="hidden group-hover:flex absolute left-4 h-full items-center text-[9px] text-slate-400 font-medium uppercase pointer-events-none tracking-widest gap-2">
+                                <div className="hidden group-hover:flex absolute left-4 h-full items-center text-[11px] text-slate-600 font-medium uppercase pointer-events-none tracking-widest gap-2">
                                   <Plus size={10} strokeWidth={3} /> DBL-CLICK TO ADD MILESTONE
                                 </div>
                                 {(() => {
@@ -1340,7 +1340,7 @@ export default function MasterScheduler() {
 	              <section className="space-y-6">
 	                <div className="flex items-center text-sm font-semibold uppercase tracking-widest space-x-3 text-slate-900"><Building2 size={18} /><span>ORG STANDARDS</span></div>
 	                <div className="border border-slate-300 p-6 bg-white shadow-sm hover:shadow-md transition-all">
-                  <label htmlFor="museum-name-input" className="text-[9px] font-semibold uppercase mb-2 block text-slate-400">ORGANIZATION NAME</label>
+                  <label htmlFor="museum-name-input" className="text-[11px] font-semibold uppercase mb-2 block text-slate-600">ORGANIZATION NAME</label>
                   <input 
                     id="museum-name-input"
                     className="w-full text-lg font-semibold bg-white border border-slate-300 p-3 outline-none uppercase shadow-inner focus:border-slate-300 transition-colors" 
@@ -1373,7 +1373,7 @@ export default function MasterScheduler() {
 	                        <label htmlFor={`phase-label-${idx}`} className="sr-only">Phase Label {idx + 1}</label>
 	                        <input 
 	                          id={`phase-label-${idx}`}
-	                          className="w-full font-medium uppercase text-[10px] outline-none border-b border-transparent focus:border-slate-300 bg-transparent" 
+	                          className="w-full font-medium uppercase text-[12px] outline-none border-b border-transparent focus:border-slate-300 bg-transparent" 
 	                          value={type.label} 
 	                          onChange={(e) => {
 	                            const next = [...phaseTypes];
@@ -1382,9 +1382,9 @@ export default function MasterScheduler() {
 	                          }} 
 	                        />
                           <div className="flex items-center gap-1 mt-2">
-                            {type.isActive && <span className="px-2 py-0.5 border border-amber-200 bg-amber-100 text-amber-800 text-[8px] font-semibold uppercase tracking-[0.14em]">Active Window</span>}
-                            {type.isPost && <span className="px-2 py-0.5 border border-slate-300 bg-slate-200 text-slate-700 text-[8px] font-semibold uppercase tracking-[0.14em]">Post Phase</span>}
-                            {!type.isActive && !type.isPost && <span className="px-2 py-0.5 border border-slate-200 bg-slate-100 text-slate-500 text-[8px] font-semibold uppercase tracking-[0.14em]">Preparation</span>}
+                            {type.isActive && <span className="px-2 py-0.5 border border-amber-200 bg-amber-100 text-amber-800 text-[10px] font-semibold uppercase tracking-[0.14em]">Active Window</span>}
+                            {type.isPost && <span className="px-2 py-0.5 border border-slate-300 bg-slate-200 text-slate-700 text-[10px] font-semibold uppercase tracking-[0.14em]">Post Phase</span>}
+                            {!type.isActive && !type.isPost && <span className="px-2 py-0.5 border border-slate-200 bg-slate-100 text-slate-500 text-[10px] font-semibold uppercase tracking-[0.14em]">Preparation</span>}
                           </div>
 	                      </div>
 	                    </div>
@@ -1397,7 +1397,7 @@ export default function MasterScheduler() {
 	                  <div className="flex items-center text-sm font-semibold uppercase tracking-widest space-x-3 text-slate-900"><MapPin size={18} /><span>LOCATIONS & GALLERIES</span></div>
 	                  <button 
 	                    onClick={handleAddGallery}
-	                    className="text-[9px] font-semibold uppercase bg-slate-900 text-white px-3 py-1.5 hover:bg-slate-800 transition-colors shadow-sm"
+	                    className="text-[11px] font-semibold uppercase bg-slate-900 text-white px-3 py-1.5 hover:bg-slate-800 transition-colors shadow-sm"
 	                  >
 	                    + ADD LOCATION
 	                  </button>
@@ -1405,10 +1405,10 @@ export default function MasterScheduler() {
 	                <div className="space-y-3">
 	                  {galleries.map((gallery, idx) => (
 	                    <div key={`${gallery}-${idx}`} className="flex items-center space-x-3 p-4 border border-slate-300 bg-white shadow-sm hover:shadow-md transition-all">
-                      <div className="w-8 h-8 bg-slate-100 flex items-center justify-center font-semibold text-slate-400 text-xs">{idx + 1}</div>
+                      <div className="w-8 h-8 bg-slate-100 flex items-center justify-center font-semibold text-slate-600 text-sm">{idx + 1}</div>
                       <input 
                         aria-label={`Location name ${idx + 1}`}
-                        className="flex-1 font-semibold uppercase text-sm border-b-2 border-transparent focus:border-slate-300 bg-transparent outline-none py-1" 
+                        className="flex-1 font-semibold uppercase text-[14px] border-b-2 border-transparent focus:border-slate-300 bg-transparent outline-none py-1" 
                         value={gallery} 
                         onChange={(e) => handleUpdateGalleryName(gallery, e.target.value.toUpperCase())}
                       />
