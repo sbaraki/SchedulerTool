@@ -502,29 +502,29 @@ export default function MasterScheduler() {
       <main className="flex-1 flex flex-col min-w-0">
         {activeTab === 'portfolio' ? (
           <>
-            <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 shrink-0 shadow-[0_12px_30px_rgba(15,23,42,0.06)]">
-	      <nav className="px-4 py-3 flex items-center justify-between gap-4 overflow-x-auto hide-scrollbar">
-                <div className="flex items-center shrink-0 space-x-4">
-                  <div className="flex flex-col min-w-[210px]">
-                    <h1 className="text-[11px] font-semibold tracking-[0.18em] uppercase leading-none text-slate-900">{museumName}</h1>
-                    <span className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-600 mt-1">Portfolio Scheduler</span>
+            <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 z-50 shrink-0 shadow-sm print:hidden">
+	      <nav className="px-4 py-2 flex items-center justify-between gap-4">
+                {/* Left: Brand & Search */}
+                <div className="flex items-center space-x-4">
+                  <div className="flex flex-col min-w-[140px]">
+                    <h1 className="text-[11px] font-bold tracking-[0.12em] uppercase leading-none text-slate-900 truncate">{museumName}</h1>
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 mt-0.5">Scheduler</span>
                   </div>
 
-                  <div className="flex items-center space-x-2 no-print border border-slate-200 bg-slate-50/85 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-                    <div className="relative group">
-                      <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-black transition-colors" />
+                  <div className="flex items-center no-print border border-slate-200 bg-white overflow-hidden shadow-sm">
+                    <div className="relative border-r border-slate-100 group">
+                      <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-black transition-colors" />
                       <input 
-                        className="h-8 pl-9 pr-4 bg-white border border-slate-200 text-[12px] font-medium uppercase outline-none focus:bg-white focus:ring-2 focus:ring-black/5 focus:border-slate-300 transition-all w-[200px]"
-                        placeholder="Search Portfolio..."
+                        className="h-7 pl-8 pr-3 bg-white text-[11px] font-medium uppercase outline-none focus:bg-slate-50/50 transition-all w-[140px]"
+                        placeholder="SEARCH..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
-                    
-                    <div className="flex items-center space-x-1 border border-slate-200 h-8 px-1.5 bg-slate-50">
-                      <Filter size={12} className="text-slate-400 ml-1" />
+                    <div className="flex items-center px-1 bg-slate-50/50">
+                      <Filter size={10} className="text-slate-400 ml-1" />
                       <select 
-                        className="bg-transparent border-none outline-none text-[11px] font-semibold uppercase cursor-pointer px-1 pr-6"
+                        className="bg-transparent border-none outline-none text-[10px] font-bold uppercase cursor-pointer px-1 pr-4 h-7"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value as any)}
                       >
@@ -538,158 +538,125 @@ export default function MasterScheduler() {
                   </div>
                 </div>
 
-	                <div className="flex items-center space-x-3 no-print shrink-0">
-	                  {/* Auth Buttons */}
-	                  <div className="flex items-center border border-slate-200 bg-white px-3 py-2 shadow-sm">
-	                    {currentUser ? (
-	                      <div className="flex items-center space-x-3">
-                        <div className="flex flex-col items-end">
-                          <span className="text-[11px] font-semibold uppercase leading-none text-slate-800">{currentUser.displayName || 'Me'}</span>
-                          <span className="text-[10px] font-medium text-slate-600 leading-none mt-1">{currentUser.email}</span>
-                        </div>
-                        <button 
-                          onClick={() => {
-                            if (window.confirm('Sign out and switch to local mode?')) {
-                              localStorage.removeItem('github_pat');
-                              localStorage.removeItem('github_gist_id');
-                              window.location.reload();
-                            }
-                          }}
-                          className="p-1.5 border border-slate-300 bg-white hover:bg-slate-50 text-slate-600 hover:text-red-600 transition-colors"
-                          title="Sign Out"
-                        >
-                          <LogOut size={16} strokeWidth={2} />
-                        </button>
-                      </div>
-                    ) : (
-                      <button 
-                        onClick={() => setShowGithubAuth(true)}
-                        className="flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-300 font-semibold uppercase text-[9px] hover:bg-slate-800 hover:text-white transition-all shadow-sm active:scale-95"
-                      >
-                        <LogIn size={12} strokeWidth={3} />
-                        <span>Sign In to Sync</span>
-                      </button>
-	                    )}
-	                  </div>
-
-	                  <div className="flex items-center space-x-2 border border-slate-300 px-3 py-2 bg-slate-50 shadow-sm">
-	                    <input aria-label="Timeline start date" type="date" value={timelineStartDate} onChange={(e) => setTimelineStartDate(e.target.value)} className="bg-transparent text-[11px] font-semibold uppercase outline-none w-[110px]" />
-	                    <span className="font-medium text-slate-300">-</span>
-	                    <input aria-label="Timeline end date" type="date" value={timelineEndDate} onChange={(e) => setTimelineEndDate(e.target.value)} className="bg-transparent text-[11px] font-semibold uppercase outline-none w-[110px]" />
-	                    <select aria-label="Select timeline view preset" onChange={(e) => applyPreset(parseInt(e.target.value))} className="bg-transparent text-[11px] font-semibold uppercase outline-none ml-1 border-l border-slate-200 pl-1 cursor-pointer">
+                {/* Center: View Controls */}
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 border border-slate-200 bg-white px-2 py-1 shadow-sm">
+                    <input aria-label="Start" type="date" value={timelineStartDate} onChange={(e) => setTimelineStartDate(e.target.value)} className="bg-transparent text-[10px] font-bold uppercase outline-none w-[95px] h-5" />
+                    <span className="text-slate-300 font-bold">-</span>
+                    <input aria-label="End" type="date" value={timelineEndDate} onChange={(e) => setTimelineEndDate(e.target.value)} className="bg-transparent text-[10px] font-bold uppercase outline-none w-[95px] h-5" />
+                    <select aria-label="Presets" onChange={(e) => applyPreset(parseInt(e.target.value))} className="bg-transparent text-[10px] font-bold uppercase outline-none ml-1 border-l border-slate-200 pl-1 cursor-pointer h-5">
                       <option value="3">PRESETS</option>
                       <option value="1">1 YEAR</option>
                       <option value="2">2 YEARS</option>
                       <option value="3">3 YEARS</option>
                       <option value="4">4 YEARS</option>
-                      <option value="5">5 YEARS</option>
                     </select>
                   </div>
                   
-	                  <div className="flex items-center space-x-3 border border-slate-300 px-3 py-2 bg-slate-50 shadow-sm">
-	                    <button 
+                  <div className="flex items-center border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <button 
                       aria-label="Zoom out"
                       onClick={() => setMonthWidth(prev => Math.max(24, prev - 20))} 
-                      className="p-1 hover:text-slate-500 transition-colors"
+                      className="p-1.5 hover:bg-slate-50 border-r border-slate-100 transition-colors text-slate-500"
                     >
-                      <ZoomOut size={14} />
+                      <ZoomOut size={13} />
                     </button>
-                    <div className="flex flex-col items-center">
-                      <label htmlFor="timeline-zoom" className="sr-only">Timeline Zoom Level</label>
-                      <input 
-                        id="timeline-zoom"
-                        type="range" 
-                        min="24" 
-                        max="300" 
-                        value={monthWidth} 
-                        onChange={(e) => setMonthWidth(parseInt(e.target.value))} 
-                        className="w-20 accent-black" 
-                      />
-                    </div>
                     <button 
                       aria-label="Zoom in"
                       onClick={() => setMonthWidth(prev => Math.min(300, prev + 20))} 
-                      className="p-1 hover:text-slate-500 transition-colors"
+                      className="p-1.5 hover:bg-slate-50 transition-colors text-slate-500"
                     >
-                      <ZoomIn size={14} />
+                      <ZoomIn size={13} />
                     </button>
                   </div>
 
-	                  <button 
-	                    aria-label="Print Timeline"
-	                    onClick={() => window.print()} 
-	                    className="p-2 border border-slate-300 bg-white hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-black shadow-sm"
-	                  >
-                    <Printer size={16} strokeWidth={2} />
-                  </button>
+                  <div className="flex items-center space-x-1 ml-1">
+                    <button 
+                      onClick={() => setShowConflicts(!showConflicts)} 
+                      className={`p-1.5 border shadow-sm transition-colors ${showConflicts ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-slate-200 text-slate-400'}`}
+                      title="Conflicts"
+                    >
+                      <AlertTriangle size={13} />
+                    </button>
+                    <button 
+                      onClick={() => setShowHolidays(!showHolidays)} 
+                      className={`p-1.5 border shadow-sm transition-colors ${showHolidays ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white border-slate-200 text-slate-400'}`}
+                      title="Holidays"
+                    >
+                      <Calendar size={13} />
+                    </button>
+                  </div>
+                </div>
 
-	                  <button 
-	                    aria-label={showConflicts ? "Hide Conflicts" : "Show Conflicts"}
-	                    onClick={() => setShowConflicts(!showConflicts)} 
-	                    className={`p-2 border transition-colors focus:ring-2 focus:ring-black shadow-sm ${showConflicts ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-slate-300 text-slate-600'}`}
-	                    title={showConflicts ? "Hide Conflicts" : "Show Conflicts"}
-                  >
-                    <AlertTriangle size={16} strokeWidth={showConflicts ? 2.5 : 2} />
-                  </button>
+                {/* Right: User & Actions */}
+                <div className="flex items-center space-x-3">
+                  {currentUser && (
+                    <div className="flex items-center space-x-2 border-r border-slate-200 pr-3 mr-1">
+                      <div className="flex flex-col items-end">
+                        <span className="text-[10px] font-bold uppercase leading-none text-slate-800">{currentUser.displayName || 'Me'}</span>
+                        <span className="text-[8px] font-medium text-slate-500 leading-none mt-0.5 truncate max-w-[80px]">{currentUser.email}</span>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (window.confirm('Sign out?')) {
+                            localStorage.removeItem('github_pat');
+                            localStorage.removeItem('github_gist_id');
+                            window.location.reload();
+                          }
+                        }}
+                        className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                      >
+                        <LogOut size={12} />
+                      </button>
+                    </div>
+                  )}
 
-	                  <button 
-	                    aria-label={showHolidays ? "Hide Provincial Holidays" : "Show Provincial Holidays"}
-	                    onClick={() => setShowHolidays(!showHolidays)} 
-	                    className={`p-2 border transition-colors focus:ring-2 focus:ring-black shadow-sm ${showHolidays ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white border-slate-300 text-slate-600'}`}
-	                    title={showHolidays ? "Hide Holidays" : "Show Holidays"}
-                  >
-                    {showHolidays ? <Calendar size={16} strokeWidth={2.5} /> : <CalendarOff size={16} strokeWidth={2} />}
-                  </button>
+                  {!currentUser && (
+                    <button 
+                      onClick={() => setShowGithubAuth(true)}
+                      className="px-2.5 py-1.5 bg-white border border-slate-300 font-bold uppercase text-[9px] hover:bg-slate-50 transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+                    >
+                      <LogIn size={11} /> SYNC
+                    </button>
+                  )}
 
-                  <button 
-                    aria-label="Create new exhibition project"
-                    onClick={async () => {
-                      const id = Math.random().toString(36).substr(2,9);
-                      const now = new Date();
-                      const exStart = getDateWithMonthDuration(toISODate(now), 12);
-                      const exEnd = getDateWithMonthDuration(exStart, 3);
-                      const newEx: Exhibition = { 
-                        id, 
-                        exhibitionId: '',
-                        title: 'NEW EXHIBITION', 
-                        status: 'Proposed', 
-                        startDate: exStart, 
-                        endDate: exEnd, 
-                        gallery: galleries[0], 
-                        milestones: [], 
-                        phases: phaseTypes.map(pt => ({
-                          id: Math.random().toString(36).substr(2,9),
-                          label: pt.label,
-                          durationMonths: pt.isPost ? 1 : 3,
-                          typeId: pt.id
-                        })), 
-                        description: '' 
-                      };
-                      setExhibitions([...exhibitions, newEx]);
-                      setSelectedProjectId(id);
-
-                      if (currentUser) {
-                        try {
-                          setSyncStatus('syncing');
-                          // Handled by auto-save
-                          setSyncStatus('synced');
-                        } catch (err) {
-                          setSyncStatus('error');
-                        }
-                      }
-                    }} 
-	                    className="px-4 py-2 bg-slate-900 text-white border border-slate-300 font-semibold uppercase text-[11px] hover:bg-slate-800 transition-colors flex items-center shadow-sm"
-	                  >
-                    <Plus size={12} className="mr-1.5" strokeWidth={3} /> NEW PROJECT
-                  </button>
-                  
-	                  <button 
-	                    aria-label="Open settings"
-	                    onClick={() => setActiveTab('settings')} 
-	                    className="p-2 border border-slate-300 bg-white hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-black shadow-sm"
-	                  >
-                    <Settings size={16} strokeWidth={2} />
-                  </button>
+                  <div className="flex items-center space-x-1.5">
+                    <button 
+                      onClick={() => window.print()} 
+                      className="p-1.5 border border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-sm"
+                      title="Print"
+                    >
+                      <Printer size={13} />
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab('settings')} 
+                      className="p-1.5 border border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-sm"
+                      title="Settings"
+                    >
+                      <Settings size={13} />
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        const id = Math.random().toString(36).substr(2,9);
+                        const now = new Date();
+                        const exStart = getDateWithMonthDuration(toISODate(now), 12);
+                        const exEnd = getDateWithMonthDuration(exStart, 3);
+                        const newEx: Exhibition = { 
+                          id, exhibitionId: '', title: 'NEW PROJECT', status: 'Proposed', 
+                          startDate: exStart, endDate: exEnd, gallery: galleries[0], 
+                          milestones: [], phases: phaseTypes.map(pt => ({
+                            id: Math.random().toString(36).substr(2,9), label: pt.label,
+                            durationMonths: pt.isPost ? 1 : 3, typeId: pt.id
+                          })), description: '' 
+                        };
+                        setExhibitions([...exhibitions, newEx]);
+                        setSelectedProjectId(id);
+                      }} 
+                      className="px-3 py-1.5 bg-slate-900 text-white font-bold uppercase text-[10px] hover:bg-slate-800 transition-colors flex items-center shadow-sm"
+                    >
+                      <Plus size={11} className="mr-1" strokeWidth={3} /> NEW PROJECT
+                    </button>
+                  </div>
                 </div>
               </nav>
             </header>
