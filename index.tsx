@@ -1,7 +1,7 @@
 import { useStore } from './src/store/useStore';
 import { useMuseumSync } from './src/hooks/useMuseumSync';
 import { useMuseumActions } from './src/hooks/useMuseumActions';
-import { getStatusStyles, getContrastColor, getAlbertaHolidays, MONTHS, FY_QUARTERS, BASE_LANE_HEIGHT, TRACK_HEIGHT, HEADER_HEIGHT, STANDARD_BAR_HEIGHT, PHASE_BAR_HEIGHT, MILESTONE_COLORS } from './src/constants';
+import { getStatusStyles, getContrastColor, getAlbertaHolidays, MONTHS, FY_QUARTERS, BASE_LANE_HEIGHT, TRACK_HEIGHT, HEADER_HEIGHT, STANDARD_BAR_HEIGHT, PHASE_BAR_HEIGHT, MILESTONE_COLORS, MILESTONE_ROW_HEIGHT, LANE_BOTTOM_PADDING } from './src/constants';
 import { toISODate, getPositionFromDate, getDateFromPosition, formatBarDate, getDateWithMonthDuration, getDurationDays } from './src/lib/dateUtils';
 import { calculateTracks } from './src/lib/layoutEngine';
 import { Exhibition, PhaseType, LocationMilestone, ProjectPhase, ExhibitionStatus } from './src/types';
@@ -254,7 +254,10 @@ export default function MasterScheduler() {
   const galleryLaneHeights = useMemo(() => {
     return galleries.reduce((acc, gallery) => {
       const tracksCount = galleryLayouts[gallery]?.maxTracks || 1;
-      acc[gallery] = Math.max(BASE_LANE_HEIGHT, tracksCount * TRACK_HEIGHT + 36);
+      acc[gallery] = Math.max(
+        BASE_LANE_HEIGHT,
+        MILESTONE_ROW_HEIGHT + tracksCount * TRACK_HEIGHT + LANE_BOTTOM_PADDING
+      );
       return acc;
     }, {} as Record<string, number>);
   }, [galleries, galleryLayouts]);
@@ -346,7 +349,7 @@ export default function MasterScheduler() {
 
         .gallery-lane-bg {
           background-image: repeating-linear-gradient(0deg, transparent, transparent ${TRACK_HEIGHT - 1}px, rgba(0,0,0,0.02) ${TRACK_HEIGHT - 1}px, rgba(0,0,0,0.02) ${TRACK_HEIGHT}px);
-          background-position: 0 32px;
+          background-position: 0 ${MILESTONE_ROW_HEIGHT}px;
         }
       `}</style>
       
@@ -664,7 +667,15 @@ export default function MasterScheduler() {
             <div className="flex-1 flex overflow-hidden timeline-root no-print-bg px-3 pb-3 pt-2 gap-3">
 	              <aside className="bg-white/85 backdrop-blur-sm flex flex-col shrink-0 z-40 border-r border-slate-200 shadow-sm" style={{ width: `${SIDEBAR_WIDTH}px` }}>
 	                <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-[linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] border-b border-slate-200" />
-	                <div className="flex-1 overflow-hidden" ref={sidebarListRef}>
+	                <div
+	                  className="flex-1 overflow-y-auto custom-scrollbar"
+	                  ref={sidebarListRef}
+	                  onScroll={(e) => {
+	                    if (timelineRef.current && timelineRef.current.scrollTop !== e.currentTarget.scrollTop) {
+	                      timelineRef.current.scrollTop = e.currentTarget.scrollTop;
+	                    }
+	                  }}
+	                >
 	                  {showHolidays && (
 	                    <div style={{ height: '48px' }} className="relative border-b-[3px] border-slate-800 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
 	                      <div className="absolute top-0 left-0 w-full h-full bg-slate-50 flex items-center px-4 py-2 z-20">
@@ -677,13 +688,13 @@ export default function MasterScheduler() {
 	                    const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
 	                    return (
 		                      <div key={gallery} style={{ height: `${laneHeight}px` }} className="relative border-b-[3px] border-slate-800 bg-white/80">
-		                        <div className="absolute top-0 left-0 w-full min-h-[32px] bg-[linear-gradient(90deg,#e2e8f0_0%,#f8fafc_100%)] border-b border-slate-300 flex items-center px-4 py-1 z-20 print:bg-white">
+		                        <div style={{ minHeight: `${MILESTONE_ROW_HEIGHT}px` }} className="absolute top-0 left-0 w-full bg-[linear-gradient(90deg,#e2e8f0_0%,#f8fafc_100%)] border-b border-slate-300 flex items-center px-4 py-1 z-20 print:bg-white">
 		                          <span className="font-bold uppercase text-[12px] tracking-[0.18em] text-slate-800 leading-tight break-words">{gallery}</span>
 		                        </div>
                         {galleryProjects.map(ex => {
                           const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
                           if (trackIndex === undefined) return null;
-                          const topPos = 32 + (trackIndex * TRACK_HEIGHT);
+                          const topPos = MILESTONE_ROW_HEIGHT + (trackIndex * TRACK_HEIGHT);
                           return (
                             <div key={`title-${ex.id}`} className="absolute left-4 w-[calc(100%-1rem)] pr-2" style={{ top: topPos + 8 }}>
                               <div className="text-[11px] font-bold text-slate-800 leading-tight break-words underline-offset-2" title={ex.title}>{ex.title}</div>
@@ -699,7 +710,7 @@ export default function MasterScheduler() {
                           const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
                           if (trackIndex === undefined || trackIndex === 0) return null;
                           return (
-                            <div key={`side-div-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-200 left-0" style={{ top: 32 + trackIndex * TRACK_HEIGHT }} />
+                            <div key={`side-div-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-200 left-0" style={{ top: MILESTONE_ROW_HEIGHT + trackIndex * TRACK_HEIGHT }} />
                           );
                         })}
                       </div>
@@ -709,23 +720,16 @@ export default function MasterScheduler() {
               </aside>
               
 		              <main className="flex-1 flex flex-col relative overflow-hidden bg-white/75 backdrop-blur-sm border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
-	                {/* Print Only Branding Header */}
-	                <div className="hidden print:flex justify-between items-end mb-3 pb-3 border-b-2 border-slate-300">
-	                  <div>
-	                    <h1 className="text-xl font-bold uppercase tracking-[0.16em]">{museumName}</h1>
-	                    <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-600 mt-1">Portfolio Review Timeline</p>
-	                  </div>
-	                  <div className="text-right">
-	                    <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-700">Visible Range {timelineStartDate} to {timelineEndDate}</p>
-	                    <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-600 mt-1">{filteredExhibitions.length} Projects • {viewMonths.length} Months</p>
-	                  </div>
-	                </div>
 
                 <div 
                   tabIndex={0}
                   className={`flex-1 overflow-auto relative bg-white custom-scrollbar timeline-container cursor-grab active:cursor-grabbing ${isDraggingScroll ? '!cursor-grabbing' : ''}`} 
                   ref={timelineRef} 
-                  onScroll={(e) => { if (sidebarListRef.current) sidebarListRef.current.scrollTop = e.currentTarget.scrollTop; }}
+                  onScroll={(e) => {
+                    if (sidebarListRef.current && sidebarListRef.current.scrollTop !== e.currentTarget.scrollTop) {
+                      sidebarListRef.current.scrollTop = e.currentTarget.scrollTop;
+                    }
+                  }}
                   onMouseDown={(e) => { 
                   if (e.button === 0 && !longPressTimerRef.current && !draggingBarId) { 
                     setIsDraggingScroll(true); 
@@ -955,15 +959,16 @@ export default function MasterScheduler() {
                                <div 
                                  key={`overlap-${i}`}
                                  className="absolute bottom-0 z-[15] bg-red-500/5 border-l-2 border-r-2 border-dashed border-red-500/50 pointer-events-none"
-                                 style={{ left: overlap.startX, width: Math.max(2, overlap.endX - overlap.startX), top: '32px' }}
+                                 style={{ left: overlap.startX, width: Math.max(2, overlap.endX - overlap.startX), top: `${MILESTONE_ROW_HEIGHT}px` }}
                                >
                                  <div className="bg-white border-2 border-red-500/50 text-red-600 font-semibold uppercase text-[8px] tracking-widest flex items-center shadow-sm w-max ml-2 mt-2" style={{ padding: '2px 4px' }}>
                                    <AlertTriangle size={10} className="mr-1.5 shrink-0" strokeWidth={3} /> CONFLICT
                                  </div>
                                </div>
                              ))}
-                             <div 
-                               className="absolute top-0 left-0 w-full h-[32px] bg-slate-100/50 border-b border-slate-300/5 z-20 group relative cursor-crosshair overflow-visible"
+                             <div
+                               style={{ height: `${MILESTONE_ROW_HEIGHT}px` }}
+                               className="absolute top-0 left-0 w-full bg-slate-100/50 border-b border-slate-300/5 z-20 group relative cursor-crosshair overflow-visible"
                                onDoubleClick={async (e) => {
                                  const rect = e.currentTarget.getBoundingClientRect();
                                  const x = Math.max(0, e.clientX - rect.left + timelineRef.current!.scrollLeft);
@@ -1052,11 +1057,22 @@ export default function MasterScheduler() {
                                 });
                               })()}
                              </div>
+                             {galleryProjects.length === 0 && filteredExhibitions.length > 0 && (
+                               <div
+                                 className="absolute left-0 w-full flex items-center justify-start pointer-events-none no-print-lane"
+                                 style={{ top: `${MILESTONE_ROW_HEIGHT}px`, height: `${laneHeight - MILESTONE_ROW_HEIGHT}px` }}
+                               >
+                                 <div className="sticky left-4 ml-4 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400 border border-dashed border-slate-300 bg-white/60 px-2.5 py-1">
+                                   <Info size={10} strokeWidth={2.5} />
+                                   No projects in this location
+                                 </div>
+                               </div>
+                             )}
                              {galleryProjects.map(ex => {
                                const trackIndex = galleryLayouts[g]!.tracks[ex.id];
                                if (trackIndex === undefined || trackIndex === 0) return null;
                                return (
-                                 <div key={`line-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-300 z-10 pointer-events-none" style={{ top: 32 + trackIndex * TRACK_HEIGHT }} />
+                                 <div key={`line-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-300 z-10 pointer-events-none" style={{ top: MILESTONE_ROW_HEIGHT + trackIndex * TRACK_HEIGHT }} />
                                );
                              })}
                            </div>
@@ -1083,6 +1099,7 @@ export default function MasterScheduler() {
 		                            const trackIndex = layout?.tracks[ex.id] || 0;
 		                            const isDraggingThis = draggingBarId === ex.id;
 		                            const statusStyle = getStatusStyles(ex.status);
+		                            const barTextClass = getContrastColor(statusStyle.accent);
 	                            
 	                            const effStartDate = isDraggingThis && dragTempStartDate ? dragTempStartDate : ex.startDate;
 	                            const effEndDate = isDraggingThis && dragTempEndDate ? dragTempEndDate : ex.endDate;
@@ -1090,7 +1107,7 @@ export default function MasterScheduler() {
 		                            const startPos = getPositionFromDate(effStartDate, monthWidth, viewMonths);
 		                            const endPos = getPositionFromDate(effEndDate, monthWidth, viewMonths);
 		                            const width = Math.max(endPos - startPos, 40);
-		                            const trackTop = galleryYOffset + 32 + (trackIndex * TRACK_HEIGHT);
+		                            const trackTop = galleryYOffset + MILESTONE_ROW_HEIGHT + (trackIndex * TRACK_HEIGHT);
                                 const laneBottom = galleryYOffset + laneHeight;
 
                             const prePhasesRaw = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
@@ -1167,9 +1184,10 @@ export default function MasterScheduler() {
 	                                          style={{ left: `${phase.startX}px`, top: `${phase.y}px`, width: `${phase.width - 2}px`, height: `${PHASE_BAR_HEIGHT}px`, backgroundColor: phase.type?.color || '#eee' }}
 	                                          title={phase.label}
 	                                        />
-                                        <div 
-                                          className="absolute text-[9px] font-bold text-slate-800 tracking-tight"
-                                          style={{ left: `${phase.startX}px`, top: `${phase.y + PHASE_BAR_HEIGHT + 2}px`, width: `${Math.max(phase.width, 100)}px` }}
+                                        <div
+                                          className="absolute text-[9px] font-bold text-slate-800 tracking-tight truncate"
+                                          title={phase.label}
+                                          style={{ left: `${phase.startX}px`, top: `${phase.y + PHASE_BAR_HEIGHT + 2}px`, width: `${Math.max(phase.width - 2, 0)}px` }}
                                         >
                                           {phase.label}
                                         </div>
@@ -1222,23 +1240,23 @@ export default function MasterScheduler() {
                                   onClick={() => { if (!draggingBarId) setSelectedProjectId(ex.id); }}
                                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedProjectId(ex.id); }}
 	                                  className={`absolute pointer-events-auto border-2 shadow-[0_8px_16px_rgba(15,23,42,0.16)] hover:shadow-[0_10px_24px_rgba(15,23,42,0.22)] transition-all cursor-pointer flex justify-center items-center focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`} 
-		                                  style={{ 
-		                                    left: `${startPos}px`, 
-		                                    width: `${width}px`, 
-		                                    top: `${mainBarY}px`, 
+		                                  style={{
+		                                    left: `${startPos}px`,
+		                                    width: `${width}px`,
+		                                    top: `${mainBarY}px`,
 		                                    height: `${STANDARD_BAR_HEIGHT}px`,
-		                                    background: 'linear-gradient(90deg, #c63d2f 0%, #d84f36 100%)',
+		                                    background: `linear-gradient(180deg, ${statusStyle.accent} 0%, color-mix(in srgb, ${statusStyle.accent} 82%, black) 100%)`,
 		                                    borderColor: statusStyle.border
 		                                  }}
 		                                >
 	                                  {width >= 200 ? (
-                                        <span className="font-bold text-[11px] uppercase tracking-[0.14em] text-white px-2 truncate block leading-none pb-[1px]">
+                                        <span className={`font-bold text-[11px] uppercase tracking-[0.14em] ${barTextClass} px-2 truncate block leading-none pb-[1px]`}>
                                           {ex.title} • {formatBarDate(effStartDate)} - {formatBarDate(effEndDate)}
                                         </span>
                                       ) : width >= 148 ? (
-                                        <span className="font-bold text-[11px] uppercase tracking-[0.14em] text-white px-2 truncate block leading-none pb-[1px]">{ex.title}</span>
+                                        <span className={`font-bold text-[11px] uppercase tracking-[0.14em] ${barTextClass} px-2 truncate block leading-none pb-[1px]`}>{ex.title}</span>
                                       ) : (
-                                        <span className="font-bold text-[10px] uppercase tracking-[0.18em] text-white/90 px-2 leading-none pb-[1px]">
+                                        <span className={`font-bold text-[10px] uppercase tracking-[0.18em] ${barTextClass} px-2 leading-none pb-[1px]`}>
                                           {ex.exhibitionId || 'PROJECT'}
                                         </span>
                                       )}
@@ -1253,22 +1271,16 @@ export default function MasterScheduler() {
                 </div>
 
                 <footer className="bg-white/80 backdrop-blur-sm border-t border-slate-200 px-4 py-1.5 flex items-center justify-center gap-4 no-print shrink-0 mt-auto">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-2 bg-[#f9fafb] border border-[#d1d5db]" />
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">Proposed</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-2 bg-[#fffbeb] border border-[#f59e0b]" />
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">In Dev</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-2 bg-[#ecfdf5] border border-[#10b981]" />
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">Open</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-2 bg-[#f3f4f6] border border-[#1f2937]" />
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">Closed</span>
-                  </div>
+                  {(['Proposed', 'In Development', 'Open to Public', 'Closed'] as const).map(s => {
+                    const styles = getStatusStyles(s);
+                    const labels: Record<typeof s, string> = { 'Proposed': 'Proposed', 'In Development': 'In Dev', 'Open to Public': 'Open', 'Closed': 'Closed' };
+                    return (
+                      <div key={s} className="flex items-center gap-1.5">
+                        <div className="w-3 h-2 border" style={{ background: styles.accent, borderColor: styles.border }} />
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">{labels[s]}</span>
+                      </div>
+                    );
+                  })}
                 </footer>
               </div>
             </main>

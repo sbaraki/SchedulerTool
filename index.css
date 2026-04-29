@@ -11,7 +11,14 @@
     print-color-adjust: exact !important;
   }
 
-  .no-print {
+  /* Hide all interactive UI chrome */
+  .no-print,
+  .no-print-lane {
+    display: none !important;
+  }
+
+  /* Hide modals/overlays during print */
+  .fixed.inset-0 {
     display: none !important;
   }
 
@@ -21,6 +28,28 @@
     print-color-adjust: exact !important;
   }
 
+  /* Strip decorative chrome — backdrop blur, shadows, ring effects */
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Flatten gradient backgrounds onto plain white so the timeline reads clearly */
+  .no-print-bg,
+  .timeline-root,
+  .timeline-container,
+  main,
+  aside,
+  header,
+  footer,
+  [class*="bg-[linear-gradient"],
+  [class*="bg-gradient"] {
+    background: white !important;
+    background-image: none !important;
+  }
+
   /* Remove scrollbars and fix height for print */
   .timeline-root {
     display: flex !important;
@@ -28,12 +57,15 @@
     height: auto !important;
     zoom: var(--print-scale, 1);
     transform-origin: top left !important;
+    padding: 0 !important;
+    gap: 0 !important;
   }
 
   .timeline-container {
     overflow: visible !important;
     height: auto !important;
     width: auto !important;
+    cursor: default !important;
   }
 
   .sticky {
@@ -65,19 +97,30 @@
     color: #7c2d12 !important; /* orange-950 */
   }
 
-  .bg-orange-50\/50, .bg-orange-50 {
-    background-color: #fff7ed !important;
+  /* Drop tinted lane backgrounds — use plain white */
+  .bg-orange-50\/50, .bg-orange-50,
+  .bg-slate-50\/50, .bg-slate-50,
+  .bg-slate-100\/50, .bg-slate-100,
+  .bg-white\/40, .bg-white\/75, .bg-white\/80, .bg-white\/85, .bg-white\/95 {
+    background-color: white !important;
   }
 
-  .bg-slate-50\/50, .bg-slate-50 {
-    background-color: #f8fafc !important;
+  /* Flatten the dark year/month header bars in the timeline to a clean monochrome look */
+  .bg-\[\#111\], .bg-\[\#2a2a2a\] {
+    background-color: white !important;
+    color: black !important;
+  }
+  .bg-\[\#111\] *, .bg-\[\#2a2a2a\] * {
+    color: black !important;
+  }
+  .border-\[\#333\], .border-\[\#444\] {
+    border-color: #1e293b !important;
   }
 
   /* Fix for sticky elements in headers */
   .sticky.top-0 {
     position: relative !important;
     top: 0 !important;
-    transform: none !important;
   }
 
   .timeline-root,
