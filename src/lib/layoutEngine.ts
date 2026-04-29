@@ -1,5 +1,6 @@
 import { Exhibition, PhaseType } from '../types';
 import { getPositionFromDate } from './dateUtils';
+import { PHASE_GAP } from '../constants';
 
 /**
  * Calculates collision-free independent tracks for exhibitions sharing the same gallery lane.
@@ -17,8 +18,8 @@ export const calculateTracks = (
       const postPhases = (project.phases || []).filter(phase => phaseTypes.find(type => type.id === phase.typeId)?.isPost);
       const prePhaseWidth = prePhases.reduce((sum, phase) => sum + (phase.durationMonths * monthWidth), 0);
       const postPhaseWidth = postPhases.reduce((sum, phase) => sum + (phase.durationMonths * monthWidth), 0);
-      const preGapWidth = Math.max(0, prePhases.length * 6);
-      const postGapWidth = Math.max(0, postPhases.length * 6);
+      const preGapWidth = Math.max(0, prePhases.length * PHASE_GAP);
+      const postGapWidth = Math.max(0, postPhases.length * PHASE_GAP);
       const projectStart = getPositionFromDate(project.startDate, monthWidth, vMonths);
       const projectEnd = getPositionFromDate(project.endDate, monthWidth, vMonths);
 
