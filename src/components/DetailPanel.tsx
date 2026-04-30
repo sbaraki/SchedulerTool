@@ -155,7 +155,12 @@ export const DetailPanel = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.4 }}
+        className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar"
+      >
         <div className="grid grid-cols-1 gap-4">
           <div className="space-y-1 border border-slate-200 bg-white px-4 py-4 shadow-sm">
             <span id="label-status" className="text-[11px] font-semibold uppercase text-slate-600 tracking-[0.18em]">PROJECT STATUS</span>
@@ -420,7 +425,7 @@ export const DetailPanel = ({
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
           <div className="p-5 border-t border-slate-200 flex gap-3 bg-white/90 backdrop-blur-sm shrink-0">
         {isEditing ? (

@@ -624,9 +624,21 @@ export default function MasterScheduler() {
                   {!currentUser && (
                     <button 
                       onClick={() => setShowGithubAuth(true)}
-                      className="px-2.5 py-1.5 bg-white border border-slate-300 font-bold uppercase text-[9px] hover:bg-slate-50 transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+                      className="group relative px-2.5 py-1.5 bg-white border border-slate-300 font-bold uppercase text-[9px] hover:bg-slate-50 transition-all shadow-sm active:scale-95 flex items-center gap-1.5 overflow-hidden"
                     >
-                      <LogIn size={11} /> SYNC
+                      <motion.div 
+                        className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        initial={false}
+                      />
+                      <LogIn size={11} className="relative z-10" /> 
+                      <span className="relative z-10">SYNC</span>
+                      {syncStatus === 'syncing' && (
+                        <motion.div 
+                          animate={{ opacity: [0.4, 1, 0.4] }}
+                          transition={{ repeat: Infinity, duration: 1.5 }}
+                          className="w-1.5 h-1.5 rounded-full bg-blue-500 ml-1"
+                        />
+                      )}
                     </button>
                   )}
 
@@ -1005,9 +1017,7 @@ export default function MasterScheduler() {
                                  }
                                }}
                              >
-                                <div className="hidden group-hover:flex absolute left-4 h-full items-center text-[11px] text-slate-600 font-medium uppercase pointer-events-none tracking-widest gap-2">
-                                  
-                                </div>
+                                <div className="absolute left-4 h-full flex items-center" />
                                 {(() => {
                                   const gMilestones = locationMilestones.filter(m => m.gallery === g)
                                     .map(m => ({ ...m, xPos: getPositionFromDate(m.date, monthWidth, viewMonths) }))
@@ -1228,23 +1238,30 @@ export default function MasterScheduler() {
                                   })()}
                                 </div>
 
-		                                <div
-		                                  aria-label={`Project: ${ex.title} (${ex.status}). Click to view details, long-press to drag.`}
+                                <motion.div
+                                  layoutId={`project-${ex.id}`}
+                                  aria-label={`Project: ${ex.title} (${ex.status}). Click to view details, long-press to drag.`}
                                   role="button"
                                   tabIndex={0}
                                   onMouseDown={(e) => onBarMouseDown(e, ex)}
                                   onClick={() => { if (!draggingBarId) setSelectedProjectId(ex.id); }}
                                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedProjectId(ex.id); }}
-	                                  className={`absolute pointer-events-auto border border-black/10 hover:shadow-lg shadow-[0_8px_16px_rgba(15,23,42,0.16)] hover:shadow-[0_10px_24px_rgba(15,23,42,0.22)] transition-all cursor-pointer flex items-stretch overflow-hidden focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`}
-		                                  style={{
-		                                    left: `${startPos}px`,
-		                                    width: `${width}px`,
-		                                    top: `${mainBarY}px`,
-		                                    height: `${STANDARD_BAR_HEIGHT}px`,
-		                                    backgroundColor: '#b91c1c',
-		                                    backgroundImage: 'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)'
-		                                  }}
-		                                >
+                                  whileHover={{ 
+                                    y: -2, 
+                                    scale: 1.005,
+                                    transition: { duration: 0.2, ease: "easeOut" }
+                                  }}
+                                  whileTap={{ scale: 0.99 }}
+                                  className={`absolute pointer-events-auto border border-black/10 shadow-[0_8px_16px_rgba(15,23,42,0.16)] hover:shadow-[0_12px_28px_rgba(15,23,42,0.25)] transition-all cursor-pointer flex items-stretch overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`}
+                                  style={{
+                                    left: `${startPos}px`,
+                                    width: `${width}px`,
+                                    top: `${mainBarY}px`,
+                                    height: `${STANDARD_BAR_HEIGHT}px`,
+                                    backgroundColor: '#b91c1c',
+                                    backgroundImage: 'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)'
+                                  }}
+                                >
 	                                  <div
 	                                    className="shrink-0 h-full"
 	                                    style={{ width: '6px', backgroundColor: statusStyle.accent, boxShadow: 'inset -1px 0 0 rgba(0,0,0,0.35)' }}
@@ -1272,8 +1289,8 @@ export default function MasterScheduler() {
 	                                        {ex.exhibitionId || 'PROJECT'}
 	                                      </span>
 	                                    )}
-	                                  </div>
-	                                </div>
+                                  </div>
+                                </motion.div>
                               </React.Fragment>
                             );
                           });
