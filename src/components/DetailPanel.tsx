@@ -189,7 +189,6 @@ export const DetailPanel = ({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-[14px] font-semibold uppercase tracking-[0.16em] text-slate-700">Scheduling Core</h3>
-              <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-slate-600 mt-1">Primary identifiers, lane assignment, and active dates.</p>
             </div>
           </div>
           <div className="space-y-1">

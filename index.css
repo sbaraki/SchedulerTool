@@ -6,7 +6,7 @@
 
   body {
     background-color: white !important;
-    color: black !important;
+    color: #334155 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -32,7 +32,7 @@
     text-shadow: none !important;
   }
 
-  /* Flatten gradient backgrounds onto plain white so the timeline reads clearly */
+  /* Flatten heavy backgrounds onto plain white so the timeline reads clearly */
   .no-print-bg,
   .timeline-root,
   .timeline-container,
@@ -46,103 +46,84 @@
     background-image: none !important;
   }
 
+  /* Let the zebra striping breathe and show up on print */
+  .gallery-lane-bg:nth-child(even) {
+    background-color: #f8fafc !important;
+  }
+
   /* Project bars: keep solid red — strip the gradient but preserve background-color. */
   [role="button"][aria-label^="Project:"] {
     background-image: none !important;
-    background-color: #b91c1c !important;
-    border-color: black !important;
-    border-width: 1.5px !important;
+    background-color: #ef4444 !important; /* Softer red for print */
+    border-color: #f87171 !important; /* Softer border */
+    border-width: 1px !important;
   }
 
-  /* Project bar title text — bigger and high-contrast */
+  /* Project bar title text — refined typography */
   [role="button"][aria-label^="Project:"] span {
     color: white !important;
-    font-size: 13px !important;
-    letter-spacing: 0.08em !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.05em !important;
     line-height: 1.1 !important;
   }
 
-  /* Status pill keeps its color via inline style; just bump font weight + size */
+  /* Status pill */
   [role="button"][aria-label^="Project:"] span[style*="background-color"] {
-    font-size: 10px !important;
-    padding: 2px 5px !important;
-    border-color: rgba(255,255,255,0.6) !important;
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    padding: 2px 4px !important;
+    border-color: rgba(255,255,255,0.4) !important;
+    letter-spacing: 0.05em !important;
   }
 
-  /* Sidebar gallery banner — bigger, plain white */
+  /* Sidebar gallery banner */
   aside [class*="from-slate"],
   aside [class*="bg-[linear-gradient"] {
     background: white !important;
     background-image: none !important;
   }
 
-  aside .font-bold.uppercase {
-    font-size: 14px !important;
-    letter-spacing: 0.12em !important;
-    color: black !important;
+  aside .font-bold.uppercase,
+  aside .font-semibold.uppercase {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.1em !important;
+    color: #475569 !important;
   }
 
-  /* Sidebar project labels — bigger */
+  /* Sidebar project labels */
   aside [title] {
-    font-size: 12px !important;
-    line-height: 1.15 !important;
-  }
-
-  /* Timeline header bars: flatten dark backgrounds, increase font sizes */
-  .bg-\[\#111\], .bg-\[\#2a2a2a\] {
-    background-color: white !important;
-    color: black !important;
-  }
-  .bg-\[\#111\] *, .bg-\[\#2a2a2a\] * {
-    color: black !important;
-  }
-  .border-\[\#333\], .border-\[\#444\] {
-    border-color: #1e293b !important;
-  }
-
-  /* Year band */
-  .bg-\[\#111\] > div {
-    font-size: 18px !important;
-    font-weight: 800 !important;
-  }
-
-  /* Month band */
-  .bg-\[\#2a2a2a\] > div {
-    font-size: 12px !important;
-    font-weight: 700 !important;
-  }
-
-  /* FY band */
-  .bg-slate-50 > div,
-  .bg-slate-100 > div {
     font-size: 11px !important;
-    font-weight: 700 !important;
-    color: #1e293b !important;
+    font-weight: 500 !important;
+    color: #334155 !important;
+    line-height: 1.2 !important;
   }
 
-  /* Phase labels — small but legible */
-  [title][class*="text-[9px]"] {
-    font-size: 10px !important;
-    color: black !important;
-  }
-
-  /* Borders: high contrast for paper */
-  .border-slate-200, .border-slate-300 {
-    border-color: #475569 !important;
-    border-width: 1px !important;
-  }
-
-  .border-slate-200\/40, .border-slate-200\/10, .border-slate-200\/5 {
-    border-color: #94a3b8 !important;
+  /* Borders: soften for paper */
+  .border-slate-200, .border-slate-300, .border-black\/10 {
+    border-color: #e2e8f0 !important;
     border-width: 0.5px !important;
   }
 
-  /* Drop tinted lane backgrounds — use plain white */
+  /* Subtle Grid lines */
+  .border-slate-200\/40, .border-slate-200\/10, .border-slate-200\/5, .border-black\/5 {
+    border-color: #f1f5f9 !important;
+    border-width: 0.5px !important;
+    border-style: dashed !important;
+  }
+
+  /* Drop tinted lane backgrounds (unless it's zebra striping) */
   .bg-orange-50\/50, .bg-orange-50,
-  .bg-slate-50\/50, .bg-slate-50,
+  .bg-slate-50\/50,
   .bg-slate-100\/50, .bg-slate-100,
   .bg-white\/40, .bg-white\/75, .bg-white\/80, .bg-white\/85, .bg-white\/95 {
     background-color: white !important;
+  }
+  
+  /* Retain slight tint for FY bands if they use bg-slate-50 without opacity */
+  .bg-slate-50 {
+    background-color: #f8fafc !important;
   }
 
   /* Timeline page sizing — let the browser scale to fit one page */
@@ -177,24 +158,26 @@
     page-break-inside: avoid;
   }
 
-  /* Today indicator — keep visible but slimmer */
+  /* Today indicator — soften */
   .bg-red-500 {
-    background-color: #b91c1c !important;
-    width: 1.5px !important;
+    background-color: #f87171 !important;
+    width: 1px !important;
   }
 
-  /* Milestone markers — black diamonds, no decorative chrome */
+  /* Milestone markers — elegant diamonds */
   .rotate-45 {
-    border-color: black !important;
-    border-width: 1.5px !important;
+    border-color: #64748b !important;
+    border-width: 1px !important;
   }
 
-  /* Milestone labels — strip backgrounds, bump size */
-  [class*="bg-white"][class*="border-slate-200"] {
+  /* Milestone labels */
+  [class*="bg-white"][class*="border-slate-200"],
+  [class*="bg-white"][class*="border-black\/10"] {
     background: transparent !important;
     border: none !important;
-    font-size: 10px !important;
-    color: black !important;
-    font-weight: 600 !important;
+    font-size: 9px !important;
+    color: #475569 !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.05em !important;
   }
 }

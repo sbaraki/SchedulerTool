@@ -348,14 +348,21 @@ export default function MasterScheduler() {
         }
 
         .gallery-lane-bg {
-          background-image: repeating-linear-gradient(0deg, transparent, transparent ${TRACK_HEIGHT - 1}px, rgba(0,0,0,0.02) ${TRACK_HEIGHT - 1}px, rgba(0,0,0,0.02) ${TRACK_HEIGHT}px);
-          background-position: 0 ${MILESTONE_ROW_HEIGHT}px;
+          background-color: transparent;
+          transition: background-color 0.2s ease;
+        }
+        .gallery-lane-bg:nth-child(even) {
+          background-color: rgba(248,250,252,0.6);
+        }
+        .gallery-lane-bg:hover {
+          background-color: rgba(241,245,249,0.8);
+        }
         }
       `}</style>
       
       {editMilestoneDraft && (
         <div className="fixed inset-0 bg-slate-900/40 z-[100] backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setEditMilestoneDraft(null)}>
-          <div className="bg-white border border-slate-300 w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white border border-black/10 w-full max-w-sm shadow-xl rounded-xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="bg-slate-900 text-white px-4 py-3 font-semibold tracking-widest flex justify-between items-center text-[12px]">
               <span>EDIT MILESTONE</span>
               <button aria-label="Close" onClick={() => setEditMilestoneDraft(null)} className="hover:text-red-400 transition-colors">
@@ -505,13 +512,13 @@ export default function MasterScheduler() {
       <main className="flex-1 flex flex-col min-w-0">
         {activeTab === 'portfolio' ? (
           <>
-            <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 z-50 shrink-0 shadow-sm print:hidden">
+            <header className="bg-white border-b border-slate-200 z-50 shrink-0 print:hidden">
 	      <nav className="px-4 py-2 flex items-center justify-between gap-4">
                 {/* Left: Brand & Search */}
                 <div className="flex items-center space-x-4">
                   <div className="flex flex-col min-w-[140px]">
                     <h1 className="text-[11px] font-bold tracking-[0.12em] uppercase leading-none text-slate-900 truncate">{museumName}</h1>
-                    <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 mt-0.5">Scheduler</span>
+                    
                   </div>
 
                   <div className="flex items-center no-print border border-slate-200 bg-white overflow-hidden shadow-sm">
@@ -665,7 +672,7 @@ export default function MasterScheduler() {
             </header>
 
             <div className="flex-1 flex overflow-hidden timeline-root no-print-bg px-3 pb-3 pt-2 gap-3">
-	              <aside className="bg-white/85 backdrop-blur-sm flex flex-col shrink-0 z-40 border-r border-slate-200 shadow-sm" style={{ width: `${SIDEBAR_WIDTH}px` }}>
+	              <aside className="bg-white flex flex-col shrink-0 z-40 border-r border-slate-200 shadow-sm" style={{ width: `${SIDEBAR_WIDTH}px` }}>
 	                <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-[linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] border-b border-slate-200" />
 	                <div
 	                  className="flex-1 overflow-y-auto custom-scrollbar"
@@ -677,7 +684,7 @@ export default function MasterScheduler() {
 	                  }}
 	                >
 	                  {showHolidays && (
-	                    <div style={{ height: `${HOLIDAY_LANE_HEIGHT}px` }} className="relative border-b-[3px] border-slate-800 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)] no-print-lane">
+	                    <div style={{ height: `${HOLIDAY_LANE_HEIGHT}px` }} className="relative border-b border-black/10 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)] no-print-lane">
 	                      <div className="absolute top-0 left-0 w-full h-full bg-slate-50 flex items-center px-4 py-2 z-20">
 	                        <div className="flex flex-col" />
 	                      </div>
@@ -687,9 +694,9 @@ export default function MasterScheduler() {
 	                    const laneHeight = galleryLaneHeights[gallery] || BASE_LANE_HEIGHT;
 	                    const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
 	                    return (
-		                      <div key={gallery} style={{ height: `${laneHeight}px` }} className="relative border-b-[3px] border-slate-800 bg-white/80">
-		                        <div style={{ minHeight: `${MILESTONE_ROW_HEIGHT}px` }} className="absolute top-0 left-0 w-full bg-[linear-gradient(90deg,#e2e8f0_0%,#f8fafc_100%)] border-b border-slate-300 flex items-center px-4 py-1 z-20 print:bg-white">
-		                          <span className="font-bold uppercase text-[12px] tracking-[0.18em] text-slate-800 leading-tight break-words">{gallery}</span>
+		                      <div key={gallery} style={{ height: `${laneHeight}px` }} className="relative border-b border-black/10 bg-white/80">
+		                        <div style={{ minHeight: `${MILESTONE_ROW_HEIGHT}px` }} className="absolute top-0 left-0 w-full bg-slate-50/80 border-b border-slate-300 flex items-center px-6 py-3 z-20 print:bg-white">
+		                          <span className="font-semibold uppercase text-[11px] tracking-widest text-slate-600 leading-tight break-words">{gallery}</span>
 		                        </div>
                         {galleryProjects.map(ex => {
                           const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
@@ -719,7 +726,7 @@ export default function MasterScheduler() {
                 </div>
               </aside>
               
-		              <main className="flex-1 flex flex-col relative overflow-hidden bg-white/75 backdrop-blur-sm border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+		              <main className="flex-1 flex flex-col relative overflow-hidden bg-slate-50 border border-slate-200 shadow-none">
 
                 <div 
                   tabIndex={0}
@@ -800,20 +807,20 @@ export default function MasterScheduler() {
                   </div>
 
                   {/* Header */}
-                  <div className="sticky top-0 z-[60] border-b-2 border-black flex flex-col overflow-hidden shadow-md" style={{ height: `${HEADER_HEIGHT}px` }}>
-                    <div className="flex h-[30px] border-b border-[#333] bg-[#111] relative z-10 print:bg-white print:border-slate-400">
-                      {yearBlocks.map(block => <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center font-bold text-lg tracking-widest text-white border-r border-[#333] print:border-slate-400 print:text-black">{block.label}</div>)}
+                  <div className="sticky top-0 z-[60] border-b border-black/10 flex flex-col overflow-hidden shadow-sm" style={{ height: `${HEADER_HEIGHT}px` }}>
+                    <div className="flex h-[30px] border-b border-black/10 bg-white relative z-10 print:bg-white print:border-slate-400">
+                      {yearBlocks.map(block => <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center font-bold text-base font-semibold tracking-wide text-slate-800 border-r border-black/10 print:border-slate-400 print:text-black">{block.label}</div>)}
                     </div>
                     <div className="flex h-[24px] border-b border-slate-300 bg-slate-50 relative z-10 print:bg-orange-100 print:border-orange-300 print:text-orange-900">
                       {fyBlocks.map((block) => (
-                        <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center font-bold text-[10px] uppercase tracking-widest border-r border-slate-300 text-slate-800 print:border-orange-300 print:text-orange-900">{block.label}</div>
+                        <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center font-medium text-[9px] uppercase tracking-wider border-r border-black/10 text-slate-600 print:border-orange-300 print:text-orange-900">{block.label}</div>
                       ))}
                     </div>
                     <div className="flex h-[24px] border-b border-slate-300 bg-slate-100 relative z-10 print:bg-slate-100 print:text-slate-900 text-slate-700">
-                      {fyQuarterBlocks.map((block, i) => <div key={`${block.label}-${i}`} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-slate-300 text-[9.5px] font-bold uppercase tracking-widest print:text-slate-900">{block.label}</div>)}
+                      {fyQuarterBlocks.map((block, i) => <div key={`${block.label}-${i}`} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-slate-300 text-[9px] font-medium uppercase tracking-wider text-slate-500 print:text-slate-900">{block.label}</div>)}
                     </div>
-                    <div className="flex h-[22px] bg-[#2a2a2a] border-b border-[#444] relative z-10 print:bg-white text-gray-300">
-                      {viewMonths.map(m => <div key={`${m.year}-${m.month}`} style={{ width: `${monthWidth}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-[#444] text-[9px] font-bold uppercase print:text-slate-900">{m.label}</div>)}
+                    <div className="flex h-[22px] bg-slate-50 border-b border-black/10 relative z-10 print:bg-white text-slate-500">
+                      {viewMonths.map(m => <div key={`${m.year}-${m.month}`} style={{ width: `${monthWidth}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-black/10 text-[8.5px] font-medium uppercase tracking-wide print:text-slate-900">{m.label}</div>)}
                     </div>
                   </div>
 
@@ -827,7 +834,7 @@ export default function MasterScheduler() {
                         <div 
                           key={`month-divider-${idx}`} 
                           style={style} 
-                          className="absolute top-0 bottom-0 w-[1px] border-l border-slate-300/40 print:border-slate-600"
+                          className="absolute top-0 bottom-0 w-[1px] border-l border-dashed border-black/5 print:border-slate-600"
                         />
                       );
                     })}
@@ -859,7 +866,7 @@ export default function MasterScheduler() {
                             <div className="max-w-md bg-white/90 border border-slate-200 px-8 py-10 shadow-[0_18px_40px_rgba(15,23,42,0.08)] text-center">
 	                            <Search size={40} className="mx-auto mb-4 text-slate-300" />
 	                            <p className="text-xl font-semibold uppercase tracking-[0.18em] text-slate-700">No Projects Found</p>
-	                            <p className="text-[12px] font-medium uppercase mt-3 text-slate-600 tracking-[0.2em]">Adjust filters or create a project to begin portfolio planning</p>
+	                            
                               <div className="mt-5 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700 border border-slate-200 bg-slate-50 px-3 py-1.5">
                                 <Plus size={12} />
                                 New Project
@@ -869,7 +876,7 @@ export default function MasterScheduler() {
 	                      )}
                       {/* Provincial Holidays Lane */}
                       {showHolidays && (
-                        <div style={{ height: `${HOLIDAY_LANE_HEIGHT}px` }} className="border-b-[3px] border-slate-800 bg-white/40 relative overflow-visible z-10 no-print-lane">
+                        <div style={{ height: `${HOLIDAY_LANE_HEIGHT}px` }} className="border-b border-black/10 bg-white/40 relative overflow-visible z-10 no-print-lane">
                           <div className={`absolute inset-0 bg-slate-50/50 -z-10`} />
                           {holidayMilestones.map((holiday, i) => {
                             if (holiday.xPos < 0 || holiday.xPos > viewMonths.length * monthWidth) return null;
@@ -884,7 +891,7 @@ export default function MasterScheduler() {
                                   className="group/holiday relative flex items-center justify-center cursor-help"
                                   title={`${holiday.label} (${holiday.type} Holiday)`}
                                 >
-                                  <div className={`w-2 h-2 rotate-45 border-[1.5px] border-slate-900 shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-transform group-hover/holiday:scale-125 ${holiday.type === 'Statutory' ? 'bg-slate-800' : 'bg-white'}`} />
+                                  <div className={`w-2 h-2 rotate-45 border border-slate-400 shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-transform group-hover/holiday:scale-125 ${holiday.type === 'Statutory' ? 'bg-slate-800' : 'bg-white'}`} />
                                   
                                   <div className={`absolute left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
                                     {holiday.label}
@@ -954,7 +961,7 @@ export default function MasterScheduler() {
                          });
 
                          return (
-	                           <div key={g} style={{ height: `${laneHeight}px` }} className="border-b-[3px] border-slate-800 gallery-lane-bg relative bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(248,250,252,0.9)_100%)]">
+	                           <div key={g} style={{ height: `${laneHeight}px` }} className="border-b border-black/10 gallery-lane-bg relative bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(248,250,252,0.9)_100%)]">
                              {showConflicts && mergedOverlaps.map((overlap, i) => (
                                <div 
                                  key={`overlap-${i}`}
@@ -999,7 +1006,7 @@ export default function MasterScheduler() {
                                }}
                              >
                                 <div className="hidden group-hover:flex absolute left-4 h-full items-center text-[11px] text-slate-600 font-medium uppercase pointer-events-none tracking-widest gap-2">
-                                  <Plus size={10} strokeWidth={3} /> DBL-CLICK TO ADD MILESTONE
+                                  
                                 </div>
                                 {(() => {
                                   const gMilestones = locationMilestones.filter(m => m.gallery === g)
@@ -1057,17 +1064,7 @@ export default function MasterScheduler() {
                                 });
                               })()}
                              </div>
-                             {galleryProjects.length === 0 && filteredExhibitions.length > 0 && (
-                               <div
-                                 className="absolute left-0 w-full flex items-center justify-start pointer-events-none no-print-lane"
-                                 style={{ top: `${MILESTONE_ROW_HEIGHT}px`, height: `${laneHeight - MILESTONE_ROW_HEIGHT}px` }}
-                               >
-                                 <div className="sticky left-4 ml-4 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400 border border-dashed border-slate-300 bg-white/60 px-2.5 py-1">
-                                   <Info size={10} strokeWidth={2.5} />
-                                   No projects in this location
-                                 </div>
-                               </div>
-                             )}
+
                              {galleryProjects.map(ex => {
                                const trackIndex = galleryLayouts[g]!.tracks[ex.id];
                                if (trackIndex === undefined || trackIndex === 0) return null;
@@ -1238,7 +1235,7 @@ export default function MasterScheduler() {
                                   onMouseDown={(e) => onBarMouseDown(e, ex)}
                                   onClick={() => { if (!draggingBarId) setSelectedProjectId(ex.id); }}
                                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedProjectId(ex.id); }}
-	                                  className={`absolute pointer-events-auto border-2 border-black shadow-[0_8px_16px_rgba(15,23,42,0.16)] hover:shadow-[0_10px_24px_rgba(15,23,42,0.22)] transition-all cursor-pointer flex items-stretch overflow-hidden focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`}
+	                                  className={`absolute pointer-events-auto border border-black/10 hover:shadow-lg shadow-[0_8px_16px_rgba(15,23,42,0.16)] hover:shadow-[0_10px_24px_rgba(15,23,42,0.22)] transition-all cursor-pointer flex items-stretch overflow-hidden focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`}
 		                                  style={{
 		                                    left: `${startPos}px`,
 		                                    width: `${width}px`,
@@ -1293,7 +1290,7 @@ export default function MasterScheduler() {
                     return (
                       <div key={s} className="flex items-center gap-1.5">
                         <div className="w-3 h-2 border" style={{ background: styles.accent, borderColor: styles.border }} />
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">{labels[s]}</span>
+                        <span className="text-[8.5px] font-medium uppercase tracking-wide tracking-widest text-slate-600">{labels[s]}</span>
                       </div>
                     );
                   })}
@@ -1313,7 +1310,6 @@ export default function MasterScheduler() {
 	              </button>
 	              <div className="border border-slate-200 bg-white/80 backdrop-blur-sm shadow-[0_20px_40px_rgba(15,23,42,0.06)] px-6 py-6">
                   <h2 className="text-3xl font-semibold uppercase tracking-tight">SYSTEM SETTINGS</h2>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400 mt-3">Maintain portfolio standards, phase language, and location structure for long-range museum planning.</p>
                 </div>
 	            </header>
 	            

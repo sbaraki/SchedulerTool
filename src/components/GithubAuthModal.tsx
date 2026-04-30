@@ -61,14 +61,6 @@ export function GithubAuthModal({ onClose }: Props) {
         </div>
         <div className="p-6 space-y-6">
           <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 p-3 flex gap-3 text-blue-800 text-[12px]">
-              <Info size={16} className="shrink-0 mt-0.5" />
-              <p>
-                To sync your data for free across devices, create a GitHub Personal Access Token (PAT) with the <strong>gist</strong> scope. 
-                Leave the Gist ID blank to create a new backup, or provide an existing Gist ID to restore your data.
-              </p>
-            </div>
-            
             <div className="space-y-2">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-700 flex items-center gap-2">
                 <Key size={12} /> Personal Access Token
