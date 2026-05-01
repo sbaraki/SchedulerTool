@@ -113,35 +113,40 @@ export const getStatusStyles = (status: string) => {
       bg: '#ecfdf5', 
       border: '#10b981', 
       text: '#064e3b',
-      label: '● OPEN TO PUBLIC'
+      label: 'OPEN TO PUBLIC',
+      icon: 'globe'
     };
     case 'In Development': return { 
       accent: '#d97706', 
       bg: '#fffbeb', 
       border: '#f59e0b', 
       text: '#78350f',
-      label: '◈ IN DEVELOPMENT'
+      label: 'IN DEVELOPMENT',
+      icon: 'hammer'
     };
     case 'Proposed': return { 
       accent: '#4b5563', 
       bg: '#f9fafb', 
       border: '#d1d5db', 
       text: '#1f2937',
-      label: '◌ PROPOSED'
+      label: 'PROPOSED',
+      icon: 'circle-dashed'
     };
     case 'Closed': return { 
       accent: '#000000', 
       bg: '#f3f4f6', 
       border: '#1f2937', 
       text: '#000000',
-      label: '■ CLOSED'
+      label: 'CLOSED',
+      icon: 'lock'
     };
     default: return { 
       accent: '#94a3b8', 
       bg: '#f8fafc', 
       border: '#e2e8f0', 
       text: '#475569',
-      label: '?'
+      label: '?',
+      icon: 'help-circle'
     };
   }
 };

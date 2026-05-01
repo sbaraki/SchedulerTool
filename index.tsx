@@ -46,14 +46,29 @@ import {
   LogIn,
   Cloud,
   CloudOff,
-  History
+  History,
+  Globe,
+  Hammer,
+  CircleDashed,
+  Lock,
+  HelpCircle
 } from 'lucide-react';
 
 import { GithubAuthModal } from './src/components/GithubAuthModal';
 
-// --- Types & Constants ---
-
 // --- Components ---
+const StatusIcon = ({ status, size = 12, className = "" }: { status: string; size?: number; className?: string }) => {
+  const styles = getStatusStyles(status);
+  const iconName = styles.icon;
+  
+  switch (iconName) {
+    case 'globe': return <Globe size={size} className={className} />;
+    case 'hammer': return <Hammer size={size} className={className} />;
+    case 'circle-dashed': return <CircleDashed size={size} className={className} />;
+    case 'lock': return <Lock size={size} className={className} />;
+    default: return <HelpCircle size={size} className={className} />;
+  }
+};
 
 
 // --- Main App ---
@@ -685,13 +700,12 @@ export default function MasterScheduler() {
 
             <div className="flex-1 flex overflow-hidden timeline-root no-print-bg px-3 pb-3 pt-2 gap-3">
 	              <aside className="bg-white flex flex-col shrink-0 z-40 border-r border-slate-200 shadow-sm" style={{ width: `${SIDEBAR_WIDTH}px` }}>
-	                <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-[linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] border-b border-slate-200 flex flex-col justify-center px-5 gap-2">
+	                <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-[linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] border-b border-slate-200 flex flex-col justify-center px-5 gap-1.5">
 	                  {(['Proposed', 'In Development', 'Open to Public', 'Closed'] as const).map(s => {
-	                    const styles = getStatusStyles(s);
 	                    return (
-	                      <div key={s} className="flex items-center gap-2">
-	                        <div className="w-2.5 h-1.5 border" style={{ background: styles.accent, borderColor: styles.border }} />
-	                        <span className="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-600 leading-none">{s}</span>
+	                      <div key={s} className="flex items-center gap-2.5">
+	                        <StatusIcon status={s} size={11} className="text-slate-500 shrink-0" />
+	                        <span className="text-[8px] font-bold uppercase tracking-[0.08em] text-slate-600 leading-none">{s}</span>
 	                      </div>
 	                    );
 	                  })}
@@ -1250,29 +1264,20 @@ export default function MasterScheduler() {
                                         }}
                                       >
                                           <div
-                                            className="shrink-0 h-full"
-                                            style={{ width: '6px', backgroundColor: statusStyle.accent, boxShadow: 'inset -1px 0 0 rgba(0,0,0,0.35)' }}
-                                            aria-hidden="true"
-                                          />
-                                          <div className="flex-1 min-w-0 flex items-center justify-center px-2 gap-1.5">
-                                            {width >= 200 ? (
-                                              <>
-                                                <span className="shrink-0 inline-flex items-center font-bold uppercase text-[8px] tracking-[0.16em] leading-none px-1.5 py-[2px] border border-white/40 text-white" style={{ backgroundColor: statusStyle.accent }}>
-                                                  {ex.status === 'Open to Public' ? 'OPEN' : ex.status === 'In Development' ? 'DEV' : ex.status === 'Proposed' ? 'PROP' : 'CLOSED'}
-                                                </span>
-                                                <span className="font-bold text-[11px] uppercase tracking-[0.14em] text-white truncate block leading-none pb-[1px]">
-                                                  {ex.title} • {formatBarDate(effStartDate)} - {formatBarDate(effEndDate)}
-                                                </span>
-                                              </>
-                                            ) : width >= 148 ? (
-                                              <>
-                                                <span className="shrink-0 inline-flex items-center font-bold uppercase text-[8px] tracking-[0.16em] leading-none px-1.5 py-[2px] border border-white/40 text-white" style={{ backgroundColor: statusStyle.accent }}>
-                                                  {ex.status === 'Open to Public' ? 'OPEN' : ex.status === 'In Development' ? 'DEV' : ex.status === 'Proposed' ? 'PROP' : 'CLOSED'}
-                                                </span>
-                                                <span className="font-bold text-[11px] uppercase tracking-[0.14em] text-white truncate block leading-none pb-[1px]">{ex.title}</span>
-                                              </>
+                                            className="shrink-0 h-full flex items-center justify-center px-2 bg-black/10 border-r border-white/10"
+                                            title={ex.status}
+                                          >
+                                            <StatusIcon status={ex.status} size={12} className="text-white opacity-90" />
+                                          </div>
+                                          <div className="flex-1 min-w-0 flex items-center justify-center px-2">
+                                            {width >= 180 ? (
+                                              <span className="font-bold text-[10px] uppercase tracking-[0.14em] text-white truncate block leading-none pb-[0.5px]">
+                                                {ex.title} • {formatBarDate(effStartDate)} - {formatBarDate(effEndDate)}
+                                              </span>
+                                            ) : width >= 100 ? (
+                                              <span className="font-bold text-[10px] uppercase tracking-[0.14em] text-white truncate block leading-none pb-[0.5px]">{ex.title}</span>
                                             ) : (
-                                              <span className="font-bold text-[10px] uppercase tracking-[0.18em] text-white px-1 leading-none pb-[1px] truncate">
+                                              <span className="font-bold text-[9px] uppercase tracking-[0.18em] text-white px-1 leading-none pb-[0.5px] truncate">
                                                 {ex.exhibitionId || 'PROJECT'}
                                               </span>
                                             )}
