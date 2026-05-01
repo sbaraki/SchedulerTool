@@ -731,8 +731,8 @@ export default function MasterScheduler() {
 	                    const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
 	                    return (
 		                      <div key={gallery} style={{ height: `${laneHeight}px` }} className="relative border-b border-black/10 bg-white/80">
-		                        <div style={{ minHeight: `${MILESTONE_ROW_HEIGHT}px` }} className="absolute top-0 left-0 w-full bg-slate-50/80 border-b border-slate-300 flex items-center px-6 py-3 z-20 print:bg-white">
-		                          <span className="font-semibold uppercase text-[11px] tracking-widest text-slate-600 leading-tight break-words">{gallery}</span>
+		                        <div style={{ minHeight: `${MILESTONE_ROW_HEIGHT}px` }} className="absolute top-0 left-0 w-full bg-slate-100/90 border-b border-slate-300 flex items-center px-6 py-3 z-20 print:bg-slate-50 border-l-4 border-l-slate-800">
+		                          <span className="font-bold uppercase text-[10px] tracking-[0.2em] text-slate-900 leading-tight break-words">{gallery}</span>
 		                        </div>
                         {galleryProjects.map(ex => {
                           const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
@@ -997,7 +997,7 @@ export default function MasterScheduler() {
                          });
 
                          return (
-	                           <div key={g} style={{ height: `${laneHeight}px` }} className="border-b border-black/10 gallery-lane-bg relative bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(248,250,252,0.9)_100%)]">
+	                           <div key={g} style={{ height: `${laneHeight}px` }} className="border-b border-slate-300 gallery-lane-bg relative bg-[linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(248,250,252,0.95)_100%)] overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.01)]">
                              {showConflicts && mergedOverlaps.map((overlap, i) => (
                                <div 
                                  key={`overlap-${i}`}
@@ -1011,7 +1011,7 @@ export default function MasterScheduler() {
                              ))}
                              <div
                                style={{ height: `${MILESTONE_ROW_HEIGHT}px` }}
-                               className="absolute top-0 left-0 w-full bg-slate-100/50 border-b border-slate-300/5 z-20 group relative cursor-crosshair overflow-visible"
+                               className="absolute top-0 left-0 w-full bg-slate-100/60 border-b-2 border-slate-200 z-20 group relative cursor-crosshair overflow-visible shadow-sm"
                                onDoubleClick={async (e) => {
                                  const rect = e.currentTarget.getBoundingClientRect();
                                  const x = Math.max(0, e.clientX - rect.left + timelineRef.current!.scrollLeft);
