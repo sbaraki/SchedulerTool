@@ -1,54 +1,130 @@
-import fs from 'fs';
+name: '🧙 Gemini Plan Execution'
 
-let code = fs.readFileSync('index.tsx', 'utf8');
+on:
+  workflow_call:
+    inputs:
+      additional_context:
+        type: 'string'
+        description: 'Any additional context from the request'
+        required: false
 
-// 1. Remove the old imports that are no longer needed 
-// Note: We don't want to blindly regex delete, we just need to add our hook imports.
-if(!code.includes("import { useStore }")) {
-  code = `import { useStore } from './src/store/useStore';
-import { useMuseumSync } from './src/hooks/useMuseumSync';
-import { useMuseumActions } from './src/hooks/useMuseumActions';
-import { getStatusStyles, getContrastColor, ALBERTA_HOLIDAYS, MONTHS, FY_QUARTERS, BASE_LANE_HEIGHT, TRACK_HEIGHT, HEADER_HEIGHT, STANDARD_BAR_HEIGHT, PHASE_BAR_HEIGHT, MILESTONE_COLORS } from './src/constants';
-import { toISODate, getPositionFromDate, getDateFromPosition, formatBarDate } from './src/lib/dateUtils';
-import { calculateTracks } from './src/lib/layoutEngine';
-import { Exhibition, PhaseType, LocationMilestone, ProjectPhase, ExhibitionStatus } from './src/types';
-` + code;
-}
+concurrency:
+  group: '${{ github.workflow }}-plan-execute-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}'
+  cancel-in-progress: true
 
-// Strip out the definitions that moved to files:
-const stripPattern = /(type ExhibitionStatus = 'Proposed'.*?\/\/ --- Components ---)/s;
-code = code.replace(stripPattern, '// --- Components ---\n');
+defaults:
+  run:
+    shell: 'bash'
 
-// Replace the MasterScheduler states
-const replaceStateDef = `export default function MasterScheduler() {
-  const { currentUser, syncStatus, setSyncStatus, isInitialLoad } = useMuseumSync();
-  const { 
-    museumName, setMuseumName,
-    galleries, setGalleries,
-    phaseTypes, setPhaseTypes,
-    exhibitions, setExhibitions,
-    locationMilestones, setLocationMilestones,
-    monthWidth, setMonthWidth,
-    timelineStartDate, setTimelineStartDate,
-    timelineEndDate, setTimelineEndDate,
-    searchQuery, setSearchQuery,
-    statusFilter, setStatusFilter,
-    showHolidays, setShowHolidays
-  } = useStore();
-  const { handleUpdateExhibition, handleRemoveExhibition, handleUpdateGalleryName, handleAddGallery, handleRemoveGallery, handleDuplicateProject } = useMuseumActions(currentUser, setSyncStatus);`;
+jobs:
+  plan-execute:
+    timeout-minutes: 30
+    runs-on: 'ubuntu-latest'
+    permissions:
+      contents: 'write'
+      id-token: 'write'
+      issues: 'write'
+      pull-requests: 'write'
 
-const oldStateStart = "export default function MasterScheduler() {";
-const oldStateEnd = "const todayPos = useMemo(() => {";
+    steps:
+      - name: 'Mint identity token'
+        id: 'mint_identity_token'
+        if: |-
+          ${{ vars.APP_ID }}
+        uses: 'actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf' # ratchet:actions/create-github-app-token@v2
+        with:
+          app-id: '${{ vars.APP_ID }}'
+          private-key: '${{ secrets.APP_PRIVATE_KEY }}'
+          permission-contents: 'write'
+          permission-issues: 'write'
+          permission-pull-requests: 'write'
 
-const sIdx = code.indexOf(oldStateStart);
-const eIdx = code.indexOf(oldStateEnd);
+      - name: 'Checkout Code'
+        uses: 'actions/checkout@v4' # ratchet:exclude
 
-if (sIdx !== -1 && eIdx !== -1) {
-  code = code.slice(0, sIdx) + replaceStateDef + "\n\n  " + code.slice(eIdx);
-}
-
-// Clean up some residual unused code from the top if needed
-code = code.replace(/import \{ ExhibitionStatus \} from '\.\/src\/types';\n/g, "");
-
-fs.writeFileSync('index.tsx', code, 'utf8');
-console.log("Refactoring index.tsx hooks completed.");
+      - name: 'Run Gemini CLI'
+        id: 'run_gemini'
+        uses: 'google-github-actions/run-gemini-cli@v0' # ratchet:exclude
+        env:
+          TITLE: '${{ github.event.pull_request.title || github.event.issue.title }}'
+          DESCRIPTION: '${{ github.event.pull_request.body || github.event.issue.body }}'
+          EVENT_NAME: '${{ github.event_name }}'
+          GITHUB_TOKEN: '${{ steps.mint_identity_token.outputs.token || secrets.GITHUB_TOKEN || github.token }}'
+          IS_PULL_REQUEST: '${{ !!github.event.pull_request }}'
+          ISSUE_NUMBER: '${{ github.event.pull_request.number || github.event.issue.number }}'
+          REPOSITORY: '${{ github.repository }}'
+          ADDITIONAL_CONTEXT: '${{ inputs.additional_context }}'
+        with:
+          gcp_location: '${{ vars.GOOGLE_CLOUD_LOCATION }}'
+          gcp_project_id: '${{ vars.GOOGLE_CLOUD_PROJECT }}'
+          gcp_service_account: '${{ vars.SERVICE_ACCOUNT_EMAIL }}'
+          gcp_workload_identity_provider: '${{ vars.GCP_WIF_PROVIDER }}'
+          gemini_api_key: '${{ secrets.GEMINI_API_KEY }}'
+          gemini_cli_version: '${{ vars.GEMINI_CLI_VERSION }}'
+          gemini_debug: '${{ fromJSON(vars.GEMINI_DEBUG || vars.ACTIONS_STEP_DEBUG || false) }}'
+          gemini_model: '${{ vars.GEMINI_MODEL }}'
+          google_api_key: '${{ secrets.GOOGLE_API_KEY }}'
+          use_gemini_code_assist: '${{ vars.GOOGLE_GENAI_USE_GCA }}'
+          use_vertex_ai: '${{ vars.GOOGLE_GENAI_USE_VERTEXAI }}'
+          upload_artifacts: '${{ vars.UPLOAD_ARTIFACTS }}'
+          workflow_name: 'gemini-plan-execute'
+          # Assistant workflows can be triggered by comments on either Issues or PRs.
+          # We explicitly map both fields so the CLI can correctly categorize the interaction.
+          github_pr_number: '${{ github.event.pull_request.number }}'
+          github_issue_number: '${{ github.event.issue.number }}'
+          settings: |-
+            {
+              "model": {
+                "maxSessionTurns": 25
+              },
+              "telemetry": {
+                "enabled": true,
+                "target": "local",
+                "outfile": ".gemini/telemetry.log"
+              },
+              "mcpServers": {
+                "github": {
+                  "command": "docker",
+                  "args": [
+                    "run",
+                    "-i",
+                    "--rm",
+                    "-e",
+                    "GITHUB_PERSONAL_ACCESS_TOKEN",
+                    "ghcr.io/github/github-mcp-server:v0.27.0"
+                  ],
+                  "includeTools": [
+                    "add_issue_comment",
+                    "issue_read",
+                    "list_issues",
+                    "search_issues",
+                    "create_pull_request",
+                    "pull_request_read",
+                    "list_pull_requests",
+                    "search_pull_requests",
+                    "create_branch",
+                    "create_or_update_file",
+                    "delete_file",
+                    "fork_repository",
+                    "get_commit",
+                    "get_file_contents",
+                    "list_commits",
+                    "push_files",
+                    "search_code"
+                  ],
+                  "env": {
+                    "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+                  }
+                }
+              },
+              "tools": {
+                "core": [
+                  "run_shell_command(cat)",
+                  "run_shell_command(echo)",
+                  "run_shell_command(grep)",
+                  "run_shell_command(head)",
+                  "run_shell_command(tail)"
+                ]
+              }
+            }
+          prompt: '/gemini-plan-execute'

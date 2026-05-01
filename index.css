@@ -1,212 +1,54 @@
-@media print {
-  @page {
-    size: 11in 17in landscape;
-    margin: 0.15in;
-  }
+description = "Triages an issue with Gemini CLI"
+prompt = """
+## Role
 
-  body {
-    background-color: white !important;
-    color: #334155 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
+You are an issue triage assistant. Analyze the current GitHub issue and identify the most appropriate existing labels. Use the available tools to gather information; do not ask for information to be provided.
 
-  /* Hide all interactive UI chrome */
-  .no-print,
-  .no-print-lane {
-    display: none !important;
-  }
+## Guidelines
 
-  /* Hide modals/overlays during print */
-  .fixed.inset-0 {
-    display: none !important;
-  }
+- Only use labels that are from the list of available labels.
+- You can choose multiple labels to apply.
+- When generating shell commands, you **MUST NOT** use command substitution with `$(...)`, `<(...)`, or `>(...)`. This is a security measure to prevent unintended command execution.
 
-  /* Force backgrounds/colors to render */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    box-shadow: none !important;
-    text-shadow: none !important;
-  }
+## Input Data
 
-  /* Flatten heavy backgrounds onto plain white so the timeline reads clearly */
-  .no-print-bg,
-  .timeline-root,
-  .timeline-container,
-  main,
-  aside,
-  header,
-  footer,
-  [class*="bg-[linear-gradient"],
-  [class*="bg-gradient"] {
-    background: white !important;
-    background-image: none !important;
-  }
+**Available Labels** (comma-separated):
+```
+!{echo $AVAILABLE_LABELS}
+```
 
-  /* Let the zebra striping breathe and show up on print */
-  .gallery-lane-bg:nth-child(even) {
-    background-color: #f8fafc !important;
-  }
+**Issue Title**:
+```
+!{echo $ISSUE_TITLE}
+```
 
-  /* Project bars: keep solid red — strip the gradient but preserve background-color. */
-  [role="button"][aria-label^="Project:"] {
-    background-image: none !important;
-    background-color: #ef4444 !important; /* Softer red for print */
-    border-color: #f87171 !important; /* Softer border */
-    border-width: 1px !important;
-  }
+**Issue Body**:
+```
+!{echo $ISSUE_BODY}
+```
 
-  /* Project bar title text — refined typography */
-  [role="button"][aria-label^="Project:"] span {
-    color: white !important;
-    font-size: 12px !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.05em !important;
-    line-height: 1.1 !important;
-  }
+**Output File Path**:
+```
+!{echo $GITHUB_ENV}
+```
 
-  /* Status pill */
-  [role="button"][aria-label^="Project:"] span[style*="background-color"] {
-    font-size: 9px !important;
-    font-weight: 600 !important;
-    padding: 2px 4px !important;
-    border-color: rgba(255,255,255,0.4) !important;
-    letter-spacing: 0.05em !important;
-  }
+## Steps
 
-  /* Sidebar gallery banner */
-  aside [class*="from-slate"],
-  aside [class*="bg-[linear-gradient"] {
-    background: white !important;
-    background-image: none !important;
-  }
+1. Review the issue title, issue body, and available labels provided above.
 
-  aside .font-bold.uppercase,
-  aside .font-semibold.uppercase {
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.1em !important;
-    color: #475569 !important;
-  }
+2. Based on the issue title and issue body, classify the issue and choose all appropriate labels from the list of available labels.
 
-  /* Status legend (sidebar header) — counter the print zoom so the four
-     rows stay legible on 11x17. Sized for the 3-year preset (zoom ~0.7);
-     still fits the 100px header at the 1- and 2-year presets where zoom = 1. */
-  aside > div:first-child {
-    padding: 10px 14px !important;
-    gap: 6px !important;
-    justify-content: space-evenly !important;
-    background: white !important;
-    background-image: none !important;
-  }
+3. Convert the list of appropriate labels into a comma-separated list (CSV). If there are no appropriate labels, use the empty string.
 
-  aside > div:first-child > div {
-    gap: 9px !important;
-  }
+4. Use the "echo" shell command to append the CSV labels to the output file path provided above:
 
-  aside > div:first-child svg {
-    width: 14px !important;
-    height: 14px !important;
-    color: #475569 !important;
-  }
+    ```
+    echo "SELECTED_LABELS=[APPROPRIATE_LABELS_AS_CSV]" >> "[filepath_for_env]"
+    ```
 
-  aside > div:first-child span.font-bold.uppercase {
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.04em !important;
-    color: #1e293b !important;
-    line-height: 1.15 !important;
-  }
+    for example:
 
-  /* Sidebar project labels */
-  aside [title] {
-    font-size: 11px !important;
-    font-weight: 500 !important;
-    color: #334155 !important;
-    line-height: 1.2 !important;
-  }
-
-  /* Borders: soften for paper */
-  .border-slate-200, .border-slate-300, .border-black\/10 {
-    border-color: #e2e8f0 !important;
-    border-width: 0.5px !important;
-  }
-
-  /* Subtle Grid lines */
-  .border-slate-200\/40, .border-slate-200\/10, .border-slate-200\/5, .border-black\/5 {
-    border-color: #f1f5f9 !important;
-    border-width: 0.5px !important;
-    border-style: dashed !important;
-  }
-
-  /* Drop tinted lane backgrounds (unless it's zebra striping) */
-  .bg-orange-50\/50, .bg-orange-50,
-  .bg-slate-50\/50,
-  .bg-slate-100\/50, .bg-slate-100,
-  .bg-white\/40, .bg-white\/75, .bg-white\/80, .bg-white\/85, .bg-white\/95 {
-    background-color: white !important;
-  }
-  
-  /* Retain slight tint for FY bands if they use bg-slate-50 without opacity */
-  .bg-slate-50 {
-    background-color: #f8fafc !important;
-  }
-
-  /* Timeline page sizing — let the browser scale to fit one page */
-  .timeline-root {
-    display: flex !important;
-    overflow: visible !important;
-    height: auto !important;
-    zoom: var(--print-scale, 1);
-    transform-origin: top left !important;
-    padding: 0 !important;
-    gap: 0 !important;
-  }
-
-  .timeline-container {
-    overflow: visible !important;
-    height: auto !important;
-    width: auto !important;
-    cursor: default !important;
-  }
-
-  .sticky,
-  .sticky.top-0 {
-    position: relative !important;
-    top: 0 !important;
-  }
-
-  .timeline-root,
-  .timeline-container,
-  aside,
-  main {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  /* Today indicator — soften */
-  .bg-red-500 {
-    background-color: #f87171 !important;
-    width: 1px !important;
-  }
-
-  /* Milestone markers — elegant diamonds */
-  .rotate-45 {
-    border-color: #64748b !important;
-    border-width: 1px !important;
-  }
-
-  /* Milestone labels */
-  [class*="bg-white"][class*="border-slate-200"],
-  [class*="bg-white"][class*="border-black\/10"] {
-    background: transparent !important;
-    border: none !important;
-    font-size: 9px !important;
-    color: #475569 !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.05em !important;
-  }
-}
+    ```
+    echo "SELECTED_LABELS=bug,enhancement" >> "/tmp/runner/env"
+    ```
+"""
