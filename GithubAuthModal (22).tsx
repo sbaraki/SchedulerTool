@@ -1,6 +1,6 @@
-import fs from 'fs';
+const fs = require('fs');
 
-const filePath = './index.tsx';
+const filePath = '/app/applet/index.tsx';
 let code = fs.readFileSync(filePath, 'utf-8');
 
 const replacements = [
@@ -11,7 +11,7 @@ const replacements = [
     ["w-10 h-10 bg-black text-white border-2 border-black flex items-center justify-center hover:bg-white hover:text-black transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-black", "w-10 h-10 bg-black text-white rounded-md flex items-center justify-center hover:bg-slate-800 transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm"],
     ["w-10 h-10 bg-white border-2 border-black text-black flex items-center justify-center hover:bg-black hover:text-white transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-black", "w-10 h-10 bg-white border border-slate-300 rounded-md text-slate-700 flex items-center justify-center hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm"],
     ["w-full font-bold border-2 border-black p-2 outline-none text-sm bg-white text-black focus:bg-yellow-50", "w-full font-semibold border border-slate-300 rounded-md p-2 outline-none text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"],
-    ["font-bold text-sm uppercase px-2 py-0.5 border-2 border-black inline-block", "font-bold text-xs uppercase px-2 py-1 rounded-md inline-block shadow-sm text-slate-800 border border-slate-200"],
+    ["font-bold text-sm uppercase px-2 py-0.5 border-2 border-black inline-block", "font-bold text-xs uppercase px-2 py-1 rounded-md inline-block shadow-sm text-slate-800"],
     ["p-4 border-2 border-black space-y-4 bg-slate-50/50", "p-4 border border-slate-200 rounded-lg space-y-4 bg-white shadow-sm"],
     ["w-full border-2 border-black p-2 text-xs bg-white text-black outline-none focus:bg-yellow-50", "w-full border border-slate-300 rounded-md p-2 text-xs bg-white text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"],
     ["border-t border-black/10", "border-t border-slate-100"],
@@ -47,14 +47,13 @@ const replacements = [
     ["w-10 h-10 bg-black flex items-center justify-center text-white border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-transform group-hover:translate-x-0.5 group-hover:translate-y-0.5 group-hover:shadow-none", "w-9 h-9 rounded-md bg-black flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-95"],
     ["border-2 border-black px-2 py-1.5 bg-slate-50", "border border-slate-200 rounded-md shadow-inner px-2 py-1 bg-slate-50/50"],
     ["border-2 border-black px-4 py-2 bg-slate-50", "border border-slate-200 rounded-md shadow-sm px-4 py-1.5 bg-white"],
-    ["px-6 py-2.5 bg-black text-white border-2 border-black font-black uppercase text-[10px] hover:bg-slate-800 transition-colors flex items-center", "px-6 py-2 bg-black rounded-md text-white font-bold uppercase text-[10px] hover:bg-slate-800 shadow-sm transition-all flex items-center"],
+    ["px-6 py-2.5 bg-black text-white border-2 border-black font-black uppercase text-[10px] hover:bg-slate-800 transition-colors flex items-center", "px-6 py-2.5 bg-black rounded-md text-white font-bold uppercase text-[10px] hover:bg-slate-800 shadow-sm transition-all flex items-center"],
     ["p-2 border-2 border-black bg-white hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-black", "p-1.5 border border-slate-200 shadow-sm rounded-md bg-white hover:bg-slate-50 text-slate-600 transition-all focus:ring-2 focus:ring-blue-500/50"],
-    ["outline-none ml-2 border-l-2 border-slate-200 pl-2 cursor-pointer", "outline-none ml-2 cursor-pointer"],
     
     // Main grid & lane headers
     ["w-40 bg-white flex flex-col shrink-0 z-40 border-r-2 border-black shadow-[2px_0_10px_rgba(0,0,0,0.02)]", "w-40 bg-slate-50 flex flex-col shrink-0 z-40 border-r border-slate-200"],
-    ["bg-slate-50 border-b-2 border-black flex flex-col justify-end p-4", "bg-slate-50 border-b border-slate-200 flex flex-col justify-end p-4"],
-    ["sticky top-0 z-[60] border-b-2 border-black flex flex-col bg-white/95 backdrop-blur-sm", "sticky top-0 z-[60] flex flex-col bg-white shadow-sm border-b border-slate-200"],
+    ["bg-slate-50 border-b-2 border-black flex flex-col justify-end p-4", "bg-slate-50 flex flex-col justify-end p-4"],
+    ["sticky top-0 z-[60] border-b-2 border-black flex flex-col bg-white/95 backdrop-blur-sm", "sticky top-0 z-[60] flex flex-col bg-white shadow-sm absolute-timeline-header"],
     ["flex h-[36px] border-b-2 border-black bg-white", "flex h-[36px] border-b border-slate-200 bg-white"],
     ["border-r-2 border-black/5", "border-r border-slate-100"],
     ["flex h-[32px] border-b-2 border-black/5 text-orange-700 bg-orange-50", "flex h-[32px] border-b border-slate-100 text-slate-700 bg-slate-50/50"],
@@ -62,36 +61,39 @@ const replacements = [
     ["flex h-[28px] bg-white border-b-2 border-black/10", "flex h-[28px] bg-white border-b border-slate-200"],
     
     // Milestone render
-    ["bg-white border-[1.5px] border-black rotate-45 shadow-[1px_1px_0_0_rgba(0,0,0,1)]", "bg-white border border-slate-300 rounded-sm rotate-45 shadow-sm"],
-    ["drop-shadow-[1px_1px_0_rgba(0,0,0,1)]", "drop-shadow-sm filter-drop-shadow"],
-    ["text-[8px] font-black uppercase text-slate-700 bg-white px-1 leading-tight border border-black shadow-sm opacity-90 transition-opacity hover:opacity-100 whitespace-nowrap pointer-events-none", "text-[9px] font-semibold uppercase text-slate-600 bg-white px-1.5 py-0.5 leading-tight border border-slate-200 rounded shadow-md opacity-90 transition-all pointer-events-none"],
+    ["bg-white border-[1.5px] border-black rotate-45 shadow-[1px_1px_0_0_rgba(0,0,0,1)]", "bg-white border border-slate-400 rounded-sm rotate-45 shadow-sm"],
+    ["drop-shadow-[1px_1px_0_rgba(0,0,0,1)]", "drop-shadow-sm"],
+    ["border border-black shadow-sm opacity-90 transition-opacity hover:opacity-100 whitespace-nowrap z-30", "border border-slate-200 rounded text-slate-600 shadow-sm opacity-90 transition-all hover:bg-white hover:text-black hover:border-slate-300 hover:opacity-100 hover:scale-[1.03] whitespace-nowrap z-30 font-bold"],
     
     // Phase rendering (Timeline grid)
-    ["border-l-2 border-dashed border-orange-500/50", "border-l border-dashed border-slate-300"],
-    ["absolute border-2 border-black flex items-center px-3 shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-white transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none pointer-events-auto", "absolute rounded flex items-center px-2 py-0.5 shadow-sm hover:shadow-md bg-white border border-slate-200 hover:border-blue-400 transition-all pointer-events-auto"],
-    ["text-[9px] font-black uppercase whitespace-normal break-words leading-none", "text-[10px] font-bold uppercase whitespace-nowrap break-words leading-none tracking-tight truncate"],
-    ["absolute pointer-events-auto border-2 border-black bg-white shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all cursor-pointer overflow-hidden flex focus:ring-2 focus:ring-black", "absolute pointer-events-auto border border-slate-200 bg-white rounded shadow-sm hover:shadow-md hover:border-slate-400 transition-all cursor-pointer overflow-hidden flex focus:outline-none focus:ring-2 focus:ring-blue-500/50"],
-    ["border-b-[3px] border-slate-800", "border-b-[2px] border-slate-200"],
-    ["cursor-crosshair overflow-visible", "cursor-crosshair overflow-visible hover:bg-slate-50/50 transition-colors"],
+    ["border-l-2 border-dashed border-orange-500/50", "border-l-[1.5px] border-dashed border-slate-300"],
+    ["absolute border-2 border-black flex items-center px-3 shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-white transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none pointer-events-auto", "absolute rounded flex items-center px-3 shadow-sm bg-white border border-transparent hover:border-slate-300 transition-all hover:shadow-md pointer-events-auto"],
+    ["text-[9px] font-black uppercase whitespace-normal break-words leading-none", "text-[10px] font-bold uppercase whitespace-normal break-words leading-none tracking-tight"],
+    ["absolute pointer-events-auto border-2 border-black bg-white shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all cursor-pointer overflow-hidden flex focus:ring-2 focus:ring-black", "absolute pointer-events-auto border border-slate-200 bg-white rounded-md shadow-sm hover:shadow-md hover:border-slate-300 transition-all cursor-pointer overflow-hidden flex focus:outline-none focus:ring-2 focus:ring-blue-500/50 group block pointer-events-auto truncate overflow-fade"],
+    ["bg-white/95 backdrop-blur-sm", "bg-white"],
+    ["border-b-[3px] border-slate-800", "border-b border-slate-200"],
+    ["border-b border-black/5", "border-b border-transparent hover:bg-slate-50 transition-colors"],
     ["border-t-[1.5px] border-slate-300", "border-t border-slate-100"],
 
     // Overlaps
-    ["border-2 border-red-500/50", "border border-red-200 rounded text-red-500 shadow-sm"],
+    ["border-2 border-red-500/50", "border border-red-200 rounded text-red-500 text-[8px] font-bold shadow-sm"],
     ["text-red-600 font-black uppercase text-[8px] tracking-widest", "text-red-500 font-bold uppercase text-[9px] tracking-wide"],
     ["border-l-2 border-r-2 border-dashed border-red-500/50", "border-l border-r border-dashed border-red-300 bg-red-500/[0.03]"],
     
     // Settings modal bottom
     ["border-t-4 border-black pt-12", "border-t border-slate-200 pt-12"],
-    ["border-2 border-black p-6 bg-slate-50 shadow-[4px_4px_0_0_rgba(0,0,0,1)] focus-within:bg-yellow-50/10", "border border-slate-200 rounded-xl p-6 bg-white shadow-xl hover:shadow-2xl transition-all"],
+    ["border-2 border-black p-6 bg-slate-50 shadow-[4px_4px_0_0_rgba(0,0,0,1)]", "border border-slate-200 rounded-xl p-6 bg-white shadow-xl"],
     ["bg-white border-2 border-black p-3 outline-none uppercase shadow-inner", "bg-white border border-slate-300 rounded-md p-3 outline-none uppercase shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"],
-    ["border-2 border-black bg-white shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:scale-[1.02]", "border border-slate-200 rounded-lg bg-white shadow-sm transition-all hover:shadow-md hover:scale-[1.01]"],
-    ["w-8 h-8 border-2 border-black bg-transparent cursor-pointer", "w-8 h-8 border border-slate-300 rounded hover:bg-slate-50 cursor-pointer shadow-sm transition-all"],
-    ["font-bold uppercase text-[10px] outline-none border-b border-transparent focus:border-black bg-transparent", "font-bold uppercase text-[10px] outline-none border-b border-transparent focus:border-blue-500 bg-transparent text-slate-700 hover:border-slate-400 pb-1"]
+    ["margin-y", "my"],
+    ["border-2 border-black bg-white shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:scale-[1.02]", "border border-slate-200 rounded-lg bg-white shadow-sm transition-all hover:shadow-md hover:border-slate-300 hover:scale-[1.01]"],
+    ["w-8 h-8 border-2 border-black bg-transparent cursor-pointer", "w-8 h-8 border border-slate-300 rounded cursor-pointer shadow-sm"],
+    ["font-bold uppercase text-[10px] outline-none border-b border-transparent focus:border-black bg-transparent", "font-bold uppercase text-[10px] outline-none border-b border-slate-300 focus:border-blue-500 bg-transparent text-slate-700 hover:border-slate-400"]
 ];
 
 for (const [oldStr, newStr] of replacements) {
+    // split/join replaces all instances (like global replace without regex edge cases)
     code = code.split(oldStr).join(newStr);
 }
 
 fs.writeFileSync(filePath, code);
-console.log("Styles soft-replaced successfully via ESM.");
+console.log("Styles soft-replaced successfully.");

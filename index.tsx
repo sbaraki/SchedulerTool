@@ -927,13 +927,10 @@ export default function MasterScheduler() {
                                   className="group/holiday relative flex items-center justify-center cursor-help"
                                   title={`${holiday.label} (${holiday.type} Holiday)`}
                                 >
-                                  <div className={`w-2 h-2 rotate-45 border border-slate-400 shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-transform group-hover/holiday:scale-125 ${holiday.type === 'Statutory' ? 'bg-slate-800' : 'bg-white'}`} />
+                                  <div className="w-2 h-2 rotate-45 border border-slate-400 shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-transform group-hover/holiday:scale-125 bg-slate-800" />
                                   
-                                  <div className={`absolute left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase text-slate-800 whitespace-nowrap z-30 pointer-events-none transition-all duration-200 border border-slate-200 px-1.5 py-[1px] bg-white shadow-sm flex items-center gap-1 ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
-                                    {holiday.label}
-                                    <span className="text-[9px] text-slate-600 font-medium">
-                                      {holiday.date.split('-')[1]}/{holiday.date.split('-')[2]}
-                                    </span>
+                                  <div className={`absolute left-1/2 -translate-x-1/2 text-[9px] font-medium uppercase text-slate-600 bg-white px-1.5 py-[1px] leading-tight border border-slate-200 shadow-md opacity-90 transition-all hover:bg-slate-50 hover:opacity-100 whitespace-nowrap z-30 pointer-events-none ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
+                                    {holiday.label} <span className="text-slate-400 font-normal">·</span> <span className="font-semibold text-slate-500">{formatBarDate(holiday.date)}</span>
                                   </div>
 
                                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-slate-400/0 group-hover/holiday:bg-slate-400/10 transition-colors pointer-events-none" />
@@ -1249,15 +1246,12 @@ export default function MasterScheduler() {
                                           backgroundImage: 'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)'
                                         }}
                                       >
-                                          <div
-                                            className="shrink-0 h-full flex items-center justify-center px-2 bg-black/10 border-r border-white/10"
-                                            title={ex.status}
-                                          >
-                                            <StatusIcon status={ex.status} size={12} className="text-white opacity-90" />
-                                          </div>
-                                          <div className="flex-1 min-w-0 flex items-center justify-center px-2">
+                                          <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2" title={ex.status}>
                                             {width >= 80 ? (
-                                              <span className="font-bold text-[10px] uppercase tracking-[0.14em] text-white truncate block leading-none pb-[0.5px]">{ex.title}</span>
+                                              <>
+                                                <StatusIcon status={ex.status} size={12} className="text-white opacity-90 shrink-0" />
+                                                <span className="font-bold text-[10px] uppercase tracking-[0.14em] text-white truncate leading-none pb-[0.5px]">{ex.title}</span>
+                                              </>
                                             ) : (
                                               <span className="font-bold text-[9px] uppercase tracking-[0.18em] text-white px-1 leading-none pb-[0.5px] truncate">
                                                 {ex.exhibitionId || 'PROJECT'}
