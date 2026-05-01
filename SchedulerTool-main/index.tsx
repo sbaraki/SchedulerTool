@@ -1012,7 +1012,7 @@ export default function MasterScheduler() {
                              <div
                                style={{ height: `${MILESTONE_ROW_HEIGHT}px` }}
                                className="absolute top-0 left-0 w-full bg-slate-100/60 border-b-2 border-slate-200 z-20 group relative cursor-crosshair overflow-visible shadow-sm"
-                               onDoubleClick={async (e) => {
+                               onDoubleClick={(e) => {
                                  const rect = e.currentTarget.getBoundingClientRect();
                                  const x = Math.max(0, e.clientX - rect.left + timelineRef.current!.scrollLeft);
                                  const date = getDateFromPosition(x, monthWidth, viewMonths);
@@ -1025,20 +1025,6 @@ export default function MasterScheduler() {
                                  };
                                  setLocationMilestones([...locationMilestones, newMilestone]);
                                  setEditMilestoneDraft(newMilestone);
-
-                                 if (currentUser) {
-                                   try {
-                                     setSyncStatus('syncing');
-                                     await setDoc(doc(db, 'users', currentUser.uid, 'milestones', id), {
-                                       ...newMilestone,
-                                       ownerId: currentUser.uid,
-                                       updatedAt: serverTimestamp()
-                                     });
-                                     setSyncStatus('synced');
-                                   } catch (err) {
-                                     setSyncStatus('error');
-                                   }
-                                 }
                                }}
                              >
                                 <div className="absolute left-4 h-full flex items-center" />
