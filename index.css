@@ -92,6 +92,35 @@
     color: #475569 !important;
   }
 
+  /* Status legend (sidebar header) — counter the print zoom so the four
+     rows stay legible on 11x17. Sized for the 3-year preset (zoom ~0.7);
+     still fits the 100px header at the 1- and 2-year presets where zoom = 1. */
+  aside > div:first-child {
+    padding: 10px 14px !important;
+    gap: 6px !important;
+    justify-content: space-evenly !important;
+    background: white !important;
+    background-image: none !important;
+  }
+
+  aside > div:first-child > div {
+    gap: 9px !important;
+  }
+
+  aside > div:first-child svg {
+    width: 14px !important;
+    height: 14px !important;
+    color: #475569 !important;
+  }
+
+  aside > div:first-child span.font-bold.uppercase {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+    color: #1e293b !important;
+    line-height: 1.15 !important;
+  }
+
   /* Sidebar project labels */
   aside [title] {
     font-size: 11px !important;

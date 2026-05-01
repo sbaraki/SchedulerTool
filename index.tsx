@@ -1090,8 +1090,9 @@ export default function MasterScheduler() {
                                             </div>
                                           )}
                                         </div>
-                                        <div className={`absolute left-1/2 -translate-x-1/2 text-[9px] font-medium uppercase text-slate-600 bg-white px-1.5 py-[1px] leading-tight border border-slate-200 shadow-md opacity-90 transition-all hover:bg-slate-50 hover:opacity-100 whitespace-nowrap z-30 pointer-events-none ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
-                                          {m.title}
+                                        <div className={`absolute left-1/2 -translate-x-1/2 bg-white px-1.5 py-[2px] leading-tight border border-slate-200 shadow-md opacity-90 transition-all hover:bg-slate-50 hover:opacity-100 whitespace-nowrap z-30 pointer-events-none flex flex-col items-center ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
+                                          <span className="text-[9px] font-medium uppercase text-slate-600">{m.title}</span>
+                                          <span className="text-[8px] font-semibold tracking-wide text-slate-500 mt-[1px]">{formatBarDate(m.date)}</span>
                                         </div>
                                       </div>
                                   );
@@ -1270,11 +1271,7 @@ export default function MasterScheduler() {
                                             <StatusIcon status={ex.status} size={12} className="text-white opacity-90" />
                                           </div>
                                           <div className="flex-1 min-w-0 flex items-center justify-center px-2">
-                                            {width >= 180 ? (
-                                              <span className="font-bold text-[10px] uppercase tracking-[0.14em] text-white truncate block leading-none pb-[0.5px]">
-                                                {ex.title} • {formatBarDate(effStartDate)} - {formatBarDate(effEndDate)}
-                                              </span>
-                                            ) : width >= 100 ? (
+                                            {width >= 80 ? (
                                               <span className="font-bold text-[10px] uppercase tracking-[0.14em] text-white truncate block leading-none pb-[0.5px]">{ex.title}</span>
                                             ) : (
                                               <span className="font-bold text-[9px] uppercase tracking-[0.18em] text-white px-1 leading-none pb-[0.5px] truncate">
@@ -1283,6 +1280,13 @@ export default function MasterScheduler() {
                                             )}
                                           </div>
                                       </motion.div>
+                                      <div
+                                        className="absolute text-[9px] font-bold text-slate-700 tracking-tight whitespace-nowrap pointer-events-none leading-none"
+                                        style={{ left: `${startPos}px`, top: `${mainBarY + STANDARD_BAR_HEIGHT + 2}px` }}
+                                        title={`${formatBarDate(effStartDate)} – ${formatBarDate(effEndDate)}`}
+                                      >
+                                        {formatBarDate(effStartDate)} – {formatBarDate(effEndDate)}
+                                      </div>
                                     </React.Fragment>
                                   );
                                 })}
