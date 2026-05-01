@@ -685,7 +685,17 @@ export default function MasterScheduler() {
 
             <div className="flex-1 flex overflow-hidden timeline-root no-print-bg px-3 pb-3 pt-2 gap-3">
 	              <aside className="bg-white flex flex-col shrink-0 z-40 border-r border-slate-200 shadow-sm" style={{ width: `${SIDEBAR_WIDTH}px` }}>
-	                <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-[linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] border-b border-slate-200" />
+	                <div style={{ height: `${HEADER_HEIGHT}px` }} className="shrink-0 bg-[linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] border-b border-slate-200 flex flex-col justify-center px-5 gap-2">
+	                  {(['Proposed', 'In Development', 'Open to Public', 'Closed'] as const).map(s => {
+	                    const styles = getStatusStyles(s);
+	                    return (
+	                      <div key={s} className="flex items-center gap-2">
+	                        <div className="w-2.5 h-1.5 border" style={{ background: styles.accent, borderColor: styles.border }} />
+	                        <span className="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-600 leading-none">{s}</span>
+	                      </div>
+	                    );
+	                  })}
+	                </div>
 	                <div
 	                  className="flex-1 overflow-y-auto custom-scrollbar"
 	                  ref={sidebarListRef}
@@ -1285,18 +1295,7 @@ export default function MasterScheduler() {
                   </div>
                 </div>
 
-                <footer className="bg-white/80 backdrop-blur-sm border-t border-slate-200 px-4 py-1.5 flex items-center justify-center gap-4 no-print shrink-0 mt-auto">
-                  {(['Proposed', 'In Development', 'Open to Public', 'Closed'] as const).map(s => {
-                    const styles = getStatusStyles(s);
-                    const labels: Record<typeof s, string> = { 'Proposed': 'Proposed', 'In Development': 'In Dev', 'Open to Public': 'Open', 'Closed': 'Closed' };
-                    return (
-                      <div key={s} className="flex items-center gap-1.5">
-                        <div className="w-3 h-2 border" style={{ background: styles.accent, borderColor: styles.border }} />
-                        <span className="text-[8.5px] font-medium uppercase tracking-wide tracking-widest text-slate-600">{labels[s]}</span>
-                      </div>
-                    );
-                  })}
-                </footer>
+
               </div>
             </main>
           </div>
