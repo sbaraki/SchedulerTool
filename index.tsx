@@ -847,11 +847,11 @@ export default function MasterScheduler() {
                     <div className="flex h-[30px] border-b border-black/10 bg-white relative z-10 print:bg-white print:border-slate-400">
                       {yearBlocks.map(block => <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center px-4 font-bold text-base tracking-[0.1em] text-slate-900 border-r border-black/10 print:border-slate-400 print:text-black">{block.label}</div>)}
                     </div>
-                    <div className="flex h-[24px] border-b border-slate-300 bg-slate-50 relative z-10 print:bg-orange-100 print:border-orange-300 print:text-orange-900">
-                      {fyBlocks.map((block) => (
-                        <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center font-medium text-[9px] uppercase tracking-wider border-r border-black/10 text-slate-600 print:border-orange-300 print:text-orange-900">{block.label}</div>
-                      ))}
-                    </div>
+                     <div className="flex h-[24px] border-b border-slate-300 bg-slate-50 relative z-10 print:bg-orange-100 print:border-orange-300 print:text-orange-900">
+                       {fyBlocks.map((block) => (
+                         <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-start px-4 font-bold text-[9px] uppercase tracking-wider border-r border-black/10 text-slate-700 print:border-orange-300 print:text-orange-900">{block.label}</div>
+                       ))}
+                     </div>
                     <div className="flex h-[24px] border-b border-slate-300 bg-slate-100 relative z-10 print:bg-slate-100 print:text-slate-900 text-slate-700">
                       {fyQuarterBlocks.map((block, i) => <div key={`${block.label}-${i}`} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center border-r border-slate-300 text-[9px] font-medium uppercase tracking-wider text-slate-500 print:text-slate-900">{block.label}</div>)}
                     </div>
