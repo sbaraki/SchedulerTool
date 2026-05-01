@@ -863,7 +863,7 @@ export default function MasterScheduler() {
                           <div 
                             key={`fy-line-${idx}`} 
                             style={style} 
-                            className="absolute top-0 bottom-0 w-[2px] bg-slate-800 z-10 print:bg-slate-900 print:z-50"
+                            className="absolute top-0 bottom-0 w-0 border-l-[1.5px] border-dashed border-slate-400 z-10 opacity-60 print:opacity-100 print:border-slate-500"
                           />
                         );
                       });
@@ -1075,228 +1075,213 @@ export default function MasterScheduler() {
                               })()}
                              </div>
 
-                             {galleryProjects.map(ex => {
-                               const trackIndex = galleryLayouts[g]!.tracks[ex.id];
-                               if (trackIndex === undefined || trackIndex === 0) return null;
-                               return (
-                                 <div key={`line-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-300 z-10 pointer-events-none" style={{ top: MILESTONE_ROW_HEIGHT + trackIndex * TRACK_HEIGHT }} />
-                               );
-                             })}
+                              {galleryProjects.map(ex => {
+                                const trackIndex = galleryLayouts[g]!.tracks[ex.id];
+                                if (trackIndex === undefined || trackIndex === 0) return null;
+                                return (
+                                  <div key={`line-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-300 z-10 pointer-events-none" style={{ top: MILESTONE_ROW_HEIGHT + trackIndex * TRACK_HEIGHT }} />
+                                );
+                              })}
+
+                              {/* In-Lane Project Bars: Fixes print alignment and swimlane bleeding */}
+                              <div className="absolute inset-0 pointer-events-none z-20">
+                                {galleryProjects.map(ex => {
+                                  const trackIndex = galleryLayouts[g]?.tracks[ex.id] || 0;
+                                  const isDraggingThis = draggingBarId === ex.id;
+                                  const statusStyle = getStatusStyles(ex.status);
+                                  
+                                  const effStartDate = isDraggingThis && dragTempStartDate ? dragTempStartDate : ex.startDate;
+                                  const effEndDate = isDraggingThis && dragTempEndDate ? dragTempEndDate : ex.endDate;
+
+                                  const startPos = getPositionFromDate(effStartDate, monthWidth, viewMonths);
+                                  const endPos = getPositionFromDate(effEndDate, monthWidth, viewMonths);
+                                  const width = Math.max(endPos - startPos, 40);
+                                  
+                                  const trackTop = MILESTONE_ROW_HEIGHT + (trackIndex * TRACK_HEIGHT);
+
+                                  const prePhasesRaw = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
+                                  const postPhasesRaw = (ex.phases || []).filter(p => phaseTypes.find(t => t.id === p.typeId)?.isPost);
+                                  
+                                  const totalPrePhaseWidthOnly = prePhasesRaw.reduce((acc, p) => acc + p.durationMonths * monthWidth, 0);
+                                  const totalPreGaps = prePhasesRaw.length * PHASE_GAP;
+                                  const totalPreWidth = totalPrePhaseWidthOnly + totalPreGaps;
+                                  const phaseStartPos = startPos - totalPreWidth;
+                                  
+                                  let preOffset = 0;
+                                  const renderedPre = prePhasesRaw.map((p, i) => {
+                                    const pWidth = p.durationMonths * monthWidth;
+                                    const pStart = phaseStartPos + preOffset;
+                                    const pEnd = pStart + pWidth;
+                                    const pY = trackTop + (i * TRACK_HEIGHT) + (TRACK_HEIGHT - PHASE_BAR_HEIGHT) / 2;
+                                    preOffset += pWidth + PHASE_GAP;
+                                    return { ...p, startX: pStart, width: pWidth, endX: pEnd, y: pY, type: phaseTypes.find(t => t.id === p.typeId), i, isPost: false };
+                                  });
+
+                                  const mainBarY = trackTop + (prePhasesRaw.length * TRACK_HEIGHT) + (TRACK_HEIGHT - STANDARD_BAR_HEIGHT) / 2;
+
+                                  let postOffset = PHASE_GAP;
+                                  const renderedPost = postPhasesRaw.map((p, i) => {
+                                    const pWidth = p.durationMonths * monthWidth;
+                                    const pStart = endPos + postOffset;
+                                    const pEnd = pStart + pWidth;
+                                    const targetYIndex = prePhasesRaw.length > 0 ? prePhasesRaw.length - 1 : 0;
+                                    const pY = trackTop + (targetYIndex * TRACK_HEIGHT) + (TRACK_HEIGHT - PHASE_BAR_HEIGHT) / 2;
+                                    postOffset += pWidth + PHASE_GAP;
+                                    return { ...p, startX: pStart, width: pWidth, endX: pEnd, y: pY, type: phaseTypes.find(t => t.id === p.typeId), i: i, isPost: true };
+                                  });
+
+                                  const renderedPhases = [...renderedPre, ...renderedPost];
+
+                                  return (
+                                    <React.Fragment key={ex.id}>
+                                      <div className={`absolute pointer-events-none transition-opacity duration-200 ${isDraggingThis ? 'opacity-30' : ''}`}>
+                                        {renderedPhases.map((phase, idx) => {
+                                          const yCenter = phase.y + PHASE_BAR_HEIGHT / 2;
+                                          let nextYCenter = -1;
+                                          let nextX = -1;
+                                          let hasNext = true;
+
+                                          if (!phase.isPost) {
+                                            const preIdx = idx;
+                                            if (preIdx < renderedPre.length - 1) {
+                                              nextYCenter = renderedPre[preIdx + 1].y + PHASE_BAR_HEIGHT / 2;
+                                              nextX = renderedPre[preIdx + 1].startX;
+                                            } else {
+                                              nextYCenter = mainBarY + STANDARD_BAR_HEIGHT / 2;
+                                              nextX = startPos;
+                                            }
+                                          } else {
+                                            const postIdx = idx - renderedPre.length;
+                                            if (postIdx < renderedPost.length - 1) {
+                                              nextYCenter = renderedPost[postIdx + 1].y + PHASE_BAR_HEIGHT / 2;
+                                              nextX = renderedPost[postIdx + 1].startX;
+                                            } else {
+                                              hasNext = false;
+                                            }
+                                          }
+
+                                          return (
+                                            <React.Fragment key={phase.id}>
+                                              <div 
+                                                className="absolute flex items-center shadow-sm hover:shadow-md hover:opacity-90 bg-white/90 transition-all pointer-events-auto border border-white/60" 
+                                                style={{ left: `${phase.startX}px`, top: `${phase.y}px`, width: `${phase.width - 2}px`, height: `${PHASE_BAR_HEIGHT}px`, backgroundColor: phase.type?.color || '#eee' }}
+                                                title={phase.label}
+                                              />
+                                              <div
+                                                className="absolute text-[9px] font-bold text-slate-800 tracking-tight truncate"
+                                                title={phase.label}
+                                                style={{ left: `${phase.startX}px`, top: `${phase.y + PHASE_BAR_HEIGHT + 2}px`, width: `${Math.max(phase.width - 2, 0)}px` }}
+                                              >
+                                                {phase.label}
+                                              </div>
+                                              {hasNext && (
+                                                <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
+                                                  <path 
+                                                    d={nextYCenter === yCenter 
+                                                      ? `M ${phase.endX} ${yCenter} L ${nextX - 2} ${nextYCenter}` 
+                                                      : `M ${phase.endX} ${yCenter} L ${phase.endX + 3} ${yCenter} L ${phase.endX + 3} ${nextYCenter} L ${nextX - 2} ${nextYCenter}`
+                                                    } 
+                                                    fill="none" 
+                                                    stroke="#475569" 
+                                                    strokeWidth="1.5" 
+                                                  />
+                                                  <circle cx={phase.endX} cy={yCenter} r="2" fill="#475569" />
+                                                  <polygon points={`${nextX},${nextYCenter} ${nextX-5},${nextYCenter-3} ${nextX-5},${nextYCenter+3}`} fill="#475569" />
+                                                </svg>
+                                              )}
+                                            </React.Fragment>
+                                          );
+                                        })}
+
+                                        {renderedPost.length > 0 && (() => {
+                                          const nX = renderedPost[0].startX;
+                                          const nYCenter = renderedPost[0].y + PHASE_BAR_HEIGHT / 2;
+                                          const curYCenter = mainBarY + STANDARD_BAR_HEIGHT / 2;
+                                          return (
+                                            <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
+                                              <path 
+                                                d={nYCenter === curYCenter 
+                                                  ? `M ${endPos} ${curYCenter} L ${nX - 2} ${nYCenter}`
+                                                  : `M ${endPos} ${curYCenter} L ${endPos + 3} ${curYCenter} L ${endPos + 3} ${nYCenter} L ${nX - 2} ${nYCenter}`
+                                                }
+                                                fill="none" 
+                                                stroke="#475569" 
+                                                strokeWidth="1.5" 
+                                              />
+                                              <circle cx={endPos} cy={curYCenter} r="2" fill="#475569" />
+                                              <polygon points={`${nX},${nYCenter} ${nX-5},${nYCenter-3} ${nX-5},${nYCenter+3}`} fill="#475569" />
+                                            </svg>
+                                          );
+                                        })()}
+                                      </div>
+
+                                      <motion.div
+                                        layoutId={`project-${ex.id}`}
+                                        aria-label={`Project: ${ex.title} (${ex.status}). Click to view details, long-press to drag.`}
+                                        role="button"
+                                        tabIndex={0}
+                                        onMouseDown={(e) => onBarMouseDown(e, ex)}
+                                        onClick={() => { if (!draggingBarId) setSelectedProjectId(ex.id); }}
+                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedProjectId(ex.id); }}
+                                        whileHover={{ 
+                                          y: -2, 
+                                          scale: 1.005,
+                                          transition: { duration: 0.2, ease: "easeOut" }
+                                        }}
+                                        whileTap={{ scale: 0.99 }}
+                                        className={`absolute pointer-events-auto border border-black/10 shadow-[0_8px_16px_rgba(15,23,42,0.16)] hover:shadow-[0_12px_28px_rgba(15,23,42,0.25)] transition-all cursor-pointer flex items-stretch overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`}
+                                        style={{
+                                          left: `${startPos}px`,
+                                          width: `${width}px`,
+                                          top: `${mainBarY}px`,
+                                          height: `${STANDARD_BAR_HEIGHT}px`,
+                                          backgroundColor: '#b91c1c',
+                                          backgroundImage: 'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)'
+                                        }}
+                                      >
+                                          <div
+                                            className="shrink-0 h-full"
+                                            style={{ width: '6px', backgroundColor: statusStyle.accent, boxShadow: 'inset -1px 0 0 rgba(0,0,0,0.35)' }}
+                                            aria-hidden="true"
+                                          />
+                                          <div className="flex-1 min-w-0 flex items-center justify-center px-2 gap-1.5">
+                                            {width >= 200 ? (
+                                              <>
+                                                <span className="shrink-0 inline-flex items-center font-bold uppercase text-[8px] tracking-[0.16em] leading-none px-1.5 py-[2px] border border-white/40 text-white" style={{ backgroundColor: statusStyle.accent }}>
+                                                  {ex.status === 'Open to Public' ? 'OPEN' : ex.status === 'In Development' ? 'DEV' : ex.status === 'Proposed' ? 'PROP' : 'CLOSED'}
+                                                </span>
+                                                <span className="font-bold text-[11px] uppercase tracking-[0.14em] text-white truncate block leading-none pb-[1px]">
+                                                  {ex.title} • {formatBarDate(effStartDate)} - {formatBarDate(effEndDate)}
+                                                </span>
+                                              </>
+                                            ) : width >= 148 ? (
+                                              <>
+                                                <span className="shrink-0 inline-flex items-center font-bold uppercase text-[8px] tracking-[0.16em] leading-none px-1.5 py-[2px] border border-white/40 text-white" style={{ backgroundColor: statusStyle.accent }}>
+                                                  {ex.status === 'Open to Public' ? 'OPEN' : ex.status === 'In Development' ? 'DEV' : ex.status === 'Proposed' ? 'PROP' : 'CLOSED'}
+                                                </span>
+                                                <span className="font-bold text-[11px] uppercase tracking-[0.14em] text-white truncate block leading-none pb-[1px]">{ex.title}</span>
+                                              </>
+                                            ) : (
+                                              <span className="font-bold text-[10px] uppercase tracking-[0.18em] text-white px-1 leading-none pb-[1px] truncate">
+                                                {ex.exhibitionId || 'PROJECT'}
+                                              </span>
+                                            )}
+                                          </div>
+                                      </motion.div>
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </div>
                            </div>
                          );
                       })}
                     </div>
                     
                     <div className="absolute inset-0 flex pointer-events-none z-0">
-                      {viewMonths.map((m) => <div key={`bg-${m.year}-${m.month}`} style={{ width: `${monthWidth}px` }} className={`h-full border-r border-slate-200/5 shrink-0 ${m.month === 3 ? 'border-l-2 border-dashed border-orange-500/50' : ''}`} />)}
+                      {viewMonths.map((m) => <div key={`bg-${m.year}-${m.month}`} style={{ width: `${monthWidth}px` }} className={`h-full border-r border-slate-200/5 shrink-0 ${m.month === 3 ? 'border-l-[1.5px] border-dashed border-slate-400/20' : ''}`} />)}
                     </div>
 
-                    {/* Project Bars */}
-                    <div className="absolute inset-0 pointer-events-none z-20">
-                      {(() => {
-                        let currentGalleryY = showHolidays ? HOLIDAY_LANE_HEIGHT : 0;
-	                        return galleries.flatMap((gallery) => {
-	                          const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
-	                          const layout = galleryLayouts[gallery];
-	                          const laneHeight = galleryLaneHeights[gallery] || BASE_LANE_HEIGHT;
-	                          const galleryYOffset = currentGalleryY;
-	                          currentGalleryY += laneHeight;
 
-		                          return galleryProjects.map(ex => {
-		                            const trackIndex = layout?.tracks[ex.id] || 0;
-		                            const isDraggingThis = draggingBarId === ex.id;
-		                            const statusStyle = getStatusStyles(ex.status);
-	                            
-	                            const effStartDate = isDraggingThis && dragTempStartDate ? dragTempStartDate : ex.startDate;
-	                            const effEndDate = isDraggingThis && dragTempEndDate ? dragTempEndDate : ex.endDate;
-
-		                            const startPos = getPositionFromDate(effStartDate, monthWidth, viewMonths);
-		                            const endPos = getPositionFromDate(effEndDate, monthWidth, viewMonths);
-		                            const width = Math.max(endPos - startPos, 40);
-		                            const trackTop = galleryYOffset + MILESTONE_ROW_HEIGHT + (trackIndex * TRACK_HEIGHT);
-                                const laneBottom = galleryYOffset + laneHeight;
-
-                            const prePhasesRaw = (ex.phases || []).filter(p => !phaseTypes.find(t => t.id === p.typeId)?.isPost);
-                            const postPhasesRaw = (ex.phases || []).filter(p => phaseTypes.find(t => t.id === p.typeId)?.isPost);
-                            
-                            const totalPrePhaseWidthOnly = prePhasesRaw.reduce((acc, p) => acc + p.durationMonths * monthWidth, 0);
-                            const totalPreGaps = prePhasesRaw.length * PHASE_GAP;
-                            const totalPreWidth = totalPrePhaseWidthOnly + totalPreGaps;
-                            const phaseStartPos = startPos - totalPreWidth;
-                            
-                            let preOffset = 0;
-                            const renderedPre = prePhasesRaw.map((p, i) => {
-                              const pWidth = p.durationMonths * monthWidth;
-                              const pStart = phaseStartPos + preOffset;
-                              const pEnd = pStart + pWidth;
-                              const pY = trackTop + (i * TRACK_HEIGHT) + (TRACK_HEIGHT - PHASE_BAR_HEIGHT) / 2;
-                              preOffset += pWidth + PHASE_GAP;
-                              return { ...p, startX: pStart, width: pWidth, endX: pEnd, y: pY, type: phaseTypes.find(t => t.id === p.typeId), i, isPost: false };
-                            });
-
-		                            const mainBarY = trackTop + (prePhasesRaw.length * TRACK_HEIGHT) + (TRACK_HEIGHT - STANDARD_BAR_HEIGHT) / 2;
-                                const projectLabelHeight = 44;
-                                const defaultProjectLabelTop = mainBarY + STANDARD_BAR_HEIGHT + 4;
-                                const fallbackProjectLabelTop = mainBarY - projectLabelHeight - 8;
-                                const projectLabelTop = defaultProjectLabelTop + projectLabelHeight <= laneBottom - 6
-                                  ? defaultProjectLabelTop
-                                  : Math.max(trackTop, fallbackProjectLabelTop);
-
-                            let postOffset = PHASE_GAP;
-                            const renderedPost = postPhasesRaw.map((p, i) => {
-                              const pWidth = p.durationMonths * monthWidth;
-                              const pStart = endPos + postOffset;
-                              const pEnd = pStart + pWidth;
-                              const targetYIndex = prePhasesRaw.length > 0 ? prePhasesRaw.length - 1 : 0;
-                              const pY = trackTop + (targetYIndex * TRACK_HEIGHT) + (TRACK_HEIGHT - PHASE_BAR_HEIGHT) / 2;
-                              postOffset += pWidth + PHASE_GAP;
-                              return { ...p, startX: pStart, width: pWidth, endX: pEnd, y: pY, type: phaseTypes.find(t => t.id === p.typeId), i: i, isPost: true };
-                            });
-
-                            const renderedPhases = [...renderedPre, ...renderedPost];
-
-                            return (
-                              <React.Fragment key={ex.id}>
-                                <div className={`absolute pointer-events-none transition-opacity duration-200 ${isDraggingThis ? 'opacity-30' : ''}`}>
-                                  {renderedPhases.map((phase, idx) => {
-                                    const yCenter = phase.y + PHASE_BAR_HEIGHT / 2;
-                                    let nextYCenter = -1;
-                                    let nextX = -1;
-                                    let hasNext = true;
-
-                                    if (!phase.isPost) {
-                                      const preIdx = idx;
-                                      if (preIdx < renderedPre.length - 1) {
-                                        nextYCenter = renderedPre[preIdx + 1].y + PHASE_BAR_HEIGHT / 2;
-                                        nextX = renderedPre[preIdx + 1].startX;
-                                      } else {
-                                        nextYCenter = mainBarY + STANDARD_BAR_HEIGHT / 2;
-                                        nextX = startPos;
-                                      }
-                                    } else {
-                                      const postIdx = idx - renderedPre.length;
-                                      if (postIdx < renderedPost.length - 1) {
-                                        nextYCenter = renderedPost[postIdx + 1].y + PHASE_BAR_HEIGHT / 2;
-                                        nextX = renderedPost[postIdx + 1].startX;
-                                      } else {
-                                        hasNext = false;
-                                      }
-                                    }
-
-                                    return (
-                                      <React.Fragment key={phase.id}>
-	                                        <div 
-	                                          className="absolute flex items-center shadow-sm hover:shadow-md hover:opacity-90 bg-white/90 transition-all pointer-events-auto border border-white/60" 
-	                                          style={{ left: `${phase.startX}px`, top: `${phase.y}px`, width: `${phase.width - 2}px`, height: `${PHASE_BAR_HEIGHT}px`, backgroundColor: phase.type?.color || '#eee' }}
-	                                          title={phase.label}
-	                                        />
-                                        <div
-                                          className="absolute text-[9px] font-bold text-slate-800 tracking-tight truncate"
-                                          title={phase.label}
-                                          style={{ left: `${phase.startX}px`, top: `${phase.y + PHASE_BAR_HEIGHT + 2}px`, width: `${Math.max(phase.width - 2, 0)}px` }}
-                                        >
-                                          {phase.label}
-                                        </div>
-                                        {hasNext && (
-                                          <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
-                                            <path 
-                                              d={nextYCenter === yCenter 
-                                                ? `M ${phase.endX} ${yCenter} L ${nextX - 2} ${nextYCenter}` 
-                                                : `M ${phase.endX} ${yCenter} L ${phase.endX + 3} ${yCenter} L ${phase.endX + 3} ${nextYCenter} L ${nextX - 2} ${nextYCenter}`
-                                              } 
-                                              fill="none" 
-                                              stroke="#475569" 
-                                              strokeWidth="1.5" 
-                                            />
-                                            <circle cx={phase.endX} cy={yCenter} r="2" fill="#475569" />
-                                            <polygon points={`${nextX},${nextYCenter} ${nextX-5},${nextYCenter-3} ${nextX-5},${nextYCenter+3}`} fill="#475569" />
-                                          </svg>
-                                        )}
-                                      </React.Fragment>
-                                    );
-                                  })}
-
-                                  {renderedPost.length > 0 && (() => {
-                                    const nX = renderedPost[0].startX;
-                                    const nYCenter = renderedPost[0].y + PHASE_BAR_HEIGHT / 2;
-                                    const curYCenter = mainBarY + STANDARD_BAR_HEIGHT / 2;
-                                    return (
-                                      <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
-                                        <path 
-                                          d={nYCenter === curYCenter 
-                                            ? `M ${endPos} ${curYCenter} L ${nX - 2} ${nYCenter}`
-                                            : `M ${endPos} ${curYCenter} L ${endPos + 3} ${curYCenter} L ${endPos + 3} ${nYCenter} L ${nX - 2} ${nYCenter}`
-                                          }
-                                          fill="none" 
-                                          stroke="#475569" 
-                                          strokeWidth="1.5" 
-                                        />
-                                        <circle cx={endPos} cy={curYCenter} r="2" fill="#475569" />
-                                        <polygon points={`${nX},${nYCenter} ${nX-5},${nYCenter-3} ${nX-5},${nYCenter+3}`} fill="#475569" />
-                                      </svg>
-                                    );
-                                  })()}
-                                </div>
-
-                                <motion.div
-                                  layoutId={`project-${ex.id}`}
-                                  aria-label={`Project: ${ex.title} (${ex.status}). Click to view details, long-press to drag.`}
-                                  role="button"
-                                  tabIndex={0}
-                                  onMouseDown={(e) => onBarMouseDown(e, ex)}
-                                  onClick={() => { if (!draggingBarId) setSelectedProjectId(ex.id); }}
-                                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedProjectId(ex.id); }}
-                                  whileHover={{ 
-                                    y: -2, 
-                                    scale: 1.005,
-                                    transition: { duration: 0.2, ease: "easeOut" }
-                                  }}
-                                  whileTap={{ scale: 0.99 }}
-                                  className={`absolute pointer-events-auto border border-black/10 shadow-[0_8px_16px_rgba(15,23,42,0.16)] hover:shadow-[0_12px_28px_rgba(15,23,42,0.25)] transition-all cursor-pointer flex items-stretch overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500/50 print:border-slate-800 print:shadow-none ${isDraggingThis ? 'project-bar-dragging ring-2 ring-blue-500' : ''}`}
-                                  style={{
-                                    left: `${startPos}px`,
-                                    width: `${width}px`,
-                                    top: `${mainBarY}px`,
-                                    height: `${STANDARD_BAR_HEIGHT}px`,
-                                    backgroundColor: '#b91c1c',
-                                    backgroundImage: 'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)'
-                                  }}
-                                >
-	                                  <div
-	                                    className="shrink-0 h-full"
-	                                    style={{ width: '6px', backgroundColor: statusStyle.accent, boxShadow: 'inset -1px 0 0 rgba(0,0,0,0.35)' }}
-	                                    aria-hidden="true"
-	                                  />
-	                                  <div className="flex-1 min-w-0 flex items-center justify-center px-2 gap-1.5">
-	                                    {width >= 200 ? (
-	                                      <>
-	                                        <span className="shrink-0 inline-flex items-center font-bold uppercase text-[8px] tracking-[0.16em] leading-none px-1.5 py-[2px] border border-white/40 text-white" style={{ backgroundColor: statusStyle.accent }}>
-	                                          {ex.status === 'Open to Public' ? 'OPEN' : ex.status === 'In Development' ? 'DEV' : ex.status === 'Proposed' ? 'PROP' : 'CLOSED'}
-	                                        </span>
-	                                        <span className="font-bold text-[11px] uppercase tracking-[0.14em] text-white truncate block leading-none pb-[1px]">
-	                                          {ex.title} • {formatBarDate(effStartDate)} - {formatBarDate(effEndDate)}
-	                                        </span>
-	                                      </>
-	                                    ) : width >= 148 ? (
-	                                      <>
-	                                        <span className="shrink-0 inline-flex items-center font-bold uppercase text-[8px] tracking-[0.16em] leading-none px-1.5 py-[2px] border border-white/40 text-white" style={{ backgroundColor: statusStyle.accent }}>
-	                                          {ex.status === 'Open to Public' ? 'OPEN' : ex.status === 'In Development' ? 'DEV' : ex.status === 'Proposed' ? 'PROP' : 'CLOSED'}
-	                                        </span>
-	                                        <span className="font-bold text-[11px] uppercase tracking-[0.14em] text-white truncate block leading-none pb-[1px]">{ex.title}</span>
-	                                      </>
-	                                    ) : (
-	                                      <span className="font-bold text-[10px] uppercase tracking-[0.18em] text-white px-1 leading-none pb-[1px] truncate">
-	                                        {ex.exhibitionId || 'PROJECT'}
-	                                      </span>
-	                                    )}
-                                  </div>
-                                </motion.div>
-                              </React.Fragment>
-                            );
-                          });
-                        });
-                      })()}
-                    </div>
                   </div>
                 </div>
 
