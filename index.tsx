@@ -845,7 +845,7 @@ export default function MasterScheduler() {
                   {/* Header */}
                   <div className="sticky top-0 z-[60] border-b border-black/10 flex flex-col overflow-hidden shadow-sm" style={{ height: `${HEADER_HEIGHT}px` }}>
                     <div className="flex h-[30px] border-b border-black/10 bg-white relative z-10 print:bg-white print:border-slate-400">
-                      {yearBlocks.map(block => <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center justify-center font-bold text-base font-semibold tracking-wide text-slate-800 border-r border-black/10 print:border-slate-400 print:text-black">{block.label}</div>)}
+                      {yearBlocks.map(block => <div key={block.label} style={{ width: `${monthWidth * block.count}px` }} className="shrink-0 h-full flex items-center px-4 font-bold text-base tracking-[0.1em] text-slate-900 border-r border-black/10 print:border-slate-400 print:text-black">{block.label}</div>)}
                     </div>
                     <div className="flex h-[24px] border-b border-slate-300 bg-slate-50 relative z-10 print:bg-orange-100 print:border-orange-300 print:text-orange-900">
                       {fyBlocks.map((block) => (
