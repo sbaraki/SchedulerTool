@@ -47,9 +47,9 @@ import {
   Cloud,
   CloudOff,
   History,
-  Globe,
+  Lightbulb,
   Hammer,
-  CircleDashed,
+  Ticket,
   Lock,
   HelpCircle
 } from 'lucide-react';
@@ -62,9 +62,9 @@ const StatusIcon = ({ status, size = 12, className = "" }: { status: string; siz
   const iconName = styles.icon;
   
   switch (iconName) {
-    case 'globe': return <Globe size={size} className={className} />;
+    case 'lightbulb': return <Lightbulb size={size} className={className} />;
     case 'hammer': return <Hammer size={size} className={className} />;
-    case 'circle-dashed': return <CircleDashed size={size} className={className} />;
+    case 'ticket': return <Ticket size={size} className={className} />;
     case 'lock': return <Lock size={size} className={className} />;
     default: return <HelpCircle size={size} className={className} />;
   }
@@ -1175,9 +1175,9 @@ export default function MasterScheduler() {
                                                 title={phase.label}
                                               />
                                               <div
-                                                className="absolute text-[9px] font-bold text-slate-800 tracking-tight truncate"
+                                                className="absolute text-[9px] font-bold text-slate-800 tracking-tight whitespace-nowrap"
                                                 title={phase.label}
-                                                style={{ left: `${phase.startX}px`, top: `${phase.y + PHASE_BAR_HEIGHT + 2}px`, width: `${Math.max(phase.width - 2, 0)}px` }}
+                                                style={{ left: `${phase.startX}px`, top: `${phase.y + PHASE_BAR_HEIGHT + 2}px` }}
                                               >
                                                 {phase.label}
                                               </div>

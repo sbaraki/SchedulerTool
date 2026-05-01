@@ -114,7 +114,7 @@ export const getStatusStyles = (status: string) => {
       border: '#10b981', 
       text: '#064e3b',
       label: 'OPEN TO PUBLIC',
-      icon: 'globe'
+      icon: 'ticket'
     };
     case 'In Development': return { 
       accent: '#d97706', 
@@ -130,7 +130,7 @@ export const getStatusStyles = (status: string) => {
       border: '#d1d5db', 
       text: '#1f2937',
       label: 'PROPOSED',
-      icon: 'circle-dashed'
+      icon: 'lightbulb'
     };
     case 'Closed': return { 
       accent: '#000000', 
