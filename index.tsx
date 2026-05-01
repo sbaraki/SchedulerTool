@@ -224,14 +224,14 @@ export default function MasterScheduler() {
     viewMonths.forEach(m => {
       const fy = m.month >= 3 ? m.year : m.year - 1;
       if (fy !== currentFY) {
-        if (currentFY !== -1) blocks.push({ label: `FY${String(currentFY).slice(2)}`, count });
+        if (currentFY !== -1) blocks.push({ label: `FY-${currentFY}-${currentFY + 1}`, count });
         currentFY = fy;
         count = 1;
       } else {
         count++;
       }
     });
-    if (currentFY !== -1) blocks.push({ label: `FY${String(currentFY).slice(2)}`, count });
+    if (currentFY !== -1) blocks.push({ label: `FY-${currentFY}-${currentFY + 1}`, count });
     return blocks;
   }, [viewMonths]);
 
