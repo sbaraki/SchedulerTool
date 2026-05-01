@@ -20,6 +20,7 @@ interface AppState {
   statusFilter: ExhibitionStatus | 'All';
   showHolidays: boolean;
   showConflicts: boolean;
+  density: 'compact' | 'comfortable';
 
   // Actions
   setMuseumName: (name: string) => void;
@@ -35,6 +36,7 @@ interface AppState {
   setStatusFilter: (filter: ExhibitionStatus | 'All') => void;
   setShowHolidays: (show: boolean) => void;
   setShowConflicts: (show: boolean) => void;
+  setDensity: (density: 'compact' | 'comfortable') => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -52,6 +54,7 @@ export const useStore = create<AppState>((set) => ({
   statusFilter: 'All',
   showHolidays: true,
   showConflicts: true,
+  density: 'comfortable',
 
   setMuseumName: (name) => set({ museumName: name }),
   setExhibitions: (updater) => set((state) => ({ 
@@ -76,4 +79,5 @@ export const useStore = create<AppState>((set) => ({
   setStatusFilter: (filter) => set({ statusFilter: filter }),
   setShowHolidays: (show) => set({ showHolidays: show }),
   setShowConflicts: (show) => set({ showConflicts: show }),
+  setDensity: (density) => set({ density }),
 }));

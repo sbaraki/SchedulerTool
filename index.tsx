@@ -1,7 +1,7 @@
 import { useStore } from './src/store/useStore';
 import { useMuseumSync } from './src/hooks/useMuseumSync';
 import { useMuseumActions } from './src/hooks/useMuseumActions';
-import { getStatusStyles, getAlbertaHolidays, MONTHS, FY_QUARTERS, BASE_LANE_HEIGHT, TRACK_HEIGHT, HEADER_HEIGHT, STANDARD_BAR_HEIGHT, PHASE_BAR_HEIGHT, MILESTONE_COLORS, MILESTONE_ROW_HEIGHT, LANE_BOTTOM_PADDING, HOLIDAY_LANE_HEIGHT, PHASE_GAP } from './src/constants';
+import { getStatusStyles, getAlbertaHolidays, MONTHS, FY_QUARTERS, HEADER_HEIGHT, MILESTONE_COLORS, PHASE_GAP } from './src/constants';
 import { toISODate, getPositionFromDate, getDateFromPosition, formatBarDate, getDateWithMonthDuration, getDurationDays } from './src/lib/dateUtils';
 import { calculateTracks } from './src/lib/layoutEngine';
 import { Exhibition, PhaseType, LocationMilestone, ProjectPhase, ExhibitionStatus } from './src/types';
@@ -51,7 +51,9 @@ import {
   Hammer,
   Ticket,
   Lock,
-  HelpCircle
+  HelpCircle,
+  Rows2,
+  Rows4
 } from 'lucide-react';
 
 import { GithubAuthModal } from './src/components/GithubAuthModal';
@@ -90,8 +92,17 @@ export default function MasterScheduler() {
     searchQuery, setSearchQuery,
     statusFilter, setStatusFilter,
     showHolidays, setShowHolidays,
-    showConflicts, setShowConflicts
+    showConflicts, setShowConflicts,
+    density, setDensity
   } = useStore();
+
+  const layoutMetrics = useMemo(() => {
+    if (density === 'compact') {
+      return { TRACK_HEIGHT: 28, MILESTONE_ROW_HEIGHT: 56, LANE_BOTTOM_PADDING: 14, BASE_LANE_HEIGHT: 98, HOLIDAY_LANE_HEIGHT: 60, STANDARD_BAR_HEIGHT: 22, PHASE_BAR_HEIGHT: 10 };
+    }
+    return { TRACK_HEIGHT: 34, MILESTONE_ROW_HEIGHT: 64, LANE_BOTTOM_PADDING: 14, BASE_LANE_HEIGHT: 116, HOLIDAY_LANE_HEIGHT: 72, STANDARD_BAR_HEIGHT: 24, PHASE_BAR_HEIGHT: 12 };
+  }, [density]);
+  const { TRACK_HEIGHT, MILESTONE_ROW_HEIGHT, LANE_BOTTOM_PADDING, BASE_LANE_HEIGHT, HOLIDAY_LANE_HEIGHT, STANDARD_BAR_HEIGHT, PHASE_BAR_HEIGHT } = layoutMetrics;
   const { handleUpdateExhibition, handleRemoveExhibition, handleUpdateGalleryName, handleAddGallery, handleRemoveGallery, handleDuplicateProject } = useMuseumActions();
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -275,13 +286,13 @@ export default function MasterScheduler() {
       );
       return acc;
     }, {} as Record<string, number>);
-  }, [galleries, galleryLayouts]);
+  }, [galleries, galleryLayouts, layoutMetrics]);
 
   const totalTimelineWidth = viewMonths.length * monthWidth;
   const totalTimelineHeight = useMemo(() => {
     const galleryHeight = galleries.reduce((sum, gallery) => sum + (galleryLaneHeights[gallery] || BASE_LANE_HEIGHT), 0);
     return HEADER_HEIGHT + (showHolidays ? HOLIDAY_LANE_HEIGHT : 0) + galleryHeight + 72;
-  }, [galleries, galleryLaneHeights, showHolidays]);
+  }, [galleries, galleryLaneHeights, showHolidays, layoutMetrics]);
 
   const printScale = useMemo(() => {
     const widthScale = PRINT_SAFE_WIDTH / (SIDEBAR_WIDTH + totalTimelineWidth);
@@ -579,19 +590,38 @@ export default function MasterScheduler() {
                   </div>
                   
                   <div className="flex items-center border border-slate-200 bg-white shadow-sm overflow-hidden">
-                    <button 
+                    <button
                       aria-label="Zoom out"
-                      onClick={() => setMonthWidth(prev => Math.max(24, prev - 20))} 
+                      onClick={() => setMonthWidth(prev => Math.max(24, prev - 20))}
                       className="p-1.5 hover:bg-slate-50 border-r border-slate-100 transition-colors text-slate-500"
                     >
                       <ZoomOut size={13} />
                     </button>
-                    <button 
+                    <button
                       aria-label="Zoom in"
-                      onClick={() => setMonthWidth(prev => Math.min(300, prev + 20))} 
+                      onClick={() => setMonthWidth(prev => Math.min(300, prev + 20))}
                       className="p-1.5 hover:bg-slate-50 transition-colors text-slate-500"
                     >
                       <ZoomIn size={13} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <button
+                      aria-label="Spacious rows"
+                      title="Spacious rows"
+                      onClick={() => setDensity('comfortable')}
+                      className={`p-1.5 border-r border-slate-100 transition-colors ${density === 'comfortable' ? 'bg-slate-100 text-slate-900' : 'hover:bg-slate-50 text-slate-500'}`}
+                    >
+                      <Rows2 size={13} />
+                    </button>
+                    <button
+                      aria-label="Tight rows"
+                      title="Tight rows"
+                      onClick={() => setDensity('compact')}
+                      className={`p-1.5 transition-colors ${density === 'compact' ? 'bg-slate-100 text-slate-900' : 'hover:bg-slate-50 text-slate-500'}`}
+                    >
+                      <Rows4 size={13} />
                     </button>
                   </div>
 
@@ -720,7 +750,7 @@ export default function MasterScheduler() {
 	                  }}
 	                >
 	                  {showHolidays && (
-	                    <div style={{ height: `${HOLIDAY_LANE_HEIGHT}px` }} className="relative border-b border-black/10 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)] no-print-lane">
+	                    <div style={{ height: `${HOLIDAY_LANE_HEIGHT}px` }} className="relative border-b border-black/10 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
 	                      <div className="absolute top-0 left-0 w-full h-full bg-slate-50 flex items-center px-4 py-2 z-20">
 	                        <div className="flex flex-col" />
 	                      </div>
@@ -912,7 +942,7 @@ export default function MasterScheduler() {
 	                      )}
                       {/* Provincial Holidays Lane */}
                       {showHolidays && (
-                        <div style={{ height: `${HOLIDAY_LANE_HEIGHT}px` }} className="border-b border-black/10 bg-white/40 relative overflow-visible z-10 no-print-lane">
+                        <div style={{ height: `${HOLIDAY_LANE_HEIGHT}px` }} className="border-b border-black/10 bg-white/40 relative overflow-visible z-10">
                           <div className={`absolute inset-0 bg-slate-50/50 -z-10`} />
                           {holidayMilestones.map((holiday, i) => {
                             if (holiday.xPos < 0 || holiday.xPos > viewMonths.length * monthWidth) return null;
