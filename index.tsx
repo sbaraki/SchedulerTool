@@ -1,10 +1,10 @@
 import { useStore } from './src/store/useStore';
 import { useMuseumSync } from './src/hooks/useMuseumSync';
 import { useMuseumActions } from './src/hooks/useMuseumActions';
-import { getStatusStyles, getAlbertaHolidays, MONTHS, FY_QUARTERS, HEADER_HEIGHT, MILESTONE_COLORS, PHASE_GAP } from './src/constants';
+import { getStatusStyles, MONTHS, FY_QUARTERS, BASE_LANE_HEIGHT, TRACK_HEIGHT, HEADER_HEIGHT, STANDARD_BAR_HEIGHT, PHASE_BAR_HEIGHT, MILESTONE_COLORS, MILESTONE_ROW_HEIGHT, LANE_BOTTOM_PADDING, PHASE_GAP } from './src/constants';
 import { toISODate, getPositionFromDate, getDateFromPosition, formatBarDate, getDateWithMonthDuration, getDurationDays } from './src/lib/dateUtils';
 import { calculateTracks } from './src/lib/layoutEngine';
-import { Exhibition, PhaseType, LocationMilestone, ProjectPhase, ExhibitionStatus } from './src/types';
+import { Exhibition, Gallery, GalleryKind, PhaseType, LocationMilestone, ProjectPhase, ExhibitionStatus } from './src/types';
 import { DetailPanel } from './src/components/DetailPanel';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -47,13 +47,11 @@ import {
   Cloud,
   CloudOff,
   History,
-  Lightbulb,
+  Globe,
   Hammer,
-  Ticket,
+  CircleDashed,
   Lock,
-  HelpCircle,
-  Rows2,
-  Rows4
+  HelpCircle
 } from 'lucide-react';
 
 import { GithubAuthModal } from './src/components/GithubAuthModal';
@@ -64,9 +62,9 @@ const StatusIcon = ({ status, size = 12, className = "" }: { status: string; siz
   const iconName = styles.icon;
   
   switch (iconName) {
-    case 'lightbulb': return <Lightbulb size={size} className={className} />;
+    case 'globe': return <Globe size={size} className={className} />;
     case 'hammer': return <Hammer size={size} className={className} />;
-    case 'ticket': return <Ticket size={size} className={className} />;
+    case 'circle-dashed': return <CircleDashed size={size} className={className} />;
     case 'lock': return <Lock size={size} className={className} />;
     default: return <HelpCircle size={size} className={className} />;
   }
@@ -91,19 +89,9 @@ export default function MasterScheduler() {
     timelineEndDate, setTimelineEndDate,
     searchQuery, setSearchQuery,
     statusFilter, setStatusFilter,
-    showHolidays, setShowHolidays,
-    showConflicts, setShowConflicts,
-    density, setDensity
+    showConflicts, setShowConflicts
   } = useStore();
-
-  const layoutMetrics = useMemo(() => {
-    if (density === 'compact') {
-      return { TRACK_HEIGHT: 28, MILESTONE_ROW_HEIGHT: 56, LANE_BOTTOM_PADDING: 22, BASE_LANE_HEIGHT: 106, HOLIDAY_LANE_HEIGHT: 60, STANDARD_BAR_HEIGHT: 22, PHASE_BAR_HEIGHT: 10 };
-    }
-    return { TRACK_HEIGHT: 34, MILESTONE_ROW_HEIGHT: 64, LANE_BOTTOM_PADDING: 20, BASE_LANE_HEIGHT: 118, HOLIDAY_LANE_HEIGHT: 72, STANDARD_BAR_HEIGHT: 24, PHASE_BAR_HEIGHT: 12 };
-  }, [density]);
-  const { TRACK_HEIGHT, MILESTONE_ROW_HEIGHT, LANE_BOTTOM_PADDING, BASE_LANE_HEIGHT, HOLIDAY_LANE_HEIGHT, STANDARD_BAR_HEIGHT, PHASE_BAR_HEIGHT } = layoutMetrics;
-  const { handleUpdateExhibition, handleRemoveExhibition, handleUpdateGalleryName, handleAddGallery, handleRemoveGallery, handleDuplicateProject } = useMuseumActions();
+  const { handleUpdateExhibition, handleRemoveExhibition, handleRenameGallery, handleSetGalleryKind, handleAddGallery, handleRemoveGallery, handleDuplicateProject } = useMuseumActions();
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'portfolio' | 'settings'>('portfolio');
@@ -176,41 +164,6 @@ export default function MasterScheduler() {
     return months;
   }, [timelineStartDate, timelineEndDate]);
 
-  const visibleHolidayDefinitions = useMemo(() => {
-    if (viewMonths.length === 0) return [];
-    const startYear = viewMonths[0].year;
-    const endYear = viewMonths[viewMonths.length - 1].year;
-    return getAlbertaHolidays(startYear, endYear);
-  }, [viewMonths]);
-
-  const holidayMilestones = useMemo(() => {
-    return visibleHolidayDefinitions.map(h => ({
-      ...h,
-      xPos: getPositionFromDate(h.date, monthWidth, viewMonths)
-    })).sort((a, b) => a.xPos - b.xPos);
-  }, [monthWidth, viewMonths, visibleHolidayDefinitions]);
-
-  const holidayLabelPositions = useMemo(() => {
-    const positions = new Array(holidayMilestones.length).fill('top');
-    let lastTopX = -9999;
-    let lastBottomX = -9999;
-    for (let i = 0; i < holidayMilestones.length; i++) {
-      const curr = holidayMilestones[i];
-      if (curr.xPos < -100 || curr.xPos > viewMonths.length * monthWidth + 100) continue;
-      
-      if (curr.xPos - lastTopX >= 55) {
-        positions[i] = 'top';
-        lastTopX = curr.xPos;
-      } else if (curr.xPos - lastBottomX >= 55) {
-        positions[i] = 'bottom';
-        lastBottomX = curr.xPos;
-      } else {
-        positions[i] = 'top';
-      }
-    }
-    return positions;
-  }, [holidayMilestones, viewMonths.length, monthWidth]);
-
   const yearBlocks = useMemo(() => {
     const blocks: {label: number, count: number}[] = [];
     let currentYear = -1;
@@ -268,31 +221,31 @@ export default function MasterScheduler() {
   }, [viewMonths]);
 
   const galleryLayouts = useMemo(() => {
-    const layouts: { [gallery: string]: { tracks: { [id: string]: number }, maxTracks: number } } = {};
+    const layouts: { [galleryName: string]: { tracks: { [id: string]: number }, maxTracks: number } } = {};
     galleries.forEach(gallery => {
-      const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
+      const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery.name);
       const layoutInfo = calculateTracks(galleryProjects, monthWidth, viewMonths, phaseTypes);
-      layouts[gallery] = { tracks: layoutInfo.tracks, maxTracks: layoutInfo.maxTracks };
+      layouts[gallery.name] = { tracks: layoutInfo.tracks, maxTracks: layoutInfo.maxTracks };
     });
     return layouts;
   }, [filteredExhibitions, galleries, monthWidth, viewMonths, phaseTypes]);
 
   const galleryLaneHeights = useMemo(() => {
     return galleries.reduce((acc, gallery) => {
-      const tracksCount = galleryLayouts[gallery]?.maxTracks || 1;
-      acc[gallery] = Math.max(
+      const tracksCount = galleryLayouts[gallery.name]?.maxTracks || 1;
+      acc[gallery.name] = Math.max(
         BASE_LANE_HEIGHT,
         MILESTONE_ROW_HEIGHT + tracksCount * TRACK_HEIGHT + LANE_BOTTOM_PADDING
       );
       return acc;
     }, {} as Record<string, number>);
-  }, [galleries, galleryLayouts, layoutMetrics]);
+  }, [galleries, galleryLayouts]);
 
   const totalTimelineWidth = viewMonths.length * monthWidth;
   const totalTimelineHeight = useMemo(() => {
-    const galleryHeight = galleries.reduce((sum, gallery) => sum + (galleryLaneHeights[gallery] || BASE_LANE_HEIGHT), 0);
-    return HEADER_HEIGHT + (showHolidays ? HOLIDAY_LANE_HEIGHT : 0) + galleryHeight + 72;
-  }, [galleries, galleryLaneHeights, showHolidays, layoutMetrics]);
+    const galleryHeight = galleries.reduce((sum, gallery) => sum + (galleryLaneHeights[gallery.name] || BASE_LANE_HEIGHT), 0);
+    return HEADER_HEIGHT + galleryHeight + 72;
+  }, [galleries, galleryLaneHeights]);
 
   const printScale = useMemo(() => {
     const widthScale = PRINT_SAFE_WIDTH / (SIDEBAR_WIDTH + totalTimelineWidth);
@@ -382,7 +335,6 @@ export default function MasterScheduler() {
         }
         .gallery-lane-bg:hover {
           background-color: rgba(241,245,249,0.8);
-        }
         }
       `}</style>
       
@@ -590,55 +542,29 @@ export default function MasterScheduler() {
                   </div>
                   
                   <div className="flex items-center border border-slate-200 bg-white shadow-sm overflow-hidden">
-                    <button
+                    <button 
                       aria-label="Zoom out"
-                      onClick={() => setMonthWidth(prev => Math.max(24, prev - 20))}
+                      onClick={() => setMonthWidth(prev => Math.max(24, prev - 20))} 
                       className="p-1.5 hover:bg-slate-50 border-r border-slate-100 transition-colors text-slate-500"
                     >
                       <ZoomOut size={13} />
                     </button>
-                    <button
+                    <button 
                       aria-label="Zoom in"
-                      onClick={() => setMonthWidth(prev => Math.min(300, prev + 20))}
+                      onClick={() => setMonthWidth(prev => Math.min(300, prev + 20))} 
                       className="p-1.5 hover:bg-slate-50 transition-colors text-slate-500"
                     >
                       <ZoomIn size={13} />
                     </button>
                   </div>
 
-                  <div className="flex items-center border border-slate-200 bg-white shadow-sm overflow-hidden">
-                    <button
-                      aria-label="Spacious rows"
-                      title="Spacious rows"
-                      onClick={() => setDensity('comfortable')}
-                      className={`p-1.5 border-r border-slate-100 transition-colors ${density === 'comfortable' ? 'bg-slate-100 text-slate-900' : 'hover:bg-slate-50 text-slate-500'}`}
-                    >
-                      <Rows2 size={13} />
-                    </button>
-                    <button
-                      aria-label="Tight rows"
-                      title="Tight rows"
-                      onClick={() => setDensity('compact')}
-                      className={`p-1.5 transition-colors ${density === 'compact' ? 'bg-slate-100 text-slate-900' : 'hover:bg-slate-50 text-slate-500'}`}
-                    >
-                      <Rows4 size={13} />
-                    </button>
-                  </div>
-
                   <div className="flex items-center space-x-1 ml-1">
-                    <button 
-                      onClick={() => setShowConflicts(!showConflicts)} 
+                    <button
+                      onClick={() => setShowConflicts(!showConflicts)}
                       className={`p-1.5 border shadow-sm transition-colors ${showConflicts ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-slate-200 text-slate-400'}`}
                       title="Conflicts"
                     >
                       <AlertTriangle size={13} />
-                    </button>
-                    <button 
-                      onClick={() => setShowHolidays(!showHolidays)} 
-                      className={`p-1.5 border shadow-sm transition-colors ${showHolidays ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white border-slate-200 text-slate-400'}`}
-                      title="Holidays"
-                    >
-                      <Calendar size={13} />
                     </button>
                   </div>
                 </div>
@@ -710,7 +636,7 @@ export default function MasterScheduler() {
                         const exEnd = getDateWithMonthDuration(exStart, 3);
                         const newEx: Exhibition = { 
                           id, exhibitionId: '', title: 'NEW PROJECT', status: 'Proposed', 
-                          startDate: exStart, endDate: exEnd, gallery: galleries[0], 
+                          startDate: exStart, endDate: exEnd, gallery: galleries[0]?.name || '',
                           milestones: [], phases: phaseTypes.map(pt => ({
                             id: Math.random().toString(36).substr(2,9), label: pt.label,
                             durationMonths: pt.isPost ? 1 : 3, typeId: pt.id
@@ -749,30 +675,36 @@ export default function MasterScheduler() {
 	                    }
 	                  }}
 	                >
-	                  {showHolidays && (
-	                    <div style={{ height: `${HOLIDAY_LANE_HEIGHT}px` }} className="relative border-b border-black/10 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
-	                      <div className="absolute top-0 left-0 w-full h-full bg-slate-50 flex items-center px-4 py-2 z-20">
-	                        <div className="flex flex-col" />
-	                      </div>
-	                    </div>
-	                  )}
 	                  {galleries.map((gallery) => {
-	                    const laneHeight = galleryLaneHeights[gallery] || BASE_LANE_HEIGHT;
-	                    const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery);
+	                    const laneHeight = galleryLaneHeights[gallery.name] || BASE_LANE_HEIGHT;
+	                    const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === gallery.name);
+	                    const isPermanent = gallery.kind === 'permanent';
 	                    return (
-		                      <div key={gallery} style={{ height: `${laneHeight}px` }} className="relative border-b border-black/10 bg-white/80">
-		                        <div style={{ minHeight: `${MILESTONE_ROW_HEIGHT}px` }} className="absolute top-0 left-0 w-full bg-slate-100/90 border-b border-slate-300 flex items-center px-6 py-3 z-20 print:bg-slate-50 border-l-4 border-l-slate-800">
-		                          <span className="font-bold uppercase text-[10px] tracking-[0.2em] text-slate-900 leading-tight break-words">{gallery}</span>
+		                      <div key={gallery.id} style={{ height: `${laneHeight}px` }} className="relative border-b border-black/10 bg-white/80 overflow-hidden">
+		                        <div
+		                          style={{ minHeight: `${MILESTONE_ROW_HEIGHT}px` }}
+		                          className={`absolute top-0 left-0 w-full border-b border-slate-300 flex items-center justify-between px-4 py-3 z-20 print:bg-slate-50 border-l-4 ${isPermanent ? 'bg-amber-50/80 border-l-amber-700' : 'bg-slate-100/90 border-l-slate-800'}`}
+		                          title={isPermanent ? 'Permanent gallery space' : 'Temporary exhibition space'}
+		                        >
+		                          <span className="font-bold uppercase text-[10px] tracking-[0.18em] text-slate-900 leading-tight line-clamp-2 pr-2">{gallery.name}</span>
+		                          {isPermanent && (
+		                            <span className="shrink-0 text-[7.5px] font-bold uppercase tracking-[0.14em] border border-amber-700/60 bg-white text-amber-800 px-1 py-[1px] rounded-sm">PERM</span>
+		                          )}
 		                        </div>
                         {galleryProjects.map(ex => {
-                          const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
+                          const trackIndex = galleryLayouts[gallery.name]!.tracks[ex.id];
                           if (trackIndex === undefined) return null;
                           const topPos = MILESTONE_ROW_HEIGHT + (trackIndex * TRACK_HEIGHT);
+                          const titleMaxHeight = Math.max(0, TRACK_HEIGHT - 6);
                           return (
-                            <div key={`title-${ex.id}`} className="absolute left-4 w-[calc(100%-1rem)] pr-2" style={{ top: topPos + 8 }}>
-                              <div className="text-[11px] font-bold text-slate-800 leading-tight break-words underline-offset-2" title={ex.title}>{ex.title}</div>
+                            <div
+                              key={`title-${ex.id}`}
+                              className="absolute left-4 w-[calc(100%-1rem)] pr-2 overflow-hidden"
+                              style={{ top: topPos + 4, maxHeight: `${titleMaxHeight}px` }}
+                            >
+                              <div className="text-[11px] font-bold text-slate-800 leading-tight line-clamp-2 underline-offset-2" title={ex.title}>{ex.title}</div>
                               {ex.exhibitionId && (
-                                <div className="text-[10px] font-bold text-slate-700 mt-0 uppercase tracking-tight">
+                                <div className="text-[10px] font-bold text-slate-700 mt-0 uppercase tracking-tight truncate">
                                   {ex.exhibitionId}
                                 </div>
                               )}
@@ -780,7 +712,7 @@ export default function MasterScheduler() {
                           );
                         })}
                         {galleryProjects.map(ex => {
-                          const trackIndex = galleryLayouts[gallery]!.tracks[ex.id];
+                          const trackIndex = galleryLayouts[gallery.name]!.tracks[ex.id];
                           if (trackIndex === undefined || trackIndex === 0) return null;
                           return (
                             <div key={`side-div-${ex.id}`} className="absolute w-full border-t-[1.5px] border-slate-200 left-0" style={{ top: MILESTONE_ROW_HEIGHT + trackIndex * TRACK_HEIGHT }} />
@@ -940,37 +872,8 @@ export default function MasterScheduler() {
                             </div>
 	                        </div>
 	                      )}
-                      {/* Provincial Holidays Lane */}
-                      {showHolidays && (
-                        <div style={{ height: `${HOLIDAY_LANE_HEIGHT}px` }} className="border-b border-black/10 bg-white/40 relative overflow-visible z-10">
-                          <div className={`absolute inset-0 bg-slate-50/50 -z-10`} />
-                          {holidayMilestones.map((holiday, i) => {
-                            if (holiday.xPos < 0 || holiday.xPos > viewMonths.length * monthWidth) return null;
-                            const labelPos = holidayLabelPositions[i];
-                            return (
-                              <div 
-                                key={`holiday-${i}`}
-                                className="absolute top-1/2 flex items-center justify-center pointer-events-auto"
-                                style={{ left: `${holiday.xPos}px`, transform: 'translate(-50%, -50%)' }}
-                              >
-                                <div 
-                                  className="group/holiday relative flex items-center justify-center cursor-help"
-                                  title={`${holiday.label} (${holiday.type} Holiday)`}
-                                >
-                                  <div className="w-2 h-2 rotate-45 border border-slate-400 shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-transform group-hover/holiday:scale-125 bg-slate-800" />
-                                  
-                                  <div className={`absolute left-1/2 -translate-x-1/2 text-[9px] font-medium uppercase text-slate-600 bg-white px-1.5 py-[1px] leading-tight border border-slate-200 shadow-md opacity-90 transition-all hover:bg-slate-50 hover:opacity-100 whitespace-nowrap z-30 pointer-events-none ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
-                                    {holiday.label} <span className="text-slate-400 font-normal">·</span> <span className="font-semibold text-slate-500">{formatBarDate(holiday.date)}</span>
-                                  </div>
-
-                                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-slate-400/0 group-hover/holiday:bg-slate-400/10 transition-colors pointer-events-none" />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-	                      {galleries.map((g) => {
+	                      {galleries.map((gallery) => {
+	                         const g = gallery.name;
 	                         const laneHeight = galleryLaneHeights[g] || BASE_LANE_HEIGHT;
 	                         const galleryProjects = filteredExhibitions.filter(ex => ex.gallery === g);
 
@@ -1024,7 +927,7 @@ export default function MasterScheduler() {
                          });
 
                          return (
-	                           <div key={g} style={{ height: `${laneHeight}px` }} className="border-b border-slate-300 gallery-lane-bg relative bg-[linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(248,250,252,0.95)_100%)] overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.01)]">
+	                           <div key={gallery.id} style={{ height: `${laneHeight}px` }} className={`border-b border-slate-300 gallery-lane-bg relative overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.01)] ${gallery.kind === 'permanent' ? 'bg-[linear-gradient(180deg,rgba(254,252,232,0.6)_0%,rgba(254,243,199,0.35)_100%)]' : 'bg-[linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(248,250,252,0.95)_100%)]'}`}>
                              {showConflicts && mergedOverlaps.map((overlap, i) => (
                                <div 
                                  key={`overlap-${i}`}
@@ -1039,7 +942,7 @@ export default function MasterScheduler() {
                              <div
                                style={{ height: `${MILESTONE_ROW_HEIGHT}px` }}
                                className="absolute top-0 left-0 w-full bg-slate-100/60 border-b-2 border-slate-200 z-20 group relative cursor-crosshair overflow-visible shadow-sm"
-                               onDoubleClick={(e) => {
+                               onDoubleClick={async (e) => {
                                  const rect = e.currentTarget.getBoundingClientRect();
                                  const x = Math.max(0, e.clientX - rect.left + timelineRef.current!.scrollLeft);
                                  const date = getDateFromPosition(x, monthWidth, viewMonths);
@@ -1052,6 +955,7 @@ export default function MasterScheduler() {
                                  };
                                  setLocationMilestones([...locationMilestones, newMilestone]);
                                  setEditMilestoneDraft(newMilestone);
+                                 // Auto-save handled by useMuseumSync.
                                }}
                              >
                                 <div className="absolute left-4 h-full flex items-center" />
@@ -1085,13 +989,14 @@ export default function MasterScheduler() {
                                         className="absolute top-1/2 flex items-center justify-center pointer-events-auto"
                                         style={{ left: `${m.xPos}px`, transform: 'translate(-50%, -50%)' }}
                                       >
-                                        <div 
+                                        <div
                                           className="transform hover:scale-125 transition-transform cursor-pointer flex items-center justify-center relative z-20"
                                           title={m.date}
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setEditMilestoneDraft(m);
                                           }}
+                                          onDoubleClick={(e) => e.stopPropagation()}
                                         >
                                           {m.icon === 'flag' ? (
                                             <div className="relative flex items-center justify-center pointer-events-none mt-1">
@@ -1104,7 +1009,7 @@ export default function MasterScheduler() {
                                           )}
                                         </div>
                                         <div className={`absolute left-1/2 -translate-x-1/2 text-[9px] font-medium uppercase text-slate-600 bg-white px-1.5 py-[1px] leading-tight border border-slate-200 shadow-md opacity-90 transition-all hover:bg-slate-50 hover:opacity-100 whitespace-nowrap z-30 pointer-events-none ${labelPos === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`}>
-                                          {m.title} <span className="text-slate-400 font-normal">·</span> <span className="font-semibold text-slate-500">{formatBarDate(m.date)}</span>
+                                          {m.title}
                                         </div>
                                       </div>
                                   );
@@ -1197,19 +1102,24 @@ export default function MasterScheduler() {
                                             }
                                           }
 
+                                          const labelTextColor = phase.type?.color
+                                            ? (parseInt(phase.type.color.slice(1, 3), 16) * 299 + parseInt(phase.type.color.slice(3, 5), 16) * 587 + parseInt(phase.type.color.slice(5, 7), 16) * 114) / 1000 >= 160 ? '#0f172a' : '#ffffff'
+                                            : '#0f172a';
                                           return (
                                             <React.Fragment key={phase.id}>
-                                              <div 
-                                                className="absolute flex items-center shadow-sm hover:shadow-md hover:opacity-90 bg-white/90 transition-all pointer-events-auto border border-white/60" 
-                                                style={{ left: `${phase.startX}px`, top: `${phase.y}px`, width: `${phase.width - 2}px`, height: `${PHASE_BAR_HEIGHT}px`, backgroundColor: phase.type?.color || '#eee' }}
-                                                title={phase.label}
-                                              />
                                               <div
-                                                className="absolute text-[9px] font-bold text-slate-800 tracking-tight whitespace-nowrap"
+                                                className="absolute flex items-center justify-start px-1 shadow-sm hover:shadow-md hover:opacity-90 transition-all pointer-events-auto border border-white/60 overflow-hidden"
+                                                style={{ left: `${phase.startX}px`, top: `${phase.y}px`, width: `${Math.max(phase.width - 2, 0)}px`, height: `${PHASE_BAR_HEIGHT}px`, backgroundColor: phase.type?.color || '#eee' }}
                                                 title={phase.label}
-                                                style={{ left: `${phase.startX}px`, top: `${phase.y + PHASE_BAR_HEIGHT + 2}px` }}
                                               >
-                                                {phase.label}
+                                                {phase.width >= 32 && (
+                                                  <span
+                                                    className="text-[8px] font-bold tracking-tight truncate leading-none w-full"
+                                                    style={{ color: labelTextColor }}
+                                                  >
+                                                    {phase.label}
+                                                  </span>
+                                                )}
                                               </div>
                                               {hasNext && (
                                                 <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0, width: 1, height: 1 }}>
@@ -1276,12 +1186,19 @@ export default function MasterScheduler() {
                                           backgroundImage: 'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)'
                                         }}
                                       >
-                                          <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2" title={ex.status}>
-                                            {width >= 80 ? (
-                                              <>
-                                                <StatusIcon status={ex.status} size={12} className="text-white opacity-90 shrink-0" />
-                                                <span className="font-bold text-[10px] uppercase tracking-[0.14em] text-white truncate leading-none pb-[0.5px]">{ex.title}</span>
-                                              </>
+                                          <div
+                                            className="shrink-0 h-full flex items-center justify-center px-2 bg-black/10 border-r border-white/10"
+                                            title={ex.status}
+                                          >
+                                            <StatusIcon status={ex.status} size={12} className="text-white opacity-90" />
+                                          </div>
+                                          <div className="flex-1 min-w-0 flex items-center justify-center px-2">
+                                            {width >= 180 ? (
+                                              <span className="font-bold text-[10px] uppercase tracking-[0.14em] text-white truncate block leading-none pb-[0.5px]">
+                                                {ex.title} • {formatBarDate(effStartDate)} - {formatBarDate(effEndDate)}
+                                              </span>
+                                            ) : width >= 100 ? (
+                                              <span className="font-bold text-[10px] uppercase tracking-[0.14em] text-white truncate block leading-none pb-[0.5px]">{ex.title}</span>
                                             ) : (
                                               <span className="font-bold text-[9px] uppercase tracking-[0.18em] text-white px-1 leading-none pb-[0.5px] truncate">
                                                 {ex.exhibitionId || 'PROJECT'}
@@ -1289,13 +1206,6 @@ export default function MasterScheduler() {
                                             )}
                                           </div>
                                       </motion.div>
-                                      <div
-                                        className="absolute text-[9px] font-bold text-slate-700 tracking-tight whitespace-nowrap pointer-events-none leading-none"
-                                        style={{ left: `${startPos}px`, top: `${mainBarY + STANDARD_BAR_HEIGHT + 2}px` }}
-                                        title={`${formatBarDate(effStartDate)} – ${formatBarDate(effEndDate)}`}
-                                      >
-                                        {formatBarDate(effStartDate)} – {formatBarDate(effEndDate)}
-                                      </div>
                                     </React.Fragment>
                                   );
                                 })}
@@ -1400,18 +1310,47 @@ export default function MasterScheduler() {
 	                </div>
 	                <div className="space-y-3">
 	                  {galleries.map((gallery, idx) => (
-	                    <div key={`${gallery}-${idx}`} className="flex items-center space-x-3 p-4 border border-slate-300 bg-white shadow-sm hover:shadow-md transition-all">
+	                    <div key={gallery.id} className="flex items-center space-x-3 p-4 border border-slate-300 bg-white shadow-sm hover:shadow-md transition-all">
                       <div className="w-8 h-8 bg-slate-100 flex items-center justify-center font-semibold text-slate-600 text-sm">{idx + 1}</div>
-                      <input 
+                      <input
                         aria-label={`Location name ${idx + 1}`}
-                        className="flex-1 font-semibold uppercase text-[14px] border-b-2 border-transparent focus:border-slate-300 bg-transparent outline-none py-1" 
-                        value={gallery} 
-                        onChange={(e) => handleUpdateGalleryName(gallery, e.target.value.toUpperCase())}
+                        className="flex-1 font-semibold uppercase text-[14px] border-b-2 border-transparent focus:border-slate-300 bg-transparent outline-none py-1"
+                        defaultValue={gallery.name}
+                        onBlur={(e) => {
+                          const next = e.target.value.toUpperCase().trim();
+                          if (next && next !== gallery.name) handleRenameGallery(gallery.id, next);
+                          else e.target.value = gallery.name;
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                          if (e.key === 'Escape') {
+                            (e.target as HTMLInputElement).value = gallery.name;
+                            (e.target as HTMLInputElement).blur();
+                          }
+                        }}
                       />
-                      <button 
-                        aria-label={`Remove location ${gallery}`}
+                      <div className="inline-flex border border-slate-300 overflow-hidden text-[10px] font-bold uppercase tracking-[0.12em] shrink-0" role="group" aria-label={`Gallery type for ${gallery.name}`}>
+                        <button
+                          type="button"
+                          onClick={() => handleSetGalleryKind(gallery.id, 'temporary')}
+                          className={`px-2.5 py-1.5 transition-colors ${gallery.kind !== 'permanent' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                          aria-pressed={gallery.kind !== 'permanent'}
+                        >
+                          TEMP
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSetGalleryKind(gallery.id, 'permanent')}
+                          className={`px-2.5 py-1.5 border-l border-slate-300 transition-colors ${gallery.kind === 'permanent' ? 'bg-amber-700 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                          aria-pressed={gallery.kind === 'permanent'}
+                        >
+                          PERM
+                        </button>
+                      </div>
+                      <button
+                        aria-label={`Remove location ${gallery.name}`}
                         disabled={galleries.length <= 1}
-                        onClick={() => handleRemoveGallery(gallery)}
+                        onClick={() => handleRemoveGallery(gallery.id)}
                         className={`p-2 text-slate-400 hover:text-red-600 transition-colors ${galleries.length <= 1 ? 'opacity-20 cursor-not-allowed' : ''}`}
                       >
                         <Trash2 size={16} />

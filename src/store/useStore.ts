@@ -1,42 +1,38 @@
 import { create } from 'zustand';
-import { Exhibition, PhaseType, LocationMilestone, ExhibitionStatus } from '../types';
+import { Exhibition, Gallery, PhaseType, LocationMilestone, ExhibitionStatus } from '../types';
 import { DEFAULT_GALLERIES, DEFAULT_PHASE_TYPES } from '../constants';
 
 interface AppState {
   // Config State
   museumName: string;
-  galleries: string[];
+  galleries: Gallery[];
   phaseTypes: PhaseType[];
-  
+
   // Timeline State
   exhibitions: Exhibition[];
   locationMilestones: LocationMilestone[];
-  
+
   // UI & Filter State
   monthWidth: number;
   timelineStartDate: string;
   timelineEndDate: string;
   searchQuery: string;
   statusFilter: ExhibitionStatus | 'All';
-  showHolidays: boolean;
   showConflicts: boolean;
-  density: 'compact' | 'comfortable';
 
   // Actions
   setMuseumName: (name: string) => void;
   setExhibitions: (exhibitions: Exhibition[] | ((prev: Exhibition[]) => Exhibition[])) => void;
-  setGalleries: (galleries: string[] | ((prev: string[]) => string[])) => void;
+  setGalleries: (galleries: Gallery[] | ((prev: Gallery[]) => Gallery[])) => void;
   setPhaseTypes: (types: PhaseType[] | ((prev: PhaseType[]) => PhaseType[])) => void;
   setLocationMilestones: (milestones: LocationMilestone[] | ((prev: LocationMilestone[]) => LocationMilestone[])) => void;
-  
+
   setMonthWidth: (width: number | ((prev: number) => number)) => void;
   setTimelineStartDate: (date: string) => void;
   setTimelineEndDate: (date: string) => void;
   setSearchQuery: (query: string) => void;
   setStatusFilter: (filter: ExhibitionStatus | 'All') => void;
-  setShowHolidays: (show: boolean) => void;
   setShowConflicts: (show: boolean) => void;
-  setDensity: (density: 'compact' | 'comfortable') => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -52,9 +48,7 @@ export const useStore = create<AppState>((set) => ({
   timelineEndDate: '2030-12-31',
   searchQuery: '',
   statusFilter: 'All',
-  showHolidays: true,
   showConflicts: true,
-  density: 'comfortable',
 
   setMuseumName: (name) => set({ museumName: name }),
   setExhibitions: (updater) => set((state) => ({ 
@@ -77,7 +71,5 @@ export const useStore = create<AppState>((set) => ({
   setTimelineEndDate: (date) => set({ timelineEndDate: date }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setStatusFilter: (filter) => set({ statusFilter: filter }),
-  setShowHolidays: (show) => set({ showHolidays: show }),
   setShowConflicts: (show) => set({ showConflicts: show }),
-  setDensity: (density) => set({ density }),
 }));

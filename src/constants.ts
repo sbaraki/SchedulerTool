@@ -1,17 +1,18 @@
-import { PhaseType } from './types';
+import { Gallery, PhaseType } from './types';
 
 // Storage version: bump when the corresponding data shape changes in a non-back-compatible way.
-// CONFIG is at v5 because phaseTypes shape evolved (isActive/isPost flags) after exhibitions/milestones.
-// Exhibitions and milestones share v4 — their shapes have not changed since.
+// CONFIG is at v6 because galleries became Gallery[] objects (id/name/kind) instead of string[].
+// Migration in useMuseumSync also accepts older v5 payloads.
 export const STORAGE_KEY = 'exhibition_planner_brutalist_v4';
 export const MILESTONES_STORAGE_KEY = 'exhibition_planner_milestones_v4';
-export const CONFIG_STORAGE_KEY = 'exhibition_planner_config_v5';
+export const CONFIG_STORAGE_KEY = 'exhibition_planner_config_v6';
+export const LEGACY_CONFIG_STORAGE_KEYS = ['exhibition_planner_config_v5'];
 
-export const DEFAULT_GALLERIES = [
-  'FEATURE GALLERY',
-  'NATURAL HISTORY SOUTH',
-  'HUMAN HISTORY NORTH',
-  'HUMAN HISTORY SOUTH'
+export const DEFAULT_GALLERIES: Gallery[] = [
+  { id: 'gal_feature', name: 'FEATURE GALLERY', kind: 'temporary' },
+  { id: 'gal_nat_south', name: 'NATURAL HISTORY SOUTH', kind: 'permanent' },
+  { id: 'gal_hum_north', name: 'HUMAN HISTORY NORTH', kind: 'permanent' },
+  { id: 'gal_hum_south', name: 'HUMAN HISTORY SOUTH', kind: 'permanent' }
 ];
 
 export const DEFAULT_PHASE_TYPES: PhaseType[] = [
@@ -97,7 +98,7 @@ export const getAlbertaHolidays = (startYear: number, endYear: number) => {
 export const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 export const FY_QUARTERS = ['Q4', 'Q1', 'Q2', 'Q3'];
 export const MILESTONE_ROW_HEIGHT = 64;
-export const LANE_BOTTOM_PADDING = 14;
+export const LANE_BOTTOM_PADDING = 24;
 export const BASE_LANE_HEIGHT = 116;
 export const HOLIDAY_LANE_HEIGHT = 72;
 export const TRACK_HEIGHT = 34;
@@ -114,7 +115,7 @@ export const getStatusStyles = (status: string) => {
       border: '#10b981', 
       text: '#064e3b',
       label: 'OPEN TO PUBLIC',
-      icon: 'ticket'
+      icon: 'globe'
     };
     case 'In Development': return { 
       accent: '#d97706', 
@@ -130,7 +131,7 @@ export const getStatusStyles = (status: string) => {
       border: '#d1d5db', 
       text: '#1f2937',
       label: 'PROPOSED',
-      icon: 'lightbulb'
+      icon: 'circle-dashed'
     };
     case 'Closed': return { 
       accent: '#000000', 

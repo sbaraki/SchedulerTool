@@ -1,8 +1,38 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store/useStore';
-import { CONFIG_STORAGE_KEY, MILESTONES_STORAGE_KEY, STORAGE_KEY, DEFAULT_PHASE_TYPES, DEFAULT_GALLERIES } from '../constants';
-import { Exhibition, LocationMilestone, PhaseType } from '../types';
+import { CONFIG_STORAGE_KEY, LEGACY_CONFIG_STORAGE_KEYS, MILESTONES_STORAGE_KEY, STORAGE_KEY, DEFAULT_PHASE_TYPES, DEFAULT_GALLERIES } from '../constants';
+import { Exhibition, Gallery, LocationMilestone, PhaseType } from '../types';
 import { getGistData, updateGistData } from '../lib/githubGist';
+
+const galleryIdFromName = (name: string) => `gal_${name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || Math.random().toString(36).slice(2, 8)}`;
+
+// Accept legacy string[] payloads from localStorage/Gist and upgrade them in place.
+const normalizeGalleries = (raw: unknown): Gallery[] => {
+  if (!Array.isArray(raw)) return DEFAULT_GALLERIES;
+  const seenIds = new Set<string>();
+  const result: Gallery[] = [];
+  raw.forEach((entry) => {
+    if (typeof entry === 'string') {
+      const trimmed = entry.trim();
+      if (!trimmed) return;
+      const matchedDefault = DEFAULT_GALLERIES.find((g) => g.name === trimmed);
+      let id = matchedDefault?.id ?? galleryIdFromName(trimmed);
+      while (seenIds.has(id)) id = `${id}_${Math.random().toString(36).slice(2, 5)}`;
+      seenIds.add(id);
+      result.push({ id, name: trimmed, kind: matchedDefault?.kind ?? 'temporary' });
+    } else if (entry && typeof entry === 'object') {
+      const obj = entry as Partial<Gallery>;
+      const name = (obj.name ?? '').toString().trim();
+      if (!name) return;
+      let id = obj.id?.toString().trim() || galleryIdFromName(name);
+      while (seenIds.has(id)) id = `${id}_${Math.random().toString(36).slice(2, 5)}`;
+      seenIds.add(id);
+      const kind: Gallery['kind'] = obj.kind === 'permanent' ? 'permanent' : 'temporary';
+      result.push({ id, name, kind });
+    }
+  });
+  return result.length ? result : DEFAULT_GALLERIES;
+};
 
 export interface GithubUser {
   pat: string;
@@ -62,11 +92,18 @@ export const useMuseumSync = () => {
       const savedMs = localStorage.getItem(MILESTONES_STORAGE_KEY);
       if (savedMs) setLocationMilestones(JSON.parse(savedMs));
 
-      const savedCfg = localStorage.getItem(CONFIG_STORAGE_KEY);
+      let savedCfg = localStorage.getItem(CONFIG_STORAGE_KEY);
+      if (!savedCfg) {
+        // Migrate from older config keys so users don't lose museum name / galleries on upgrade.
+        for (const legacyKey of LEGACY_CONFIG_STORAGE_KEYS) {
+          const legacy = localStorage.getItem(legacyKey);
+          if (legacy) { savedCfg = legacy; break; }
+        }
+      }
       if (savedCfg) {
         const parsedCfg = JSON.parse(savedCfg);
         if (parsedCfg.museumName) setMuseumName(parsedCfg.museumName);
-        if (parsedCfg.galleries) setGalleries(parsedCfg.galleries);
+        setGalleries(normalizeGalleries(parsedCfg.galleries));
         const parsedPhaseTypes = (parsedCfg.phaseTypes || []).filter((phaseType: PhaseType) => phaseType.label !== 'PRODUCTION / FAB');
         setPhaseTypes(normalizePhaseTypes(parsedPhaseTypes));
       }
@@ -105,14 +142,15 @@ export const useMuseumSync = () => {
         const data = await getGistData(currentUser.gistId, currentUser.pat);
         if (data) {
           if (data.museumName) setMuseumName(data.museumName);
-          if (data.galleries) setGalleries(data.galleries);
+          const normalizedGalleries = normalizeGalleries(data.galleries);
+          setGalleries(normalizedGalleries);
           if (data.phaseTypes) setPhaseTypes(normalizePhaseTypes(data.phaseTypes));
           if (data.exhibitions) setExhibitions(data.exhibitions);
           if (data.locationMilestones) setLocationMilestones(data.locationMilestones);
-          
+
           lastSyncedStateRef.current = JSON.stringify({
             museumName: data.museumName || 'NATIONAL HERITAGE TRUST',
-            galleries: data.galleries || DEFAULT_GALLERIES,
+            galleries: normalizedGalleries,
             phaseTypes: normalizePhaseTypes(data.phaseTypes || []),
             exhibitions: data.exhibitions || [],
             locationMilestones: data.locationMilestones || []
