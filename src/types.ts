@@ -1,5 +1,13 @@
 export type ExhibitionStatus = 'Proposed' | 'In Development' | 'Open to Public' | 'Closed';
 
+export type GalleryKind = 'permanent' | 'temporary';
+
+export interface Gallery {
+  id: string;
+  name: string;
+  kind: GalleryKind;
+}
+
 export interface PhaseType {
   id: string;
   label: string;

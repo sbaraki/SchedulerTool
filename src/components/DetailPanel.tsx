@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Check, Edit2, X, Trash2, ChevronUp, ChevronDown, Copy } from 'lucide-react';
-import { Exhibition, ProjectPhase, PhaseType } from '../types';
+import { Exhibition, Gallery, ProjectPhase, PhaseType } from '../types';
 import { getDateWithMonthDuration, getDurationMonths } from '../lib/dateUtils';
 import { getStatusStyles } from '../constants';
 
@@ -19,7 +19,7 @@ export const DetailPanel = ({
   onUpdate: (ex: Exhibition) => void; 
   onDelete: (id: string) => void; 
   onDuplicate: (id: string) => void;
-  galleries: string[];
+  galleries: Gallery[];
   phaseTypes: PhaseType[];
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -219,7 +219,11 @@ export const DetailPanel = ({
                 value={editedEx.gallery} 
                 onChange={(e) => handleFieldChange('gallery', e.target.value)}
               >
-                {galleries.map(g => <option key={g} value={g}>{g}</option>)}
+                {galleries.map(g => (
+                  <option key={g.id} value={g.name}>
+                    {g.name}{g.kind === 'permanent' ? ' (PERMANENT)' : ''}
+                  </option>
+                ))}
               </select>
             ) : (
               <p className="font-medium text-sm uppercase">{exhibition.gallery}</p>

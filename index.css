@@ -92,43 +92,6 @@
     color: #475569 !important;
   }
 
-  /* Status legend (sidebar header) — keep all four rows on a single line each
-     across every preset (1y–5y). Because the timeline applies `zoom` uniformly
-     to the whole layout, sidebar and label widths scale together, so sizing
-     for the no-zoom case keeps the legend wrap-free at every preset. */
-  aside > div:first-child {
-    padding: 8px 10px !important;
-    gap: 4px !important;
-    justify-content: space-evenly !important;
-    background: white !important;
-    background-image: none !important;
-    overflow: hidden !important;
-  }
-
-  aside > div:first-child > div {
-    gap: 6px !important;
-    flex-wrap: nowrap !important;
-    min-width: 0 !important;
-  }
-
-  aside > div:first-child svg {
-    width: 11px !important;
-    height: 11px !important;
-    color: #475569 !important;
-    flex-shrink: 0 !important;
-  }
-
-  aside > div:first-child span.font-bold.uppercase {
-    font-size: 10px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.03em !important;
-    color: #1e293b !important;
-    line-height: 1.15 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: clip !important;
-  }
-
   /* Sidebar project labels */
   aside [title] {
     font-size: 11px !important;

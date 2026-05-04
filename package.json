@@ -1,7 +1,7 @@
 {
-  "name": "brutal-scheduler---v2.2",
+  "name": "scheduler-tool",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,6 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "@google/genai": "1.38.0",
     "date-fns": "^4.1.0",
     "lucide-react": "0.475.0",
     "motion": "^12.38.0",
